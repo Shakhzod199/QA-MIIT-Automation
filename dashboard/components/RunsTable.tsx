@@ -1,24 +1,5 @@
-import { formatDuration, formatRelativeTime } from "@/lib/format";
+import { formatDuration, formatRelativeTime, getStatusBadge } from "@/lib/format";
 import type { RunSummary } from "@/lib/types";
-
-function statusBadge(run: RunSummary): { label: string; className: string } {
-  if (run.status !== "completed") {
-    return run.status === "in_progress"
-      ? { label: "Running", className: "bg-blue-500/20 text-blue-300" }
-      : { label: "Queued", className: "bg-gray-500/20 text-gray-300" };
-  }
-
-  switch (run.conclusion) {
-    case "success":
-      return { label: "Passed", className: "bg-green-500/20 text-green-300" };
-    case "failure":
-      return { label: "Failed", className: "bg-red-500/20 text-red-300" };
-    case "cancelled":
-      return { label: "Cancelled", className: "bg-gray-500/20 text-gray-300" };
-    default:
-      return { label: run.conclusion ?? "Unknown", className: "bg-gray-500/20 text-gray-300" };
-  }
-}
 
 export function RunsTable({ runs }: { runs: RunSummary[] }) {
   if (runs.length === 0) {
@@ -43,7 +24,7 @@ export function RunsTable({ runs }: { runs: RunSummary[] }) {
         </thead>
         <tbody>
           {runs.map((run) => {
-            const badge = statusBadge(run);
+            const badge = getStatusBadge(run.status, run.conclusion);
             return (
               <tr key={run.id} className="border-b border-surface-border last:border-0">
                 <td className="px-4 py-3">

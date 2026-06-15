@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SidebarNav } from "@/components/SidebarNav";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -16,14 +17,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <h1 className="text-lg font-semibold text-white">QA Dashboard</h1>
               <p className="text-xs text-gray-500">new-export automation</p>
             </div>
-            <nav className="space-y-1">
-              <a
-                href="/"
-                className="block rounded-md bg-surface-hover px-3 py-2 text-sm font-medium text-white"
-              >
-                Dashboard
-              </a>
-            </nav>
+            <SidebarNav />
           </aside>
           <main className="flex-1 p-8">{children}</main>
         </div>

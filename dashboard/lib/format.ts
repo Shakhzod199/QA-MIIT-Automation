@@ -21,3 +21,37 @@ export function formatDuration(sec: number | null): string {
   const s = sec % 60;
   return m > 0 ? `${m}m ${s}s` : `${s}s`;
 }
+
+export function formatDateTime(iso: string): string {
+  return new Date(iso).toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+export interface StatusBadge {
+  label: string;
+  className: string;
+}
+
+export function getStatusBadge(status: string, conclusion: string | null): StatusBadge {
+  if (status !== "completed") {
+    return status === "in_progress"
+      ? { label: "Running", className: "bg-blue-500/20 text-blue-300" }
+      : { label: "Queued", className: "bg-gray-500/20 text-gray-300" };
+  }
+
+  switch (conclusion) {
+    case "success":
+      return { label: "Passed", className: "bg-green-500/20 text-green-300" };
+    case "failure":
+      return { label: "Failed", className: "bg-red-500/20 text-red-300" };
+    case "cancelled":
+      return { label: "Cancelled", className: "bg-gray-500/20 text-gray-300" };
+    default:
+      return { label: conclusion ?? "Unknown", className: "bg-gray-500/20 text-gray-300" };
+  }
+}
