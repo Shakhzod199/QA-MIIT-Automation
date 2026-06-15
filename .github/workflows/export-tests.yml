@@ -1,13 +1,13 @@
-name: Auth Tests
+name: export Tests
 
 on:
   workflow_dispatch:
   push:
     branches: [main]
     paths:
-      - "playwright-tests/tests/auth/**"
+      - "playwright-tests/tests/export/**"
       - "playwright-tests/playwright.config.ts"
-      - ".github/workflows/auth-tests.yml"
+      - ".github/workflows/export-tests.yml"
 
 env:
   # TODO: point this at a real deployed/staging environment of export.miit.uz
@@ -32,7 +32,7 @@ jobs:
 
       - run: npx playwright install --with-deps chromium
 
-      - run: npx playwright test tests/auth
+      - run: npx playwright test tests/export
 
       - uses: actions/upload-artifact@v4
         if: always()
