@@ -46,3 +46,42 @@ export interface TriggerResponse {
   ok: boolean;
   error?: string;
 }
+
+export interface JobStep {
+  name: string;
+  status: string;
+  conclusion: string | null;
+  number: number;
+  durationSec: number | null;
+}
+
+export interface JobSummary {
+  id: number;
+  name: string;
+  status: string;
+  conclusion: string | null;
+  durationSec: number | null;
+  htmlUrl: string;
+  steps: JobStep[];
+}
+
+export interface ArtifactSummary {
+  id: number;
+  name: string;
+  sizeInBytes: number;
+  expired: boolean;
+}
+
+export interface RunDetail extends RunSummary {
+  event: string;
+  actor: string | null;
+  updatedAt: string;
+}
+
+export interface RunDetailResponse {
+  configured: boolean;
+  run?: RunDetail;
+  jobs: JobSummary[];
+  artifacts: ArtifactSummary[];
+  error?: string;
+}

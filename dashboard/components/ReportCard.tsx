@@ -1,8 +1,11 @@
+import Link from "next/link";
+import { ChevronRightIcon, ExternalLinkIcon, FlaskIcon } from "@/components/icons";
 import { formatDateTime, formatDuration, formatRelativeTime, getStatusBadge } from "@/lib/format";
 import type { RunSummary } from "@/lib/types";
 
 export function ReportCard({ run }: { run: RunSummary }) {
   const badge = getStatusBadge(run.status, run.conclusion);
+  const reportReady = run.status === "completed";
 
   return (
     <div className="flex flex-col justify-between rounded-lg border border-surface-border bg-surface-panel p-4">
@@ -22,16 +25,35 @@ export function ReportCard({ run }: { run: RunSummary }) {
         </div>
         <p className="mt-1 text-xs text-gray-500">{formatRelativeTime(run.createdAt)}</p>
       </div>
-      <div className="mt-4 flex items-center gap-3 border-t border-surface-border pt-3">
+      <div className="mt-4 flex items-center gap-4 border-t border-surface-border pt-3 text-sm font-medium">
+        {reportReady ? (
+          <a
+            href={`/api/runs/${run.id}/report`}
+            className="flex items-center gap-1.5 text-indigo-400 hover:text-indigo-300"
+            title="Download Playwright HTML report"
+          >
+            <FlaskIcon className="h-4 w-4" />
+            Test Results
+          </a>
+        ) : (
+          <span className="flex items-center gap-1.5 text-gray-600" title="Available once the run completes">
+            <FlaskIcon className="h-4 w-4" />
+            Test Results
+          </span>
+        )}
+        <Link href={`/reports/${run.id}`} className="flex items-center gap-1 text-gray-300 hover:text-white">
+          Details
+          <ChevronRightIcon className="h-4 w-4" />
+        </Link>
         <a
           href={run.htmlUrl}
           target="_blank"
           rel="noreferrer"
-          className="text-sm font-medium text-indigo-400 hover:text-indigo-300"
+          className="ml-auto flex items-center gap-1.5 text-gray-400 hover:text-white"
         >
-          View run →
+          GitHub
+          <ExternalLinkIcon className="h-4 w-4" />
         </a>
-        <span className="text-xs text-gray-500">Report artifact under "Artifacts" on the run page</span>
       </div>
     </div>
   );

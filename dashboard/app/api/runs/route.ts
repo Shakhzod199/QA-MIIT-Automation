@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getGithubConfig, githubFetch } from "@/lib/github";
+import { mapRun } from "@/lib/mappers";
 import type { RunStats, RunSummary, RunsResponse } from "@/lib/types";
 
 function emptyStats(): RunStats {
@@ -36,28 +37,6 @@ function computeStats(runs: RunSummary[]): RunStats {
     passRate: completed > 0 ? Math.round((passed / completed) * 100) : 0,
     failRate: completed > 0 ? Math.round((failed / completed) * 100) : 0,
     lastRunAt: runs[0]?.createdAt ?? null,
-  };
-}
-
-function mapRun(run: any): RunSummary {
-  let durationSec: number | null = null;
-  if (run.run_started_at && run.updated_at && run.status === "completed") {
-    const start = new Date(run.run_started_at).getTime();
-    const end = new Date(run.updated_at).getTime();
-    durationSec = Math.max(0, Math.round((end - start) / 1000));
-  }
-
-  return {
-    id: run.id,
-    name: run.name ?? run.display_title ?? "Run",
-    runNumber: run.run_number,
-    workflowId: run.workflow_id,
-    status: run.status,
-    conclusion: run.conclusion,
-    branch: run.head_branch,
-    createdAt: run.created_at,
-    durationSec,
-    htmlUrl: run.html_url,
   };
 }
 
