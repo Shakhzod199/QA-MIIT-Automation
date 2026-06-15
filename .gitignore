@@ -1,0 +1,21 @@
+# Node
+node_modules/
+
+# Playwright
+/test-results/
+/playwright-report/
+/playwright/.cache/
+/blob-report/
+
+# Dashboard (Next.js)
+dashboard/.next/
+dashboard/out/
+dashboard/node_modules/
+
+# Env
+.env
+.env.local
+*.local
+
+# OS
+.DS_Store
