@@ -125,7 +125,10 @@ export default function RunDetailPage({ params }: { params: { id: string } }) {
       </div>
 
       <div>
-        <h3 className="mb-3 text-lg font-medium text-white">Jobs</h3>
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-lg font-medium text-white">Jobs</h3>
+          <span className="text-sm text-gray-500">{jobs.length} job{jobs.length !== 1 ? "s" : ""}</span>
+        </div>
         {jobs.length === 0 ? (
           <div className="rounded-lg border border-surface-border bg-surface-panel p-8 text-center text-sm text-gray-500">
             No jobs found for this run yet.
@@ -135,29 +138,76 @@ export default function RunDetailPage({ params }: { params: { id: string } }) {
             {jobs.map((job) => {
               const jobBadge = getStatusBadge(job.status, job.conclusion);
               return (
-                <div key={job.id} className="rounded-lg border border-surface-border bg-surface-panel p-4">
-                  <div className="flex items-center justify-between">
+                <div key={job.id} className="rounded-lg border border-surface-border bg-surface-panel">
+                  <div className="flex items-center justify-between border-b border-surface-border px-4 py-3">
                     <h4 className="font-medium text-white">{job.name}</h4>
                     <div className="flex items-center gap-3">
                       <span className="text-sm text-gray-400">{formatDuration(job.durationSec)}</span>
-                      <span className={`rounded-full px-2 py-1 text-xs font-medium ${jobBadge.className}`}>
+                      <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${jobBadge.className}`}>
                         {jobBadge.label}
                       </span>
+                      <a
+                        href={job.htmlUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-gray-500 hover:text-white"
+                        title="View job on GitHub"
+                      >
+                        <ExternalLinkIcon className="h-4 w-4" />
+                      </a>
                     </div>
                   </div>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {job.steps.map((step) => {
-                      const stepBadge = getStatusBadge(step.status, step.conclusion);
-                      return (
-                        <span
-                          key={step.number}
-                          className={`rounded px-2 py-1 text-xs font-medium ${stepBadge.className}`}
-                        >
-                          {step.name}
-                          {step.durationSec != null ? ` · ${formatDuration(step.durationSec)}` : ""}
-                        </span>
-                      );
-                    })}
+                  <div className="overflow-x-auto px-4 py-4">
+                    <div className="flex min-w-max items-center gap-0">
+                      {job.steps.map((step, idx) => {
+                        const isSuccess = step.conclusion === "success";
+                        const isFailure = step.conclusion === "failure";
+                        const isSkipped = step.conclusion === "skipped";
+                        const isRunning = step.status === "in_progress";
+                        return (
+                          <div key={step.number} className="flex items-center">
+                            <div
+                              className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-xs ${
+                                isFailure
+                                  ? "border-red-500/40 bg-red-500/10"
+                                  : isSuccess
+                                    ? "border-green-500/30 bg-green-500/5"
+                                    : isRunning
+                                      ? "border-blue-500/40 bg-blue-500/10"
+                                      : "border-surface-border bg-surface-hover"
+                              }`}
+                            >
+                              <span
+                                className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
+                                  isFailure
+                                    ? "bg-red-500 text-white"
+                                    : isSuccess
+                                      ? "bg-green-500 text-white"
+                                      : isRunning
+                                        ? "bg-blue-500 text-white"
+                                        : isSkipped
+                                          ? "bg-gray-600 text-gray-300"
+                                          : "bg-gray-600 text-gray-300"
+                                }`}
+                              >
+                                {isFailure ? "✕" : isSuccess ? "✓" : isRunning ? "●" : "–"}
+                              </span>
+                              <span className={`max-w-[140px] truncate font-medium ${isFailure ? "text-red-300" : isSuccess ? "text-gray-200" : "text-gray-400"}`}>
+                                {step.name}
+                              </span>
+                              {step.durationSec != null && step.durationSec > 0 && (
+                                <span className={`shrink-0 ${isFailure ? "text-red-400" : "text-gray-500"}`}>
+                                  {formatDuration(step.durationSec)}
+                                </span>
+                              )}
+                            </div>
+                            {idx < job.steps.length - 1 && (
+                              <span className="mx-1 shrink-0 text-gray-600">→</span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               );
