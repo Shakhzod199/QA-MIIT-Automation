@@ -1,33 +1,25 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
+import { loginAction } from "./actions";
 
 export default function LoginPage() {
-  const router = useRouter();
-  const [username, setUsername] = useState("Shakh199");
-  const [password, setPassword] = useState("shakh199");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError("");
-
-    const res = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password }),
+    startTransition(async () => {
+      const result = await loginAction(username, password);
+      if ("success" in result) {
+        window.location.href = "/";
+      } else {
+        setError(result.error);
+      }
     });
-
-    if (res.ok) {
-      router.push("/");
-      router.refresh();
-    } else {
-      setError("Invalid username or password");
-      setLoading(false);
-    }
   };
 
   return (
@@ -79,10 +71,10 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={isPending}
             className="w-full rounded-md bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {loading ? "Signing in…" : "Sign in"}
+            {isPending ? "Signing in…" : "Sign in"}
           </button>
         </form>
       </div>
