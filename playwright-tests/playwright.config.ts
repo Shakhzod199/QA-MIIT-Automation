@@ -1,22 +1,41 @@
 import { defineConfig, devices } from "@playwright/test";
 
-/**
- * BASE_URL points at the new-export frontend under test.
- * Locally this is the Vite dev server (`pnpm dev` -> :3001 in new-export-main).
- * In CI this defaults to the same value as a placeholder until a real
- * staging/preview target is wired up.
- */
 const BASE_URL = process.env.BASE_URL ?? "http://localhost:3001";
 
+// ---------------------------------------------------------------------------
+// One project entry per product/team.
+// Each entry points at its own testDir so the CLI output, HTML report, and
+// --project filter all stay cleanly separated.
+//
+// To add a new project:
+//   1. mkdir tests/<project-name>/
+//   2. Copy an existing block below and change `name` and `testDir`
+//   3. Override baseURL if the target runs on a different port
+// ---------------------------------------------------------------------------
 export default defineConfig({
-  testDir: "./tests",
   fullyParallel: true,
   retries: process.env.CI ? 1 : 0,
   reporter: [["html", { open: "never" }], ["json", { outputFile: "playwright-report/results.json" }], ["list"]],
   use: {
-    baseURL: BASE_URL,
     trace: "on-first-retry",
     screenshot: "only-on-failure",
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [
+    // ── new-export frontend ────────────────────────────────────────────────
+    {
+      name: "export",
+      testDir: "./tests/export",
+      use: {
+        ...devices["Desktop Chrome"],
+        baseURL: BASE_URL,
+      },
+    },
+
+    // ── add new projects below this line ──────────────────────────────────
+    // {
+    //   name: "billing",
+    //   testDir: "./tests/billing",
+    //   use: { ...devices["Desktop Chrome"], baseURL: "http://localhost:3002" },
+    // },
+  ],
 });

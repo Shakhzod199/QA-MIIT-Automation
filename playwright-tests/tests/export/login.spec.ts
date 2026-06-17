@@ -50,8 +50,8 @@ const TEXT = {
 };
 
 const VALID_USER = {
-  username: "qa_admin",
-  password: "qa_password123",
+  username: "admin",
+  password: "newexport26",
 };
 
 const MOCK_USER_DTO = {
@@ -156,9 +156,10 @@ async function openLoginModal(page: Page) {
     await trigger.click();
   }
 
-  // Modal scope: LoginModal.vue uses <n-modal preset="card">, naive-ui
-  // renders the card as ".n-card" inside ".n-modal" once show=true.
-  const modal = page.locator(".n-modal .n-card");
+  // Modal scope: LoginModal.vue uses <n-modal preset="card">, naive-ui 2.43
+  // renders the card with BOTH classes on the same element: class="n-card n-modal".
+  // The descendant selector ".n-modal .n-card" never matches — use compound selector.
+  const modal = page.locator(".n-card.n-modal");
   await expect(modal).toBeVisible();
   return modal;
 }
@@ -179,7 +180,7 @@ test.describe("Login flow - export.miit.uz", () => {
     await expect(page.getByRole("button", { name: TEXT.loginTrigger, exact: true })).toBeAttached();
 
     // Login modal/form is not open yet.
-    await expect(page.locator(".n-modal .n-card")).toHaveCount(0);
+    await expect(page.locator(".n-card.n-modal")).toHaveCount(0);
   });
 
   test("clicking the hidden login trigger 5x opens the username/password form", async ({ page }) => {
