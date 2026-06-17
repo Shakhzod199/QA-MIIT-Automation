@@ -27,14 +27,14 @@ export function ReportCard({ run }: { run: RunSummary }) {
       </div>
       <div className="mt-4 flex items-center gap-4 border-t border-surface-border pt-3 text-sm font-medium">
         {reportReady ? (
-          <a
-            href={`/api/runs/${run.id}/report`}
+          <Link
+            href={`/reports/${run.id}/results`}
             className="flex items-center gap-1.5 text-indigo-400 hover:text-indigo-300"
-            title="Download Playwright HTML report"
+            title="View Playwright HTML report"
           >
             <FlaskIcon className="h-4 w-4" />
             Test Results
-          </a>
+          </Link>
         ) : (
           <span className="flex items-center gap-1.5 text-gray-600" title="Available once the run completes">
             <FlaskIcon className="h-4 w-4" />

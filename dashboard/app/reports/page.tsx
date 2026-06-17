@@ -26,14 +26,21 @@ export default function ReportsPage() {
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [projectFilter, setProjectFilter] = useState("all");
   const [sortOrder, setSortOrder] = useState<SortOrder>("newest");
 
   const runs = data?.runs ?? [];
+
+  const projectNames = useMemo(() => {
+    const names = new Set(runs.map((r) => r.name));
+    return Array.from(names).sort();
+  }, [runs]);
 
   const filteredRuns = useMemo(() => {
     const query = search.trim().toLowerCase();
 
     const filtered = runs.filter((run) => {
+      if (projectFilter !== "all" && run.name !== projectFilter) return false;
       if (statusFilter === "running" && run.status === "completed") return false;
       if (statusFilter === "success" && !(run.status === "completed" && run.conclusion === "success")) return false;
       if (statusFilter === "failure" && !(run.status === "completed" && run.conclusion === "failure")) return false;
@@ -51,7 +58,7 @@ export default function ReportsPage() {
       const diff = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
       return sortOrder === "newest" ? -diff : diff;
     });
-  }, [runs, search, statusFilter, sortOrder]);
+  }, [runs, search, statusFilter, projectFilter, sortOrder]);
 
   return (
     <div className="space-y-6">
@@ -87,6 +94,16 @@ export default function ReportsPage() {
               </button>
             ))}
           </div>
+          <select
+            value={projectFilter}
+            onChange={(e) => setProjectFilter(e.target.value)}
+            className="rounded-md border border-surface-border bg-surface-panel px-3 py-2 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          >
+            <option value="all">All Projects</option>
+            {projectNames.map((name) => (
+              <option key={name} value={name}>{name}</option>
+            ))}
+          </select>
           <select
             value={sortOrder}
             onChange={(e) => setSortOrder(e.target.value as SortOrder)}

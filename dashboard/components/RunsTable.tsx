@@ -1,7 +1,7 @@
 import { formatDuration, formatRelativeTime, getStatusBadge } from "@/lib/format";
 import type { RunSummary } from "@/lib/types";
 
-export function RunsTable({ runs }: { runs: RunSummary[] }) {
+export function RunsTable({ runs, hideProject = false }: { runs: RunSummary[]; hideProject?: boolean }) {
   if (runs.length === 0) {
     return (
       <div className="rounded-lg border border-surface-border bg-surface-panel p-8 text-center text-sm text-gray-500">
@@ -29,7 +29,8 @@ export function RunsTable({ runs }: { runs: RunSummary[] }) {
               <tr key={run.id} className="border-b border-surface-border last:border-0">
                 <td className="px-4 py-3">
                   <a href={run.htmlUrl} target="_blank" rel="noreferrer" className="hover:underline">
-                    {run.name} <span className="text-gray-500">#{run.runNumber}</span>
+                    {!hideProject && <span className="mr-1">{run.name}</span>}
+                    <span className="text-gray-500">#{run.runNumber}</span>
                   </a>
                 </td>
                 <td className="px-4 py-3">

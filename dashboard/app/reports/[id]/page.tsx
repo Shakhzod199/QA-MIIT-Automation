@@ -103,7 +103,7 @@ export default function RunDetailPage({ params }: { params: { id: string } }) {
             <h3 className="font-medium text-white">Playwright Test Report</h3>
             <p className="text-sm text-gray-400">
               {hasReport
-                ? "Download the HTML report artifact (includes traces, screenshots and failure details)."
+                ? "View the full HTML report with pass/fail details, traces, and screenshots."
                 : run.status !== "completed"
                   ? "The report will be available once this run finishes."
                   : "No report artifact was found for this run (it may have expired)."}
@@ -111,15 +111,23 @@ export default function RunDetailPage({ params }: { params: { id: string } }) {
           </div>
         </div>
         {hasReport ? (
-          <a
-            href={`/api/runs/${run.id}/report`}
-            className="shrink-0 rounded-md bg-indigo-600 px-4 py-2 text-center text-sm font-medium text-white transition hover:bg-indigo-500"
-          >
-            Download Report
-          </a>
+          <div className="flex shrink-0 items-center gap-3">
+            <a
+              href={`/api/runs/${run.id}/report`}
+              className="text-xs text-gray-500 hover:text-gray-300 underline"
+            >
+              Download zip
+            </a>
+            <Link
+              href={`/reports/${run.id}/results`}
+              className="rounded-md bg-indigo-600 px-4 py-2 text-center text-sm font-medium text-white transition hover:bg-indigo-500"
+            >
+              View Report
+            </Link>
+          </div>
         ) : (
           <span className="shrink-0 cursor-not-allowed rounded-md bg-surface-hover px-4 py-2 text-center text-sm font-medium text-gray-500">
-            Download Report
+            View Report
           </span>
         )}
       </div>

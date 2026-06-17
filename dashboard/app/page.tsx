@@ -1,11 +1,12 @@
 "use client";
 
+import { useMemo } from "react";
 import useSWR from "swr";
 import { StatsCards } from "@/components/StatsCards";
 import { SuiteCard } from "@/components/SuiteCard";
 import { RunsTable } from "@/components/RunsTable";
 import { RefreshButton } from "@/components/RefreshButton";
-import type { RunsResponse, TriggerResponse, WorkflowsResponse } from "@/lib/types";
+import type { RunsResponse, RunSummary, TriggerResponse, WorkflowsResponse } from "@/lib/types";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 const EMPTY_STATS = {
@@ -52,6 +53,16 @@ export default function DashboardPage() {
   const runs = runsData?.runs ?? [];
   const stats = runsData?.stats ?? EMPTY_STATS;
 
+  // Group runs by project (workflow name) preserving insertion order (newest first).
+  const projectGroups = useMemo(() => {
+    const groups = new Map<string, RunSummary[]>();
+    for (const run of runs) {
+      if (!groups.has(run.name)) groups.set(run.name, []);
+      groups.get(run.name)!.push(run);
+    }
+    return groups;
+  }, [runs]);
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
@@ -87,9 +98,25 @@ export default function DashboardPage() {
         )}
       </div>
 
-      <div>
-        <h3 className="mb-3 text-lg font-medium text-white">Recent Runs</h3>
-        <RunsTable runs={runs} />
+      <div className="space-y-6">
+        <h3 className="text-lg font-medium text-white">Recent Runs</h3>
+        {runs.length === 0 ? (
+          <div className="rounded-lg border border-surface-border bg-surface-panel p-8 text-center text-sm text-gray-500">
+            No runs yet.
+          </div>
+        ) : (
+          Array.from(projectGroups.entries()).map(([projectName, projectRuns]) => (
+            <div key={projectName}>
+              <div className="mb-2 flex items-center gap-2">
+                <span className="rounded bg-indigo-500/20 px-2 py-0.5 text-xs font-mono font-medium text-indigo-300">
+                  {projectName}
+                </span>
+                <span className="text-xs text-gray-500">{projectRuns.length} run{projectRuns.length !== 1 ? "s" : ""}</span>
+              </div>
+              <RunsTable runs={projectRuns.slice(0, 5)} hideProject />
+            </div>
+          ))
+        )}
       </div>
     </div>
   );
