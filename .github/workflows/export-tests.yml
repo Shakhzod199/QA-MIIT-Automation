@@ -10,9 +10,7 @@ on:
       - ".github/workflows/export-tests.yml"
 
 env:
-  # TODO: point this at a real deployed/staging environment of export.miit.uz
-  # (or a frontend preview server) - localhost has nothing running in CI.
-  BASE_URL: http://localhost:3001
+  BASE_URL: https://export.miit.uz
 
 jobs:
   test:
