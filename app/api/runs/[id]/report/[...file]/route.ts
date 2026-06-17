@@ -23,7 +23,13 @@ async function getReportFiles(
   const { artifacts = [] } = await artifactsRes.json();
   const report = (artifacts as any[])
     .map(mapArtifact)
-    .find((a) => a.name.toLowerCase().includes("report") && !a.expired);
+    .find(
+      (a) =>
+        !a.expired &&
+        (a.name === "allure-report" ||
+          a.name === "playwright-report" ||
+          a.name.toLowerCase().includes("report"))
+    );
   if (!report) return null;
 
   const zipRes = await githubFetch(
@@ -86,12 +92,13 @@ export async function GET(
     return NextResponse.json({ error: "Report artifact not found." }, { status: 404 });
   }
 
-  // Try the path as-is, then with a playwright-report/ prefix (artifact zip
-  // structure can vary depending on how the workflow uploaded the directory).
+  // Try path as-is first, then common artifact prefixes.
+  // Allure zips as allure-report/<file>, Playwright as playwright-report/<file>
+  // or bare depending on how upload-artifact was configured.
   const content =
     files.get(filePath) ??
+    files.get(`allure-report/${filePath}`) ??
     files.get(`playwright-report/${filePath}`) ??
-    // index.html fallback for SPA-style deep links within the report
     (filePath === "index.html" ? files.get("index.html") : undefined);
 
   if (!content) {
