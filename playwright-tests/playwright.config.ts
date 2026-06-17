@@ -15,17 +15,7 @@ const BASE_URL = process.env.BASE_URL ?? "http://localhost:3001";
 export default defineConfig({
   fullyParallel: true,
   retries: process.env.CI ? 1 : 0,
-  reporter: [
-    ["list"],
-    [
-      "allure-playwright",
-      {
-        resultsDir: "allure-results",
-        detail: true,
-        suiteTitle: true,
-      },
-    ],
-  ],
+  reporter: [["html", { open: "never" }], ["json", { outputFile: "playwright-report/results.json" }], ["list"]],
   use: {
     trace: "on-first-retry",
     screenshot: "only-on-failure",

@@ -26,10 +26,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const artifacts = (artifactsData.artifacts ?? []).map(mapArtifact);
   const report = artifacts.find(
     (artifact: { name: string; expired: boolean }) =>
-      !artifact.expired &&
-      (artifact.name === "allure-report" ||
-        artifact.name === "playwright-report" ||
-        artifact.name.toLowerCase().includes("report"))
+      artifact.name.toLowerCase().includes("report") && !artifact.expired
   );
 
   if (!report) {
