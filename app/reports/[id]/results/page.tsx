@@ -1,7 +1,7 @@
 import Link from "next/link";
 
-export default function ResultsPage({ params }: { params: { id: string } }) {
-  const { id } = params;
+export default async function ResultsPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
 
   return (
     <div className="flex h-full flex-col gap-4">

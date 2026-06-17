@@ -71,14 +71,14 @@ function contentType(path: string): string {
 
 export async function GET(
   _req: Request,
-  { params }: { params: { id: string; file: string[] } }
+  { params }: { params: Promise<{ id: string; file: string[] }> }
 ) {
   const config = getGithubConfig();
   if (!config.configured) {
     return NextResponse.json({ error: "GitHub is not configured." }, { status: 400 });
   }
 
-  const { id, file } = params;
+  const { id, file } = await params;
   const filePath = file.join("/");
 
   const files = await getReportFiles(id, config);

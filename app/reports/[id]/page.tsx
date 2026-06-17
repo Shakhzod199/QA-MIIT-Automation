@@ -1,5 +1,6 @@
 "use client";
 
+import { use } from "react";
 import Link from "next/link";
 import useSWR from "swr";
 import { ExternalLinkIcon, FlaskIcon } from "@/components/icons";
@@ -8,8 +9,9 @@ import type { RunDetailResponse } from "@/lib/types";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
-export default function RunDetailPage({ params }: { params: { id: string } }) {
-  const { data } = useSWR<RunDetailResponse>(`/api/runs/${params.id}`, fetcher, {
+export default function RunDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  const { data } = useSWR<RunDetailResponse>(`/api/runs/${id}`, fetcher, {
     refreshInterval: 15000,
   });
 

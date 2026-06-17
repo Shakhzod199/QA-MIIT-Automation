@@ -3,7 +3,7 @@ import { getGithubConfig, githubFetch } from "@/lib/github";
 import { mapArtifact, mapJob, mapRunDetail } from "@/lib/mappers";
 import type { RunDetailResponse } from "@/lib/types";
 
-export async function GET(_request: Request, { params }: { params: { id: string } }) {
+export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const config = getGithubConfig();
 
   if (!config.configured) {
@@ -14,7 +14,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     });
   }
 
-  const { id } = params;
+  const { id } = await params;
   const base = `/repos/${config.owner}/${config.repo}/actions/runs/${id}`;
 
   const [runRes, jobsRes, artifactsRes] = await Promise.all([
