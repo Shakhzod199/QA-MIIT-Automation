@@ -98,38 +98,38 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
         </div>
       </div>
 
-      <div className="flex flex-col gap-4 rounded-lg border border-indigo-500/30 bg-indigo-500/10 p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 rounded-lg border border-indigo-500/30 bg-indigo-500/10 p-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">
-          <FlaskIcon className="mt-0.5 h-5 w-5 shrink-0 text-indigo-400" />
+          <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-500/20">
+            <FlaskIcon className="h-4 w-4 text-indigo-400" />
+          </div>
           <div>
             <h3 className="font-medium text-white">Playwright Test Report</h3>
-            <p className="text-sm text-gray-400">
+            <p className="mt-0.5 text-sm text-gray-400">
               {hasReport
-                ? "View the full HTML report with pass/fail details, traces, and screenshots."
+                ? "Interactive report with pass/fail details, traces, and screenshots."
                 : run.status !== "completed"
-                  ? "The report will be available once this run finishes."
-                  : "No report artifact was found for this run (it may have expired)."}
+                  ? "Report will be available once this run finishes."
+                  : "No report artifact found — it may have expired."}
             </p>
           </div>
         </div>
         {hasReport ? (
-          <div className="flex shrink-0 items-center gap-3">
-            <a
-              href={`/api/runs/${run.id}/report`}
-              className="text-xs text-gray-500 hover:text-gray-300 underline"
-            >
-              Download zip
-            </a>
-            <Link
-              href={`/reports/${run.id}/results`}
-              className="rounded-md bg-indigo-600 px-4 py-2 text-center text-sm font-medium text-white transition hover:bg-indigo-500"
-            >
-              View Report
-            </Link>
-          </div>
-        ) : (
-          <span className="shrink-0 cursor-not-allowed rounded-md bg-surface-hover px-4 py-2 text-center text-sm font-medium text-gray-500">
+          <Link
+            href={`/reports/${run.id}/results`}
+            className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-500 active:scale-95"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
             View Report
+          </Link>
+        ) : (
+          <span className="inline-flex shrink-0 cursor-not-allowed items-center gap-2 rounded-lg bg-surface-hover px-5 py-2.5 text-sm font-medium text-gray-500">
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {run.status !== "completed" ? "In progress…" : "Not available"}
           </span>
         )}
       </div>
