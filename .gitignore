@@ -8,8 +8,8 @@ node_modules/
 /playwright-tests/blob-report/
 
 # Dashboard (Next.js)
-dashboard/.next/
-dashboard/out/
+.next/
+out/
 
 # Env
 .env
