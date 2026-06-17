@@ -253,6 +253,31 @@ test.describe("Login flow - export.miit.uz", () => {
     expect(cookies.some((c) => c.name === "act")).toBe(false);
   });
 
+  test("login via #shaxzod_id button — successful login redirects to dashboard", async ({ page }) => {
+    await mockLogin(page, { ok: true });
+    await mockCurrentUser(page);
+
+    // fiveTimeClickOpen requires 5 consecutive clicks within 1 second.
+    const trigger = page.locator("#shaxzod_id");
+    await expect(trigger).toBeAttached();
+    for (let i = 0; i < 5; i++) {
+      await trigger.click();
+    }
+
+    const modal = page.locator(".n-card.n-modal");
+    await expect(modal).toBeVisible();
+
+    await modal.getByPlaceholder(TEXT.usernamePlaceholder).fill(VALID_USER.username);
+    await modal.getByPlaceholder(TEXT.passwordPlaceholder).fill(VALID_USER.password);
+    await modal.getByRole("button", { name: TEXT.loginTrigger, exact: true }).click();
+
+    await expect(page.getByText(TEXT.loginSuccess)).toBeVisible();
+    await expect(page).toHaveURL(/\/dashboard/);
+
+    const cookies = await page.context().cookies();
+    expect(cookies.some((c) => c.name === "act" && c.value === "mock-access-token")).toBe(true);
+  });
+
   test("unauthenticated access to a protected route redirects to /login", async ({ page }) => {
     // No cookies set -> authStore.isAuth is false -> router guard redirects.
     await page.goto("/dashboard");
