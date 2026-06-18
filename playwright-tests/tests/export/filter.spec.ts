@@ -4,6 +4,10 @@ const URL = "https://export.miit.uz";
 const USERNAME = process.env.TEST_USERNAME ?? "admin";
 const PASSWORD = process.env.TEST_PASSWORD ?? "newexport26";
 
+// At the default 1280x720 viewport, the dashboard's floating stats card overlaps the filter
+// toolbar and intercepts clicks. The dashboard is desktop-only, so test at a standard desktop size.
+test.use({ viewport: { width: 1920, height: 1080 } });
+
 // Filters live on the dashboard, which requires an authenticated session.
 // This mirrors the login steps from login.spec.ts so this spec can run on its
 // own; login.spec.ts must still pass for the app's login flow to be valid.
@@ -26,19 +30,29 @@ async function login(page: Page) {
   await expect(page).toHaveURL(/\/dashboard/, { timeout: 15000 });
 }
 
+// The dashboard's stat cards/map widgets fetch and animate in after the URL
+// changes, so the companies table isn't interactive immediately after login.
+// Wait for its first real row before touching any filter control.
+async function waitForTableReady(page: Page) {
+  const table = page.locator(".n-data-table");
+  await expect(table).toBeVisible();
+  await expect(table.locator(".n-data-table-tbody .n-data-table-tr").first()).toBeVisible({ timeout: 15000 });
+  return table;
+}
+
 test.describe("Dashboard filter - export.miit.uz", () => {
   test.beforeEach(async ({ page }) => {
     await login(page);
   });
 
   test("search filter narrows the companies table and clearing restores it", async ({ page }) => {
-    const table = page.locator(".n-data-table");
-    await expect(table).toBeVisible();
+    const table = await waitForTableReady(page);
 
     const initialRowCount = await table.locator(".n-data-table-tbody .n-data-table-tr").count();
     expect(initialRowCount).toBeGreaterThan(0);
 
-    const searchInput = page.getByPlaceholder("Qidirish");
+    // exact: true avoids matching the table's separate per-column "Qidirish..." filter input.
+    const searchInput = page.getByPlaceholder("Qidirish", { exact: true });
     await expect(searchInput).toBeVisible();
 
     // An unmatched term should filter the table down to an empty state.
@@ -54,11 +68,16 @@ test.describe("Dashboard filter - export.miit.uz", () => {
   });
 
   test("drawer filter applies a tag and removing it clears the filter", async ({ page }) => {
-    const table = page.locator(".n-data-table");
-    await expect(table).toBeVisible();
+    await waitForTableReady(page);
 
-    // Open the advanced filter drawer via the toggle button next to the search box.
-    await page.locator(".n-input__suffix button").first().click();
+    // Open the advanced filter drawer via the toggle button inside the search box's suffix
+    // (exact: true avoids matching the table's separate per-column "Qidirish..." filter input).
+    const searchInput = page.getByPlaceholder("Qidirish", { exact: true });
+    const drawerToggle = searchInput.locator("xpath=ancestor::*[contains(concat(' ', @class, ' '), ' n-input-wrapper ')][1]").locator(
+      ".n-input__suffix button",
+    );
+    await drawerToggle.scrollIntoViewIfNeeded();
+    await drawerToggle.click();
 
     const drawer = page.locator(".n-drawer");
     await expect(drawer).toBeVisible();
