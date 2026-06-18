@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { SidebarNav } from "@/components/SidebarNav";
 
@@ -20,8 +21,10 @@ export function ConditionalLayout({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-screen">
       <aside className="flex w-60 shrink-0 flex-col border-r border-surface-border bg-surface-panel p-6">
         <div className="mb-8">
-          <h1 className="text-lg font-semibold text-white">QA Dashboard</h1>
-          <p className="text-xs text-gray-500">new-export automation</p>
+          <Link href="/" className="text-lg font-semibold text-white transition hover:text-indigo-300">
+            QA Dashboard
+          </Link>
+          <p className="text-xs text-gray-500">MIIT automation testlari</p>
         </div>
 
         <SidebarNav />

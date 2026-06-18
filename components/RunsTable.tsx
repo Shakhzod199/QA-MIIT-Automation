@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Fragment, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { formatDuration, formatRelativeTime } from "@/lib/format";
 import type { RunSummary } from "@/lib/types";
 
@@ -27,40 +27,45 @@ function estimateDurationSec(runs: RunSummary[]): number {
 }
 
 function RunProgressBar({ run, estimateSec }: { run: RunSummary; estimateSec: number }) {
+  let pct: number;
+  let fill: string;
+  let label: string;
+  let animate = false;
+
   if (run.status === "in_progress") {
     const elapsed = (Date.now() - new Date(run.createdAt).getTime()) / 1000;
     // Cap below 100% so the bar never looks "done" before the run actually finishes.
-    const pct = Math.min(95, Math.max(4, (elapsed / estimateSec) * 100));
-    return (
-      <div className="h-0.5 w-full bg-surface-border">
+    pct = Math.min(95, Math.max(4, (elapsed / estimateSec) * 100));
+    fill = "bg-blue-500";
+    label = `${Math.round(pct)}%`;
+    animate = true;
+  } else if (run.status === "queued") {
+    pct = 8;
+    fill = "bg-gray-500";
+    label = "Queued";
+    animate = true;
+  } else {
+    pct = 100;
+    fill =
+      run.conclusion === "success"
+        ? "bg-emerald-500"
+        : run.conclusion === "failure"
+        ? "bg-red-500"
+        : run.conclusion === "cancelled"
+        ? "bg-amber-500"
+        : "bg-gray-600";
+    label = "100%";
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <div className="h-2 w-28 overflow-hidden rounded-full bg-surface-border ring-1 ring-inset ring-surface-border">
         <div
-          className="h-full bg-blue-500 shadow-[0_0_6px_rgba(59,130,246,0.7)] transition-[width] duration-1000 ease-linear motion-safe:animate-pulse"
+          className={`h-full rounded-full ${fill} transition-[width] duration-1000 ease-linear ${animate ? "motion-safe:animate-pulse" : ""}`}
           style={{ width: `${pct}%` }}
         />
       </div>
-    );
-  }
-
-  if (run.status === "queued") {
-    return (
-      <div className="h-0.5 w-full bg-surface-border">
-        <div className="h-full w-1/6 bg-gray-500 motion-safe:animate-pulse" />
-      </div>
-    );
-  }
-
-  const color =
-    run.conclusion === "success"
-      ? "bg-emerald-500"
-      : run.conclusion === "failure"
-      ? "bg-red-500"
-      : run.conclusion === "cancelled"
-      ? "bg-amber-500"
-      : "bg-gray-600";
-
-  return (
-    <div className="h-0.5 w-full bg-surface-border">
-      <div className={`h-full w-full ${color}`} />
+      <span className="w-12 shrink-0 text-right text-xs tabular-nums text-gray-500">{label}</span>
     </div>
   );
 }
@@ -145,6 +150,7 @@ export function RunsTable({ runs, hideProject = false }: { runs: RunSummary[]; h
           <tr className="border-b border-surface-border text-xs uppercase tracking-wide text-gray-500">
             <th className="px-4 py-3">Run</th>
             <th className="px-4 py-3">Status</th>
+            <th className="px-4 py-3">Progress</th>
             <th className="px-4 py-3">Branch</th>
             <th className="px-4 py-3">Duration</th>
             <th className="px-4 py-3">Triggered</th>
@@ -153,8 +159,7 @@ export function RunsTable({ runs, hideProject = false }: { runs: RunSummary[]; h
         </thead>
         <tbody>
           {runs.map((run) => (
-            <Fragment key={run.id}>
-            <tr className="hover:bg-surface-hover transition-colors">
+            <tr key={run.id} className="border-b border-surface-border last:border-0 hover:bg-surface-hover transition-colors">
               <td className="px-4 py-3">
                 <Link
                   href={`/reports/${run.id}`}
@@ -172,6 +177,9 @@ export function RunsTable({ runs, hideProject = false }: { runs: RunSummary[]; h
               </td>
               <td className="px-4 py-3">
                 <StatusBadge status={run.status} conclusion={run.conclusion} />
+              </td>
+              <td className="px-4 py-3">
+                <RunProgressBar run={run} estimateSec={estimateSec} />
               </td>
               <td className="px-4 py-3">
                 <span className="inline-flex items-center gap-1 rounded-md bg-surface-hover px-2 py-0.5 text-xs text-gray-400 ring-1 ring-inset ring-surface-border">
@@ -197,12 +205,6 @@ export function RunsTable({ runs, hideProject = false }: { runs: RunSummary[]; h
                 </a>
               </td>
             </tr>
-            <tr>
-              <td colSpan={6} className="p-0">
-                <RunProgressBar run={run} estimateSec={estimateSec} />
-              </td>
-            </tr>
-            </Fragment>
           ))}
         </tbody>
       </table>
