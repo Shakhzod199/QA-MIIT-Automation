@@ -1,6 +1,69 @@
+"use client";
+
 import Link from "next/link";
+import { Fragment, useEffect, useState } from "react";
 import { formatDuration, formatRelativeTime } from "@/lib/format";
 import type { RunSummary } from "@/lib/types";
+
+// Re-render every second while a run is active so the progress bar animates smoothly
+// between the 15s data refreshes.
+function useTicker(active: boolean) {
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (!active) return;
+    const id = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(id);
+  }, [active]);
+}
+
+// Estimate how long a run takes from the median duration of this suite's completed runs.
+function estimateDurationSec(runs: RunSummary[]): number {
+  const durations = runs
+    .filter((r) => r.status === "completed" && r.durationSec != null)
+    .map((r) => r.durationSec as number)
+    .sort((a, b) => a - b);
+  if (durations.length === 0) return 90; // sensible default until we have history
+  return durations[Math.floor(durations.length / 2)];
+}
+
+function RunProgressBar({ run, estimateSec }: { run: RunSummary; estimateSec: number }) {
+  if (run.status === "in_progress") {
+    const elapsed = (Date.now() - new Date(run.createdAt).getTime()) / 1000;
+    // Cap below 100% so the bar never looks "done" before the run actually finishes.
+    const pct = Math.min(95, Math.max(4, (elapsed / estimateSec) * 100));
+    return (
+      <div className="h-0.5 w-full bg-surface-border">
+        <div
+          className="h-full bg-blue-500 shadow-[0_0_6px_rgba(59,130,246,0.7)] transition-[width] duration-1000 ease-linear motion-safe:animate-pulse"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    );
+  }
+
+  if (run.status === "queued") {
+    return (
+      <div className="h-0.5 w-full bg-surface-border">
+        <div className="h-full w-1/6 bg-gray-500 motion-safe:animate-pulse" />
+      </div>
+    );
+  }
+
+  const color =
+    run.conclusion === "success"
+      ? "bg-emerald-500"
+      : run.conclusion === "failure"
+      ? "bg-red-500"
+      : run.conclusion === "cancelled"
+      ? "bg-amber-500"
+      : "bg-gray-600";
+
+  return (
+    <div className="h-0.5 w-full bg-surface-border">
+      <div className={`h-full w-full ${color}`} />
+    </div>
+  );
+}
 
 function StatusBadge({ status, conclusion }: { status: string; conclusion: string | null }) {
   if (status === "in_progress") {
@@ -63,6 +126,10 @@ function StatusBadge({ status, conclusion }: { status: string; conclusion: strin
 }
 
 export function RunsTable({ runs, hideProject = false }: { runs: RunSummary[]; hideProject?: boolean }) {
+  const hasActiveRun = runs.some((run) => run.status !== "completed");
+  useTicker(hasActiveRun);
+  const estimateSec = estimateDurationSec(runs);
+
   if (runs.length === 0) {
     return (
       <div className="rounded-lg border border-surface-border bg-surface-panel p-8 text-center text-sm text-gray-500">
@@ -86,7 +153,8 @@ export function RunsTable({ runs, hideProject = false }: { runs: RunSummary[]; h
         </thead>
         <tbody>
           {runs.map((run) => (
-            <tr key={run.id} className="border-b border-surface-border last:border-0 hover:bg-surface-hover transition-colors">
+            <Fragment key={run.id}>
+            <tr className="hover:bg-surface-hover transition-colors">
               <td className="px-4 py-3">
                 <Link
                   href={`/reports/${run.id}`}
@@ -129,6 +197,12 @@ export function RunsTable({ runs, hideProject = false }: { runs: RunSummary[]; h
                 </a>
               </td>
             </tr>
+            <tr>
+              <td colSpan={6} className="p-0">
+                <RunProgressBar run={run} estimateSec={estimateSec} />
+              </td>
+            </tr>
+            </Fragment>
           ))}
         </tbody>
       </table>
