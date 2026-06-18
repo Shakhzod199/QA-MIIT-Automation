@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const PUBLIC = ["/login", "/api/auth"];
+// /api/notify self-authorizes (session cookie OR NOTIFY_SECRET) so external
+// cron can reach it, so it is exempt from the session redirect here.
+const PUBLIC = ["/login", "/api/auth", "/api/notify"];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;

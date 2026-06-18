@@ -12,6 +12,9 @@ node_modules/
 .next/
 out/
 
+# Notifier dedup state (local, not a database)
+/data/
+
 # Env
 .env
 .env.local

@@ -119,3 +119,40 @@ export interface TestReportResponse {
   tests: TestCaseResult[];
   error?: string;
 }
+
+export interface FlakyTestRun {
+  runId: number;
+  runNumber: number;
+  createdAt: string;
+  status: TestStatus;
+}
+
+export interface FlakyTest {
+  key: string;
+  titlePath: string[];
+  file: string;
+  project: string;
+  /** How many analyzed runs this test appeared in. */
+  appearances: number;
+  passed: number;
+  /** Includes timed-out. */
+  failed: number;
+  /** Playwright-flagged flaky (failed then passed on retry). */
+  flaky: number;
+  skipped: number;
+  /** 0..1 flakiness score; higher = flakier. */
+  flakeRate: number;
+  /** Per-run outcomes, newest first. */
+  history: FlakyTestRun[];
+}
+
+export interface FlakyResponse {
+  configured: boolean;
+  /** Number of runs actually parsed (have a results.json artifact). */
+  runsAnalyzed: number;
+  /** Window size requested by the client. */
+  windowRequested: number;
+  generatedAt: string;
+  tests: FlakyTest[];
+  error?: string;
+}

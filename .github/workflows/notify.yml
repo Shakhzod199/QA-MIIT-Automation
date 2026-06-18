@@ -1,0 +1,28 @@
+name: Telegram Notifier
+
+# Periodically pings the dashboard's notifier, which sends a Telegram message
+# for any newly-completed run. Requires two repo secrets:
+#   DASHBOARD_URL   e.g. https://your-dashboard.example.com  (no trailing slash)
+#   NOTIFY_SECRET   must match NOTIFY_SECRET in the dashboard env
+# The dashboard must be publicly reachable for this to work. If you don't host
+# the dashboard, use the on-demand "Check now" button on the Alerts page instead.
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger dashboard notifier
+        env:
+          DASHBOARD_URL: ${{ secrets.DASHBOARD_URL }}
+          NOTIFY_SECRET: ${{ secrets.NOTIFY_SECRET }}
+        run: |
+          if [ -z "$DASHBOARD_URL" ] || [ -z "$NOTIFY_SECRET" ]; then
+            echo "DASHBOARD_URL or NOTIFY_SECRET secret not set — skipping."
+            exit 0
+          fi
+          curl -fsS -X POST "$DASHBOARD_URL/api/notify?secret=$NOTIFY_SECRET"
