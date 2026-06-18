@@ -35,6 +35,16 @@ export default function DashboardPage() {
     await Promise.all([mutateWorkflows(), mutateRuns()]);
   };
 
+  const handleCancel = async (runId: number): Promise<TriggerResponse> => {
+    const res = await fetch(`/api/runs/${runId}/cancel`, { method: "POST" });
+    const result: TriggerResponse = await res.json();
+    if (result.ok) {
+      // Give GitHub a moment to flip the run to "cancelled", then refresh.
+      setTimeout(() => mutateRuns(), 1500);
+    }
+    return result;
+  };
+
   const handleRun = async (workflowId: number): Promise<TriggerResponse> => {
     const res = await fetch("/api/runs/trigger", {
       method: "POST",
@@ -113,7 +123,7 @@ export default function DashboardPage() {
                 </span>
                 <span className="text-xs text-gray-500">{projectRuns.length} run{projectRuns.length !== 1 ? "s" : ""}</span>
               </div>
-              <RunsTable runs={projectRuns} hideProject pageSize={5} />
+              <RunsTable runs={projectRuns} hideProject pageSize={5} onCancel={handleCancel} />
             </div>
           ))
         )}
