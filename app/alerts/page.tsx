@@ -145,14 +145,25 @@ NOTIFY_SECRET=some-random-string`}</pre>
           <li>Click <span className="text-gray-300">Send test message</span> above to confirm.</li>
         </ol>
 
-        <h3 className="mt-5 text-sm font-medium text-gray-200">Automate it</h3>
+        <h3 className="mt-5 text-sm font-medium text-gray-200">Automatic per-run alerts</h3>
         <p className="mt-2 text-sm text-gray-400">
-          The <code className="text-gray-300">Check for new results now</code> button works on demand.
-          For hands-off alerts, hit <code className="text-gray-300">/api/notify?secret=NOTIFY_SECRET</code> on
-          a schedule — via Vercel Cron, or the included{" "}
-          <code className="text-gray-300">.github/workflows/notify.yml</code> (set the{" "}
-          <code className="text-gray-300">DASHBOARD_URL</code> and <code className="text-gray-300">NOTIFY_SECRET</code>{" "}
-          repo secrets). The first call records a baseline, so only runs that finish afterward trigger alerts.
+          Each test workflow sends its own Telegram message the moment a run finishes (passed,
+          failed, or cancelled) — no hosting or polling required. Add these two{" "}
+          <a
+            className="text-indigo-400 hover:text-indigo-300"
+            href="https://github.com/Shakhzod199/QA-MIIT-Automation/settings/secrets/actions"
+            target="_blank"
+            rel="noreferrer"
+          >
+            GitHub Actions repo secrets
+          </a>{" "}
+          so the workflow can reach your bot:
+        </p>
+        <pre className="mt-2 overflow-x-auto rounded-md bg-surface-hover px-3 py-2 font-mono text-xs text-gray-300">{`TELEGRAM_BOT_TOKEN   (same bot token)
+TELEGRAM_CHAT_ID     (same chat id)`}</pre>
+        <p className="mt-2 text-sm text-gray-400">
+          The <code className="text-gray-300">Check for new results now</code> button above is an
+          optional fallback for when the dashboard itself is hosted and reachable.
         </p>
       </div>
     </div>
