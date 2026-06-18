@@ -1,38 +1,16 @@
 import { test, expect, type Page } from "@playwright/test";
+import { AUTH_FILE, BASE_URL } from "./helpers";
 
-const URL = "https://export.miit.uz";
-const USERNAME = process.env.TEST_USERNAME ?? "admin";
-const PASSWORD = process.env.TEST_PASSWORD ?? "newexport26";
+test.use({
+  // Reuse the session captured once by auth.setup.ts instead of logging in per test.
+  storageState: AUTH_FILE,
+  // At 1280x720 the dashboard's floating stats card overlaps the filter toolbar
+  // and intercepts clicks. The dashboard is desktop-only, so use a desktop size.
+  viewport: { width: 1920, height: 1080 },
+});
 
-// At the default 1280x720 viewport, the dashboard's floating stats card overlaps the filter
-// toolbar and intercepts clicks. The dashboard is desktop-only, so test at a standard desktop size.
-test.use({ viewport: { width: 1920, height: 1080 } });
-
-// Filters live on the dashboard, which requires an authenticated session.
-// This mirrors the login steps from login.spec.ts so this spec can run on its
-// own; login.spec.ts must still pass for the app's login flow to be valid.
-async function login(page: Page) {
-  await page.goto(`${URL}/login`);
-
-  const trigger = page.locator("#shaxzod_id");
-  await expect(trigger).toBeAttached();
-  for (let i = 0; i < 5; i++) {
-    await trigger.click();
-  }
-
-  const modal = page.locator(".n-card.n-modal");
-  await expect(modal).toBeVisible();
-
-  await modal.getByPlaceholder("Login").fill(USERNAME);
-  await modal.getByPlaceholder("Parol").fill(PASSWORD);
-  await modal.getByRole("button", { name: "Kirish", exact: true }).click();
-
-  await expect(page).toHaveURL(/\/dashboard/, { timeout: 15000 });
-}
-
-// The dashboard's stat cards/map widgets fetch and animate in after the URL
-// changes, so the companies table isn't interactive immediately after login.
-// Wait for its first real row before touching any filter control.
+// The dashboard's stat cards/map widgets fetch and animate in, so the companies
+// table isn't interactive immediately. Wait for its first real row first.
 async function waitForTableReady(page: Page) {
   const table = page.locator(".n-data-table");
   await expect(table).toBeVisible();
@@ -42,7 +20,7 @@ async function waitForTableReady(page: Page) {
 
 test.describe("Dashboard filter - export.miit.uz", () => {
   test.beforeEach(async ({ page }) => {
-    await login(page);
+    await page.goto(`${BASE_URL}/dashboard`);
   });
 
   test("search filter narrows the companies table and clearing restores it", async ({ page }) => {

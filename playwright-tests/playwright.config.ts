@@ -21,10 +21,25 @@ export default defineConfig({
     screenshot: "only-on-failure",
   },
   projects: [
+    // ── auth setup ─────────────────────────────────────────────────────────
+    // Logs in once and saves the session to playwright/.auth/user.json. Wired
+    // as a dependency of "export" so it always runs first. Matched by filename
+    // only, so it is not picked up as a normal test by the "export" project.
+    {
+      name: "setup",
+      testDir: "./tests/export",
+      testMatch: /auth\.setup\.ts/,
+      use: {
+        ...devices["Desktop Chrome"],
+        baseURL: BASE_URL,
+      },
+    },
+
     // ── new-export frontend ────────────────────────────────────────────────
     {
       name: "export",
       testDir: "./tests/export",
+      dependencies: ["setup"],
       use: {
         ...devices["Desktop Chrome"],
         baseURL: BASE_URL,
