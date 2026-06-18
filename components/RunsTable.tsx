@@ -130,10 +130,25 @@ function StatusBadge({ status, conclusion }: { status: string; conclusion: strin
   }
 }
 
-export function RunsTable({ runs, hideProject = false }: { runs: RunSummary[]; hideProject?: boolean }) {
+export function RunsTable({
+  runs,
+  hideProject = false,
+  pageSize = 5,
+}: {
+  runs: RunSummary[];
+  hideProject?: boolean;
+  pageSize?: number;
+}) {
   const hasActiveRun = runs.some((run) => run.status !== "completed");
   useTicker(hasActiveRun);
   const estimateSec = estimateDurationSec(runs);
+
+  const [page, setPage] = useState(0);
+  const totalPages = Math.max(1, Math.ceil(runs.length / pageSize));
+  // Clamp in case the run count shrank (e.g. data refresh) below the current page.
+  const currentPage = Math.min(page, totalPages - 1);
+  const start = currentPage * pageSize;
+  const visibleRuns = runs.slice(start, start + pageSize);
 
   if (runs.length === 0) {
     return (
@@ -158,7 +173,7 @@ export function RunsTable({ runs, hideProject = false }: { runs: RunSummary[]; h
           </tr>
         </thead>
         <tbody>
-          {runs.map((run) => (
+          {visibleRuns.map((run) => (
             <tr key={run.id} className="border-b border-surface-border last:border-0 hover:bg-surface-hover transition-colors">
               <td className="px-4 py-3">
                 <Link
@@ -208,6 +223,33 @@ export function RunsTable({ runs, hideProject = false }: { runs: RunSummary[]; h
           ))}
         </tbody>
       </table>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between border-t border-surface-border px-4 py-2.5 text-xs text-gray-500">
+          <span className="tabular-nums">
+            {start + 1}–{Math.min(start + pageSize, runs.length)} of {runs.length}
+          </span>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setPage(currentPage - 1)}
+              disabled={currentPage === 0}
+              className="rounded-md px-2.5 py-1 font-medium text-gray-400 transition hover:bg-surface-hover hover:text-white disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+            >
+              ← Prev
+            </button>
+            <span className="px-1.5 tabular-nums text-gray-400">
+              {currentPage + 1} / {totalPages}
+            </span>
+            <button
+              onClick={() => setPage(currentPage + 1)}
+              disabled={currentPage >= totalPages - 1}
+              className="rounded-md px-2.5 py-1 font-medium text-gray-400 transition hover:bg-surface-hover hover:text-white disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+            >
+              Next →
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

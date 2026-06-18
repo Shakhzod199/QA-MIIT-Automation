@@ -113,7 +113,7 @@ export default function DashboardPage() {
                 </span>
                 <span className="text-xs text-gray-500">{projectRuns.length} run{projectRuns.length !== 1 ? "s" : ""}</span>
               </div>
-              <RunsTable runs={projectRuns.slice(0, 5)} hideProject />
+              <RunsTable runs={projectRuns} hideProject pageSize={5} />
             </div>
           ))
         )}

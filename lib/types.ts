@@ -85,3 +85,37 @@ export interface RunDetailResponse {
   artifacts: ArtifactSummary[];
   error?: string;
 }
+
+export type TestStatus = "passed" | "failed" | "timedOut" | "flaky" | "skipped";
+
+export interface TestCaseResult {
+  /** describe-block titles leading to the test, e.g. ["Login", "rejects bad password"]. */
+  titlePath: string[];
+  file: string;
+  line: number;
+  project: string;
+  status: TestStatus;
+  durationMs: number;
+  /** Number of retry attempts beyond the first (0 = passed first try). */
+  retries: number;
+  /** ANSI-stripped error message for failing/flaky tests, else null. */
+  error: string | null;
+}
+
+export interface TestReportSummary {
+  total: number;
+  passed: number;
+  failed: number;
+  flaky: number;
+  skipped: number;
+  durationMs: number;
+}
+
+export interface TestReportResponse {
+  configured: boolean;
+  /** True when a parseable Playwright JSON report was found for this run. */
+  available: boolean;
+  summary: TestReportSummary;
+  tests: TestCaseResult[];
+  error?: string;
+}

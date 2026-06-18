@@ -4,8 +4,9 @@ import { use } from "react";
 import Link from "next/link";
 import useSWR from "swr";
 import { ExternalLinkIcon, FlaskIcon } from "@/components/icons";
+import { TestResults } from "@/components/TestResults";
 import { formatDateTime, formatDuration, formatRelativeTime, getStatusBadge } from "@/lib/format";
-import type { RunDetailResponse } from "@/lib/types";
+import type { RunDetailResponse, TestReportResponse } from "@/lib/types";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -14,6 +15,12 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
   const { data } = useSWR<RunDetailResponse>(`/api/runs/${id}`, fetcher, {
     refreshInterval: 15000,
   });
+  // Test-level results only exist once the run has finished and uploaded its
+  // report artifact, so only fetch them for completed runs.
+  const { data: testsData } = useSWR<TestReportResponse>(
+    data?.run?.status === "completed" ? `/api/runs/${id}/tests` : null,
+    fetcher
+  );
 
   if (!data) {
     return <p className="text-sm text-gray-500">Loading…</p>;
@@ -133,6 +140,16 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
           </span>
         )}
       </div>
+
+      {testsData?.available && testsData.tests.length > 0 && (
+        <div>
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="text-lg font-medium text-white">Tests</h3>
+            <span className="text-sm text-gray-500">{testsData.summary.total} test{testsData.summary.total !== 1 ? "s" : ""}</span>
+          </div>
+          <TestResults summary={testsData.summary} tests={testsData.tests} />
+        </div>
+      )}
 
       <div>
         <div className="mb-3 flex items-center justify-between">
