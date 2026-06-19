@@ -1,33 +1,46 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useI18n } from "@/components/I18nProvider";
 import type { WorkflowSummary } from "@/lib/types";
 
 export function SuiteCard({
   workflow,
   onRun,
+  isRunning = false,
 }: {
   workflow: WorkflowSummary;
   onRun: (workflowId: number) => Promise<{ ok: boolean; error?: string }>;
+  // True while this workflow has a queued/in-progress run (from polled run data).
+  isRunning?: boolean;
 }) {
   const { t } = useI18n();
-  const [status, setStatus] = useState<"idle" | "running" | "triggered" | "error">("idle");
+  // Local "pending" bridges the gap between clicking and the dispatched run
+  // showing up in the polled run list. Once the server reports the run as
+  // active (isRunning), we hand off to that as the source of truth.
+  const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (isRunning) setPending(false);
+  }, [isRunning]);
+
+  // The run stays disabled for its whole lifetime, not just a few seconds.
+  const busy = pending || isRunning;
+
   const handleRun = async () => {
-    setStatus("running");
+    if (busy) return;
+    setPending(true);
     setError(null);
 
     const result = await onRun(workflow.id);
 
-    if (result.ok) {
-      setStatus("triggered");
-      setTimeout(() => setStatus("idle"), 4000);
-    } else {
-      setStatus("error");
+    if (!result.ok) {
+      setPending(false);
       setError(result.error ?? "Failed to trigger run");
     }
+    // On success we keep `pending` until the run appears in polled data and
+    // `isRunning` takes over (see the effect above).
   };
 
   return (
@@ -50,15 +63,13 @@ export function SuiteCard({
         </a>
         <button
           onClick={handleRun}
-          disabled={status === "running" || status === "triggered"}
+          disabled={busy}
           className={[
             "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-white transition disabled:cursor-not-allowed",
-            status === "triggered"
-              ? "bg-emerald-600"
-              : "bg-indigo-600 hover:bg-indigo-500 disabled:opacity-70",
+            "bg-indigo-600 hover:bg-indigo-500 disabled:opacity-70",
           ].join(" ")}
         >
-          {status === "running" && (
+          {busy && (
             <svg
               className="h-3.5 w-3.5 animate-spin"
               xmlns="http://www.w3.org/2000/svg"
@@ -69,12 +80,7 @@ export function SuiteCard({
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
           )}
-          {status === "triggered" && (
-            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-            </svg>
-          )}
-          {status === "running" ? t("suite.running") : status === "triggered" ? t("suite.triggered") : t("suite.run")}
+          {busy ? t("suite.running") : t("suite.run")}
         </button>
       </div>
       {error && <p className="mt-2 text-xs text-red-400">{error}</p>}

@@ -65,6 +65,16 @@ export default function DashboardPage() {
   const runs = runsData?.runs ?? [];
   const stats = runsData?.stats ?? EMPTY_STATS;
 
+  // Workflows that currently have a queued/in-progress run. Used to keep each
+  // suite's "Run" button disabled until its run actually finishes.
+  const activeWorkflowIds = useMemo(() => {
+    const ids = new Set<number>();
+    for (const run of runs) {
+      if (run.status !== "completed") ids.add(run.workflowId);
+    }
+    return ids;
+  }, [runs]);
+
   // Group runs by project (workflow name) preserving insertion order (newest first).
   const projectGroups = useMemo(() => {
     const groups = new Map<string, RunSummary[]>();
@@ -102,7 +112,12 @@ export default function DashboardPage() {
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {workflows.map((workflow) => (
-              <SuiteCard key={workflow.id} workflow={workflow} onRun={handleRun} />
+              <SuiteCard
+                key={workflow.id}
+                workflow={workflow}
+                onRun={handleRun}
+                isRunning={activeWorkflowIds.has(workflow.id)}
+              />
             ))}
           </div>
         )}

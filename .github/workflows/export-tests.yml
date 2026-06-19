@@ -1,13 +1,9 @@
 name: export Tests
 
 on:
+  # Manual only — runs are triggered from the dashboard "Run" button
+  # (workflow_dispatch). No automatic run on push.
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - "playwright-tests/tests/export/**"
-      - "playwright-tests/playwright.config.ts"
-      - ".github/workflows/export-tests.yml"
 
 env:
   BASE_URL: https://export.miit.uz
