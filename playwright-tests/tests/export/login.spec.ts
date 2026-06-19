@@ -11,7 +11,7 @@ test.describe("Login flow - export.miit.uz", () => {
     await expect(page.getByRole("button", { name: "OneID orqali kirish" })).toBeVisible();
   });
 
-  test("login via #shaxzod_id → credentials → redirects to dashboard", async ({ page }) => {
+  test("Login via #shaxzod_id → credentials → redirects to dashboard", async ({ page }) => {
     await page.goto(`${URL}/login`);
 
     // OneID button should be visible

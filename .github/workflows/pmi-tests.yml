@@ -1,4 +1,4 @@
-name: Export Tests
+name: PMI Tests
 
 on:
   # Manual only — runs are triggered from the dashboard "Run" button
@@ -6,7 +6,8 @@ on:
   workflow_dispatch:
 
 env:
-  BASE_URL: https://export.miit.uz
+  # Origin only — the login test appends "/auth" itself.
+  PMI_BASE_URL: https://testpmi.miit.uz
 
 jobs:
   test:
@@ -26,12 +27,16 @@ jobs:
 
       - run: npx playwright install --with-deps chromium
 
-      - run: npx playwright test tests/export
+      - name: Run PMI tests
+        env:
+          PMI_USERNAME: ${{ secrets.PMI_USERNAME }}
+          PMI_PASSWORD: ${{ secrets.PMI_PASSWORD }}
+        run: npx playwright test --project=pmi
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: playwright-report
+          name: playwright-report-pmi
           path: playwright-tests/playwright-report/
           retention-days: 7
 
@@ -55,7 +60,7 @@ jobs:
             cancelled) EMOJI="⚠️" ;;
             *) EMOJI="ℹ️" ;;
           esac
-          TEXT="$(printf '%s <b>Export Tests</b> #%s\nResult: <b>%s</b>\nBranch: <code>%s</code>\n%s' \
+          TEXT="$(printf '%s <b>PMI Tests</b> #%s\nResult: <b>%s</b>\nBranch: <code>%s</code>\n%s' \
             "$EMOJI" "$RUN_NUMBER" "$STATUS" "$BRANCH" "$RUN_URL")"
           curl -fsS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
             --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \

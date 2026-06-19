@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 import { BASE_URL, USERNAME, PASSWORD } from "./helpers";
 
 test.describe("PMI login flow", () => {
-  test("shows OneID and performs login via credentials", async ({ page }) => {
+  test("Shows OneID and performs login via credentials", async ({ page }) => {
     await page.goto(`${BASE_URL}/auth`);
 
     // OneID is a separate entry point that redirects to an external provider,
