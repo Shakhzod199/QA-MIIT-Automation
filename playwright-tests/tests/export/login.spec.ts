@@ -1,18 +1,15 @@
 import { test, expect } from "@playwright/test";
-
-const URL = "https://export.miit.uz";
-const USERNAME = process.env.TEST_USERNAME ?? "admin";
-const PASSWORD = process.env.TEST_PASSWORD ?? "newexport26";
+import { BASE_URL, USERNAME, PASSWORD } from "./helpers";
 
 test.describe("Login flow - export.miit.uz", () => {
   test("OneID button is visible on the login page", async ({ page }) => {
-    await page.goto(`${URL}/login`);
+    await page.goto(`${BASE_URL}/login`);
 
     await expect(page.getByRole("button", { name: "OneID orqali kirish" })).toBeVisible();
   });
 
   test("Login via #shaxzod_id → credentials → redirects to dashboard", async ({ page }) => {
-    await page.goto(`${URL}/login`);
+    await page.goto(`${BASE_URL}/login`);
 
     // OneID button should be visible
     await expect(page.getByRole("button", { name: "OneID orqali kirish" })).toBeVisible();

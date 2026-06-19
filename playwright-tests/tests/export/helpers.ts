@@ -1,13 +1,21 @@
 import { expect, type Page } from "@playwright/test";
 
-// Single source of truth for target + credentials. Override via env in CI; the
-// defaults keep local runs working out of the box.
-//
-// NOTE: for production hardening, drop the password default below and inject
-// TEST_USERNAME / TEST_PASSWORD as CI secrets so no credential lives in source.
+// Single source of truth for target + credentials. No credential lives in
+// source: EXPORT_USERNAME / EXPORT_PASSWORD must come from the environment
+// (locally via .env.local, in CI via GitHub Actions secrets).
+function requireCredential(name: "EXPORT_USERNAME" | "EXPORT_PASSWORD"): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(
+      `${name} is not set. Provide it via the ${name} env var (locally in .env.local, or as a GitHub Actions secret in CI) before running the export tests.`
+    );
+  }
+  return value;
+}
+
 export const BASE_URL = process.env.BASE_URL ?? "https://export.miit.uz";
-export const USERNAME = process.env.TEST_USERNAME ?? "admin";
-export const PASSWORD = process.env.TEST_PASSWORD ?? "newexport26";
+export const USERNAME = requireCredential("EXPORT_USERNAME");
+export const PASSWORD = requireCredential("EXPORT_PASSWORD");
 
 // Where auth.setup.ts caches the authenticated session. The data-driven specs
 // reuse it via test.use({ storageState: AUTH_FILE }) instead of logging in again.

@@ -26,7 +26,11 @@ jobs:
 
       - run: npx playwright install --with-deps chromium
 
-      - run: npx playwright test tests/export
+      - name: Run export tests
+        env:
+          EXPORT_USERNAME: ${{ secrets.EXPORT_USERNAME }}
+          EXPORT_PASSWORD: ${{ secrets.EXPORT_PASSWORD }}
+        run: npx playwright test tests/export
 
       - uses: actions/upload-artifact@v4
         if: always()

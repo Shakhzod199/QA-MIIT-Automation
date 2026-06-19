@@ -202,7 +202,18 @@ export function RunsTable({
 
   return (
     <div className="overflow-hidden rounded-lg border border-surface-border bg-surface-panel">
-      <table className="w-full text-left text-sm">
+      <table className="w-full table-fixed text-left text-sm">
+        {/* Fixed column widths so every project's table lines up identically,
+            regardless of each table's own content. */}
+        <colgroup>
+          <col className="w-[12%]" />
+          <col className="w-[13%]" />
+          <col className="w-[24%]" />
+          <col className="w-[14%]" />
+          <col className="w-[11%]" />
+          <col className="w-[15%]" />
+          <col className="w-[11%]" />
+        </colgroup>
         <thead>
           <tr className="border-b border-surface-border text-xs uppercase tracking-wide text-gray-500">
             <th className="px-4 py-3">{t("table.run")}</th>
@@ -239,11 +250,11 @@ export function RunsTable({
                 <RunProgressBar run={run} estimateSec={estimateSec} />
               </td>
               <td className="px-4 py-3">
-                <span className="inline-flex items-center gap-1 rounded-md bg-surface-hover px-2 py-0.5 text-xs text-gray-400 ring-1 ring-inset ring-surface-border">
-                  <svg className="h-3 w-3 opacity-60" fill="currentColor" viewBox="0 0 24 24">
+                <span className="inline-flex max-w-full items-center gap-1 rounded-md bg-surface-hover px-2 py-0.5 text-xs text-gray-400 ring-1 ring-inset ring-surface-border">
+                  <svg className="h-3 w-3 shrink-0 opacity-60" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M6 3a3 3 0 00-3 3v12a3 3 0 003 3h12a3 3 0 003-3V6a3 3 0 00-3-3H6zm5 4a1 1 0 012 0v4.586l2.707 2.707a1 1 0 01-1.414 1.414l-3-3A1 1 0 0110 12V7z" clipRule="evenodd" fillRule="evenodd" />
                   </svg>
-                  {run.branch ?? "—"}
+                  <span className="truncate">{run.branch ?? "—"}</span>
                 </span>
               </td>
               <td className="px-4 py-3 tabular-nums">
