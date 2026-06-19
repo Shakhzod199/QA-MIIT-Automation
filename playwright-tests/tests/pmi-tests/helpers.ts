@@ -1,6 +1,11 @@
 import { expect, type Page } from "@playwright/test";
 
-export const BASE_URL = process.env.PMI_BASE_URL ?? "https://testpmi.miit.uz/auth";
+// Normalize PMI_BASE_URL to a bare origin: strip a trailing slash and an
+// optional trailing "/auth" so callers can append "/auth" exactly once. This
+// keeps it working whether the env/CI value is "https://testpmi.miit.uz" or
+// "https://testpmi.miit.uz/auth".
+const RAW_BASE_URL = process.env.PMI_BASE_URL ?? "https://testpmi.miit.uz";
+export const BASE_URL = RAW_BASE_URL.replace(/\/+$/, "").replace(/\/auth$/, "");
 
 function requireCredential(name: "PMI_USERNAME" | "PMI_PASSWORD"): string {
   const value = process.env[name];
