@@ -1,4 +1,14 @@
 import { defineConfig, devices } from "@playwright/test";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
+
+// Load credentials/config from the gitignored .env.local at the repo root
+// (one level up from this playwright-tests dir) if it exists. CI can instead
+// provide these as real environment variables / secrets.
+const envPath = resolve(__dirname, "../.env.local");
+if (existsSync(envPath)) {
+  process.loadEnvFile(envPath);
+}
 
 const BASE_URL = process.env.BASE_URL ?? "http://localhost:3001";
 
@@ -47,6 +57,11 @@ export default defineConfig({
     },
 
     // ── add new projects below this line ──────────────────────────────────
+    {
+      name: "pmi",
+      testDir: "./tests/pmi-tests",
+      use: { ...devices["Desktop Chrome"], baseURL: process.env.PMI_BASE_URL ?? "http://localhost:3000" },
+    },
     // {
     //   name: "billing",
     //   testDir: "./tests/billing",

@@ -15,6 +15,7 @@ const en: Dict = {
   "app.signOut": "Sign out",
 
   "nav.dashboard": "Dashboard",
+  "nav.testcases": "Test cases",
   "nav.reports": "Reports",
   "nav.trends": "Trends",
   "nav.flaky": "Flaky Tests",
@@ -96,6 +97,7 @@ const uz: Dict = {
   "app.signOut": "Chiqish",
 
   "nav.dashboard": "Boshqaruv paneli",
+  "nav.testcases": "Test holatlari",
   "nav.reports": "Hisobotlar",
   "nav.trends": "Tendensiyalar",
   "nav.flaky": "Beqaror testlar",
@@ -177,6 +179,7 @@ const ru: Dict = {
   "app.signOut": "Выйти",
 
   "nav.dashboard": "Панель",
+  "nav.testcases": "Тест-кейсы",
   "nav.reports": "Отчёты",
   "nav.trends": "Тренды",
   "nav.flaky": "Нестабильные тесты",

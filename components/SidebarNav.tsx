@@ -5,9 +5,9 @@ import { usePathname } from "next/navigation";
 import { useI18n } from "@/components/I18nProvider";
 
 const links = [
-  { href: "/", key: "nav.dashboard" },
+  { href: "/trends", key: "nav.dashboard" },
+  { href: "/", key: "nav.testcases" },
   { href: "/reports", key: "nav.reports" },
-  { href: "/trends", key: "nav.trends" },
   { href: "/flaky", key: "nav.flaky" },
   { href: "/alerts", key: "nav.alerts" },
 ];
