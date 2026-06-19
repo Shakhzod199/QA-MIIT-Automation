@@ -4,6 +4,13 @@ on:
   # Manual only — runs are triggered from the dashboard "Run" button
   # (workflow_dispatch). No automatic run on push.
   workflow_dispatch:
+    inputs:
+      test_filter:
+        description: >-
+          Optional Playwright filter to run a single test, e.g.
+          "tests/export/some.spec.ts:5". Empty runs the whole suite.
+        required: false
+        default: ""
 
 env:
   BASE_URL: https://export.miit.uz
@@ -30,7 +37,14 @@ jobs:
         env:
           EXPORT_USERNAME: ${{ secrets.EXPORT_USERNAME }}
           EXPORT_PASSWORD: ${{ secrets.EXPORT_PASSWORD }}
-        run: npx playwright test tests/export
+          TEST_FILTER: ${{ inputs.test_filter }}
+        run: |
+          if [ -n "$TEST_FILTER" ]; then
+            echo "Running single test: $TEST_FILTER"
+            npx playwright test "$TEST_FILTER"
+          else
+            npx playwright test tests/export
+          fi
 
       - uses: actions/upload-artifact@v4
         if: always()

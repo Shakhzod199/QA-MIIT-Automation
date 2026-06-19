@@ -4,6 +4,13 @@ on:
   # Manual only — runs are triggered from the dashboard "Run" button
   # (workflow_dispatch). No automatic run on push.
   workflow_dispatch:
+    inputs:
+      test_filter:
+        description: >-
+          Optional Playwright filter to run a single test, e.g.
+          "tests/pmi-tests/login.spec.ts:5". Empty runs the whole suite.
+        required: false
+        default: ""
 
 env:
   # Origin only — the login test appends "/auth" itself.
@@ -31,7 +38,14 @@ jobs:
         env:
           PMI_USERNAME: ${{ secrets.PMI_USERNAME }}
           PMI_PASSWORD: ${{ secrets.PMI_PASSWORD }}
-        run: npx playwright test --project=pmi
+          TEST_FILTER: ${{ inputs.test_filter }}
+        run: |
+          if [ -n "$TEST_FILTER" ]; then
+            echo "Running single test: $TEST_FILTER"
+            npx playwright test --project=pmi "$TEST_FILTER"
+          else
+            npx playwright test --project=pmi
+          fi
 
       - uses: actions/upload-artifact@v4
         if: always()

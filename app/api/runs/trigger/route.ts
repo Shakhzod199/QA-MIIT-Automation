@@ -13,7 +13,12 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json().catch(() => ({}));
-  const { workflowId, ref } = body as { workflowId?: number; ref?: string };
+  const { workflowId, ref, inputs } = body as {
+    workflowId?: number;
+    ref?: string;
+    // Forwarded verbatim as workflow_dispatch inputs (e.g. { test_filter }).
+    inputs?: Record<string, string>;
+  };
 
   if (!workflowId) {
     return NextResponse.json<TriggerResponse>(
@@ -26,7 +31,10 @@ export async function POST(request: Request) {
     `/repos/${config.owner}/${config.repo}/actions/workflows/${workflowId}/dispatches`,
     {
       method: "POST",
-      body: JSON.stringify({ ref: ref ?? "main" }),
+      body: JSON.stringify({
+        ref: ref ?? "main",
+        ...(inputs && Object.keys(inputs).length > 0 ? { inputs } : {}),
+      }),
     }
   );
 

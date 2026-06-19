@@ -36,6 +36,14 @@ const en: Dict = {
   "suite.running": "Running…",
   "suite.triggered": "Triggered!",
   "suite.viewOnGithub": "View on GitHub",
+  "suite.runSeparately": "Run separately",
+
+  "suiteTests.subtitle": "Run an individual test from the latest results of this suite.",
+  "suiteTests.back": "Back to dashboard",
+  "suiteTests.run": "Run",
+  "suiteTests.triggered": "Triggered!",
+  "suiteTests.loading": "Loading tests…",
+  "suiteTests.empty": "No tests found yet. Run the whole suite once so its tests can be listed here.",
 
   "table.run": "Run",
   "table.status": "Status",
@@ -118,6 +126,14 @@ const uz: Dict = {
   "suite.running": "Ishlamoqda…",
   "suite.triggered": "Boshlandi!",
   "suite.viewOnGithub": "GitHub’da ko‘rish",
+  "suite.runSeparately": "Alohida ishga tushirish",
+
+  "suiteTests.subtitle": "Ushbu to‘plamning so‘nggi natijalaridan bitta testni alohida ishga tushiring.",
+  "suiteTests.back": "Boshqaruv paneliga qaytish",
+  "suiteTests.run": "Ishga tushirish",
+  "suiteTests.triggered": "Boshlandi!",
+  "suiteTests.loading": "Testlar yuklanmoqda…",
+  "suiteTests.empty": "Testlar topilmadi. Avval butun to‘plamni bir marta ishga tushiring, shunda testlar bu yerda ko‘rinadi.",
 
   "table.run": "Ish",
   "table.status": "Holat",
@@ -200,6 +216,14 @@ const ru: Dict = {
   "suite.running": "Выполняется…",
   "suite.triggered": "Запущено!",
   "suite.viewOnGithub": "Открыть в GitHub",
+  "suite.runSeparately": "Запустить отдельно",
+
+  "suiteTests.subtitle": "Запустите отдельный тест из последних результатов этого набора.",
+  "suiteTests.back": "Назад к панели",
+  "suiteTests.run": "Запустить",
+  "suiteTests.triggered": "Запущено!",
+  "suiteTests.loading": "Загрузка тестов…",
+  "suiteTests.empty": "Тесты пока не найдены. Запустите весь набор один раз, чтобы его тесты появились здесь.",
 
   "table.run": "Запуск",
   "table.status": "Статус",

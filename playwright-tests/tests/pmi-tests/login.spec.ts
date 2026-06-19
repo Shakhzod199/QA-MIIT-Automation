@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { BASE_URL, USERNAME, PASSWORD } from "./helpers";
+import { BASE_URL, USERNAME, PASSWORD, login } from "./helpers";
 
 test.describe("PMI login flow", () => {
   test("Shows OneID and performs login via credentials", async ({ page }) => {
@@ -24,5 +24,10 @@ test.describe("PMI login flow", () => {
       .click();
 
     await expect(page).toHaveURL(/\/app\/dashboard/, { timeout: 15000 });
+  });
+
+  test("login() helper lands on the dashboard", async ({ page }) => {
+    await login(page);
+    await expect(page).toHaveURL(/\/app\/dashboard/);
   });
 });

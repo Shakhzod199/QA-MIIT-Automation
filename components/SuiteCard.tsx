@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useI18n } from "@/components/I18nProvider";
 import type { WorkflowSummary } from "@/lib/types";
 
@@ -61,27 +62,35 @@ export function SuiteCard({
         >
           {t("suite.viewOnGithub")}
         </a>
-        <button
-          onClick={handleRun}
-          disabled={busy}
-          className={[
-            "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-white transition disabled:cursor-not-allowed",
-            "bg-indigo-600 hover:bg-indigo-500 disabled:opacity-70",
-          ].join(" ")}
-        >
-          {busy && (
-            <svg
-              className="h-3.5 w-3.5 animate-spin"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-            </svg>
-          )}
-          {busy ? t("suite.running") : t("suite.run")}
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/suites/${workflow.id}`}
+            className="inline-flex items-center rounded-md border border-surface-border px-3 py-1.5 text-sm font-medium text-gray-300 transition hover:border-gray-500 hover:text-white"
+          >
+            {t("suite.runSeparately")}
+          </Link>
+          <button
+            onClick={handleRun}
+            disabled={busy}
+            className={[
+              "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-white transition disabled:cursor-not-allowed",
+              "bg-indigo-600 hover:bg-indigo-500 disabled:opacity-70",
+            ].join(" ")}
+          >
+            {busy && (
+              <svg
+                className="h-3.5 w-3.5 animate-spin"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+            )}
+            {busy ? t("suite.running") : t("suite.run")}
+          </button>
+        </div>
       </div>
       {error && <p className="mt-2 text-xs text-red-400">{error}</p>}
     </div>
