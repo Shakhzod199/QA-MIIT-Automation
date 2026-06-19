@@ -46,6 +46,7 @@ const en: Dict = {
   "suiteTests.empty": "No tests found yet. Run the whole suite once so its tests can be listed here.",
 
   "table.run": "Run",
+  "table.singleTest": "single test",
   "table.status": "Status",
   "table.progress": "Progress",
   "table.branch": "Branch",
@@ -136,6 +137,7 @@ const uz: Dict = {
   "suiteTests.empty": "Testlar topilmadi. Avval butun to‘plamni bir marta ishga tushiring, shunda testlar bu yerda ko‘rinadi.",
 
   "table.run": "Ish",
+  "table.singleTest": "alohida test",
   "table.status": "Holat",
   "table.progress": "Jarayon",
   "table.branch": "Tarmoq",
@@ -226,6 +228,7 @@ const ru: Dict = {
   "suiteTests.empty": "Тесты пока не найдены. Запустите весь набор один раз, чтобы его тесты появились здесь.",
 
   "table.run": "Запуск",
+  "table.singleTest": "отдельный тест",
   "table.status": "Статус",
   "table.progress": "Прогресс",
   "table.branch": "Ветка",

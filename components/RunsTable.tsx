@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { formatDuration, formatRelativeTime } from "@/lib/format";
 import { useI18n } from "@/components/I18nProvider";
+import { FlaskIcon } from "@/components/icons";
 import type { RunSummary } from "@/lib/types";
 
 // Re-render every second while a run is active so the progress bar animates smoothly
@@ -242,6 +243,15 @@ export function RunsTable({
                     #{run.runNumber}
                   </span>
                 </Link>
+                {run.testFilter && (
+                  <span
+                    title={run.testFilter}
+                    className="mt-1 inline-flex max-w-full items-center gap-1 rounded bg-indigo-500/15 px-1.5 py-0.5 text-[10px] font-medium text-indigo-300 ring-1 ring-inset ring-indigo-500/30"
+                  >
+                    <FlaskIcon className="h-2.5 w-2.5 shrink-0" />
+                    <span className="truncate">{t("table.singleTest")}</span>
+                  </span>
+                )}
               </td>
               <td className="px-4 py-3">
                 <StatusBadge status={run.status} conclusion={run.conclusion} />

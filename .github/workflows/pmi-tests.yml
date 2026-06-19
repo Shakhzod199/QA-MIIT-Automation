@@ -1,5 +1,9 @@
 name: PMI Tests
 
+# Single-test runs append the filter after " — " so the dashboard can tell them
+# apart from a full-suite run. Empty filter → just "PMI Tests".
+run-name: PMI Tests${{ inputs.test_filter && format(' — {0}', inputs.test_filter) || '' }}
+
 on:
   # Manual only — runs are triggered from the dashboard "Run" button
   # (workflow_dispatch). No automatic run on push.

@@ -7,10 +7,20 @@ function durationBetween(startIso: string | null, endIso: string | null): number
   return Math.max(0, Math.round((end - start) / 1000));
 }
 
+// run-name encodes a single-test filter as "<Suite> — <filter>". Split it back
+// so `name` stays the bare suite (keeps grouping/trends stable) and the filter
+// surfaces separately.
+const RUN_NAME_SEP = " — ";
+
 export function mapRun(run: any): RunSummary {
+  const rawName = run.name ?? run.display_title ?? "Run";
+  const sep = rawName.indexOf(RUN_NAME_SEP);
+  const name = sep >= 0 ? rawName.slice(0, sep) : rawName;
+  const testFilter = sep >= 0 ? rawName.slice(sep + RUN_NAME_SEP.length) : null;
+
   return {
     id: run.id,
-    name: run.name ?? run.display_title ?? "Run",
+    name,
     runNumber: run.run_number,
     workflowId: run.workflow_id,
     status: run.status,
@@ -19,6 +29,7 @@ export function mapRun(run: any): RunSummary {
     createdAt: run.created_at,
     durationSec: run.status === "completed" ? durationBetween(run.run_started_at, run.updated_at) : null,
     htmlUrl: run.html_url,
+    testFilter,
   };
 }
 

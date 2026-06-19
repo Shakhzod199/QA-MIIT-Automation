@@ -17,6 +17,8 @@ export interface RunSummary {
   createdAt: string;
   durationSec: number | null;
   htmlUrl: string;
+  /** Playwright filter for a single-test run (from run-name), else null = full suite. */
+  testFilter: string | null;
 }
 
 export interface RunStats {

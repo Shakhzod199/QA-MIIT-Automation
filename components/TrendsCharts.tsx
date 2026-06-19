@@ -122,9 +122,14 @@ function PassRateChart({ runs }: { runs: RunSummary[] }) {
     return <p className="text-sm text-gray-500">No completed runs to chart yet.</p>;
   }
 
-  const span = maxT - minT;
-  // Single point (or all same timestamp) → pin to the right edge so it's visible.
-  const xFor = (t: number) => (span <= 0 ? 96 : 2 + ((t - minT) / span) * 96);
+  // X-axis is per-project run recency (newest run pinned to the right edge),
+  // NOT wall-clock time. This way every project renders as its own full line
+  // that overlays the others for comparison, instead of being strung
+  // end-to-end on a shared timeline (which made them look like one line).
+  const maxLen = Math.max(...series.map((s) => s.points.length));
+  const step = maxLen > 1 ? 96 / (maxLen - 1) : 0;
+  // i = point index within its series (0 = oldest), len = that series' length.
+  const xFor = (i: number, len: number) => 98 - (len - 1 - i) * step;
   // Pad the vertical range so 0% / 100% lines aren't clipped against the edges.
   const PAD = 10;
   const yFor = (rate: number) => PAD + (1 - rate) * (100 - 2 * PAD);
@@ -147,7 +152,9 @@ function PassRateChart({ runs }: { runs: RunSummary[] }) {
         <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
           {series.map((s, idx) => {
             if (s.points.length < 2) return null;
-            const line = s.points.map((p) => `${xFor(p.t).toFixed(2)},${yFor(p.rate).toFixed(2)}`).join(" ");
+            const line = s.points
+              .map((p, i) => `${xFor(i, s.points.length).toFixed(2)},${yFor(p.rate).toFixed(2)}`)
+              .join(" ");
             return (
               <polyline
                 key={s.name}
@@ -165,12 +172,12 @@ function PassRateChart({ runs }: { runs: RunSummary[] }) {
 
         {/* round data-point markers (HTML so they aren't distorted by the stretched svg) */}
         {series.map((s, idx) =>
-          s.points.map((p) => (
+          s.points.map((p, i) => (
             <span
               key={`${s.name}-${p.runNumber}-${p.t}`}
               title={`${s.name} · #${p.runNumber} · ${Math.round(p.rate * 100)}% · ${formatRelativeTime(p.createdAt)}`}
               className="absolute h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-surface-panel"
-              style={{ left: `${xFor(p.t)}%`, top: `${yFor(p.rate)}%`, backgroundColor: colorFor(idx) }}
+              style={{ left: `${xFor(i, s.points.length)}%`, top: `${yFor(p.rate)}%`, backgroundColor: colorFor(idx) }}
             />
           ))
         )}
