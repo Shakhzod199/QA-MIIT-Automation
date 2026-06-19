@@ -123,20 +123,23 @@ function PassRateChart({ runs }: { runs: RunSummary[] }) {
   }
 
   const span = maxT - minT;
-  const xFor = (t: number) => (span <= 0 ? 100 : ((t - minT) / span) * 100);
-  const yFor = (rate: number) => (1 - rate) * 100;
+  // Single point (or all same timestamp) → pin to the right edge so it's visible.
+  const xFor = (t: number) => (span <= 0 ? 96 : 2 + ((t - minT) / span) * 96);
+  // Pad the vertical range so 0% / 100% lines aren't clipped against the edges.
+  const PAD = 10;
+  const yFor = (rate: number) => PAD + (1 - rate) * (100 - 2 * PAD);
 
   return (
     <div>
       <div className="relative h-44 w-full overflow-hidden rounded-md bg-surface-hover/30">
-        {/* gridlines at 0 / 50 / 100% */}
-        {[0, 50, 100].map((g) => (
+        {/* gridlines at 100 / 50 / 0% */}
+        {[100, 50, 0].map((pct) => (
           <div
-            key={g}
+            key={pct}
             className="absolute inset-x-0 border-t border-surface-border/60"
-            style={{ top: `${g}%` }}
+            style={{ top: `${yFor(pct / 100)}%` }}
           >
-            <span className="absolute -top-2 left-1 text-[10px] text-gray-600">{100 - g}%</span>
+            <span className="absolute -top-2 left-1 text-[10px] text-gray-600">{pct}%</span>
           </div>
         ))}
 
