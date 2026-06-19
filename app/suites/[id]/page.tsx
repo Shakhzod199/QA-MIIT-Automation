@@ -94,10 +94,17 @@ export default function SuiteTestsPage({ params }: { params: Promise<{ id: strin
 
   const workflow = workflowsData?.workflows.find((w) => w.id === workflowId);
 
-  // Newest completed run for this workflow — the source of the test list.
+  // Newest run for this workflow that actually produced a report artifact.
+  // Only success/failure runs upload one (via `if: always()`); cancelled or
+  // skipped runs have no results.json, so we skip them when sourcing the list.
   const latestRunId = useMemo(() => {
     const runs = runsData?.runs ?? [];
-    return runs.find((r) => r.workflowId === workflowId && r.status === "completed")?.id;
+    return runs.find(
+      (r) =>
+        r.workflowId === workflowId &&
+        r.status === "completed" &&
+        (r.conclusion === "success" || r.conclusion === "failure")
+    )?.id;
   }, [runsData, workflowId]);
 
   const { data: testsData, isLoading } = useSWR<TestReportResponse>(
