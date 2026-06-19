@@ -94,16 +94,19 @@ export default function SuiteTestsPage({ params }: { params: Promise<{ id: strin
 
   const workflow = workflowsData?.workflows.find((w) => w.id === workflowId);
 
-  // Newest run for this workflow that actually produced a report artifact.
-  // Only success/failure runs upload one (via `if: always()`); cancelled or
-  // skipped runs have no results.json, so we skip them when sourcing the list.
+  // Newest *full-suite* run for this workflow that produced a report artifact.
+  // - success/failure only: those upload a report (via `if: always()`);
+  //   cancelled/skipped runs have no results.json.
+  // - !testFilter: single-test runs only contain the one test they ran, so they
+  //   can't be the source of the full catalog — skip them here.
   const latestRunId = useMemo(() => {
     const runs = runsData?.runs ?? [];
     return runs.find(
       (r) =>
         r.workflowId === workflowId &&
         r.status === "completed" &&
-        (r.conclusion === "success" || r.conclusion === "failure")
+        (r.conclusion === "success" || r.conclusion === "failure") &&
+        !r.testFilter
     )?.id;
   }, [runsData, workflowId]);
 

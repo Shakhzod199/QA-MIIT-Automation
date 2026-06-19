@@ -230,28 +230,30 @@ export function RunsTable({
           {visibleRuns.map((run) => (
             <tr key={run.id} className="border-b border-surface-border last:border-0 hover:bg-surface-hover transition-colors">
               <td className="px-4 py-3">
-                <Link
-                  href={`/reports/${run.id}`}
-                  className="group flex items-center gap-1.5"
-                >
-                  {!hideProject && (
-                    <span className="text-gray-400 group-hover:text-gray-200 transition-colors">
-                      {run.name}
+                <div className="flex items-center gap-2">
+                  <Link
+                    href={`/reports/${run.id}`}
+                    className="group flex items-center gap-1.5"
+                  >
+                    {!hideProject && (
+                      <span className="text-gray-400 group-hover:text-gray-200 transition-colors">
+                        {run.name}
+                      </span>
+                    )}
+                    <span className="font-mono text-indigo-400 group-hover:text-indigo-300 transition-colors">
+                      #{run.runNumber}
+                    </span>
+                  </Link>
+                  {run.testFilter && (
+                    <span
+                      title={run.testFilter}
+                      className="inline-flex max-w-full items-center gap-1 rounded bg-indigo-500/15 px-1.5 py-0.5 text-[10px] font-medium text-indigo-300 ring-1 ring-inset ring-indigo-500/30"
+                    >
+                      <FlaskIcon className="h-2.5 w-2.5 shrink-0" />
+                      <span className="truncate">{t("table.singleTest")}</span>
                     </span>
                   )}
-                  <span className="font-mono text-indigo-400 group-hover:text-indigo-300 transition-colors">
-                    #{run.runNumber}
-                  </span>
-                </Link>
-                {run.testFilter && (
-                  <span
-                    title={run.testFilter}
-                    className="mt-1 inline-flex max-w-full items-center gap-1 rounded bg-indigo-500/15 px-1.5 py-0.5 text-[10px] font-medium text-indigo-300 ring-1 ring-inset ring-indigo-500/30"
-                  >
-                    <FlaskIcon className="h-2.5 w-2.5 shrink-0" />
-                    <span className="truncate">{t("table.singleTest")}</span>
-                  </span>
-                )}
+                </div>
               </td>
               <td className="px-4 py-3">
                 <StatusBadge status={run.status} conclusion={run.conclusion} />
