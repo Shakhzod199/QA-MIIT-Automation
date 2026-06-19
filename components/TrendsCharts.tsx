@@ -6,7 +6,7 @@ import { useI18n } from "@/components/I18nProvider";
 import { formatDuration, formatRelativeTime } from "@/lib/format";
 import {
   durationSeries,
-  rollingPassRate,
+  passRateByProject,
   suiteBreakdown,
   trendSummary,
 } from "@/lib/trends";
@@ -17,6 +17,20 @@ function barColor(conclusion: string | null): string {
   if (conclusion === "failure") return "bg-red-500/80 hover:bg-red-400";
   if (conclusion === "cancelled") return "bg-amber-500/70 hover:bg-amber-400";
   return "bg-gray-600 hover:bg-gray-500";
+}
+
+// Stable per-project line colors (cycles if there are more projects than colors).
+const PROJECT_COLORS = ["#6366f1", "#10b981", "#f59e0b", "#0ea5e9", "#ec4899", "#a78bfa", "#f43f5e", "#22d3ee"];
+const colorFor = (index: number) => PROJECT_COLORS[index % PROJECT_COLORS.length];
+
+function LegendDot({ color, className, label, value }: { color?: string; className?: string; label: string; value?: string }) {
+  return (
+    <span className="flex items-center gap-1.5 text-xs">
+      <span className={`h-2.5 w-2.5 rounded-sm ${className ?? ""}`} style={color ? { backgroundColor: color } : undefined} />
+      <span className="text-gray-300">{label}</span>
+      {value && <span className="tabular-nums text-gray-500">{value}</span>}
+    </span>
+  );
 }
 
 function Kpi({ label, value, hint }: { label: string; value: string; hint?: string }) {
@@ -30,8 +44,12 @@ function Kpi({ label, value, hint }: { label: string; value: string; hint?: stri
 }
 
 function DurationChart({ runs }: { runs: RunSummary[] }) {
+  const { t } = useI18n();
   const series = useMemo(() => durationSeries(runs), [runs]);
   const max = Math.max(1, ...series.map((p) => p.durationSec));
+  const avg = series.length
+    ? Math.round(series.reduce((s, p) => s + p.durationSec, 0) / series.length)
+    : 0;
 
   if (series.length === 0) {
     return <p className="text-sm text-gray-500">No completed runs to chart yet.</p>;
@@ -39,25 +57,57 @@ function DurationChart({ runs }: { runs: RunSummary[] }) {
 
   return (
     <div>
-      <div className="flex h-44 items-end gap-px">
-        {series.map((p) => (
-          <Link
-            key={p.id}
-            href={`/reports/${p.id}`}
-            title={`#${p.runNumber} · ${p.conclusion ?? "?"} · ${formatDuration(p.durationSec)} · ${formatRelativeTime(p.createdAt)}`}
-            className="group flex flex-1 items-end"
-            style={{ minWidth: 3 }}
-          >
-            <div
-              className={`w-full rounded-t-sm transition-colors ${barColor(p.conclusion)}`}
-              style={{ height: `${Math.max(2, (p.durationSec / max) * 100)}%` }}
-            />
-          </Link>
+      <div className="relative h-44">
+        {/* duration gridlines + axis labels */}
+        {[0, 50, 100].map((g) => (
+          <div key={g} className="absolute inset-x-0 border-t border-surface-border/50" style={{ top: `${g}%` }}>
+            <span className="absolute -top-2 left-0 text-[10px] tabular-nums text-gray-600">
+              {formatDuration(Math.round((max * (100 - g)) / 100))}
+            </span>
+          </div>
         ))}
+
+        {/* average reference line */}
+        {avg > 0 && (
+          <div
+            className="absolute inset-x-0 z-10 border-t border-dashed border-indigo-400/70"
+            style={{ top: `${(1 - avg / max) * 100}%` }}
+          >
+            <span className="absolute -top-2 right-0 rounded bg-surface-panel/80 px-1 text-[10px] font-medium text-indigo-300">
+              avg {formatDuration(avg)}
+            </span>
+          </div>
+        )}
+
+        {/* bars */}
+        <div className="absolute inset-0 flex items-end gap-px pl-10">
+          {series.map((p) => (
+            <Link
+              key={p.id}
+              href={`/reports/${p.id}`}
+              title={`#${p.runNumber} · ${p.name} · ${p.conclusion ?? "?"} · ${formatDuration(p.durationSec)} · ${formatRelativeTime(p.createdAt)}`}
+              className="group flex flex-1 items-end"
+              style={{ minWidth: 3 }}
+            >
+              <div
+                className={`w-full rounded-t-sm transition-all group-hover:brightness-125 ${barColor(p.conclusion)}`}
+                style={{ height: `${Math.max(2, (p.durationSec / max) * 100)}%` }}
+              />
+            </Link>
+          ))}
+        </div>
       </div>
+
+      {/* outcome legend */}
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
+        <LegendDot className="bg-emerald-500/80" label={t("status.passed")} />
+        <LegendDot className="bg-red-500/80" label={t("status.failed")} />
+        <LegendDot className="bg-amber-500/70" label={t("status.cancelled")} />
+      </div>
+
       <div className="mt-2 flex items-center justify-between text-[11px] text-gray-500">
         <span>{formatRelativeTime(series[0].createdAt)}</span>
-        <span>max {formatDuration(max)}</span>
+        <span>{series.length} runs · max {formatDuration(max)}</span>
         <span>{formatRelativeTime(series[series.length - 1].createdAt)}</span>
       </div>
     </div>
@@ -65,20 +115,16 @@ function DurationChart({ runs }: { runs: RunSummary[] }) {
 }
 
 function PassRateChart({ runs }: { runs: RunSummary[] }) {
-  const points = useMemo(() => rollingPassRate(runs, 5), [runs]);
+  const { series, minT, maxT } = useMemo(() => passRateByProject(runs, 5), [runs]);
 
-  if (points.length < 2) {
-    return <p className="text-sm text-gray-500">Need at least 2 completed runs to show a trend.</p>;
+  const totalPoints = series.reduce((sum, s) => sum + s.points.length, 0);
+  if (totalPoints === 0) {
+    return <p className="text-sm text-gray-500">No completed runs to chart yet.</p>;
   }
 
-  const n = points.length;
-  const coords = points.map((p, i) => ({
-    x: (i / (n - 1)) * 100,
-    y: (1 - p.rate) * 100,
-  }));
-  const line = coords.map((c) => `${c.x.toFixed(2)},${c.y.toFixed(2)}`).join(" ");
-  const area = `0,100 ${line} 100,100`;
-  const latest = Math.round(points[n - 1].rate * 100);
+  const span = maxT - minT;
+  const xFor = (t: number) => (span <= 0 ? 100 : ((t - minT) / span) * 100);
+  const yFor = (rate: number) => (1 - rate) * 100;
 
   return (
     <div>
@@ -93,25 +139,56 @@ function PassRateChart({ runs }: { runs: RunSummary[] }) {
             <span className="absolute -top-2 left-1 text-[10px] text-gray-600">{100 - g}%</span>
           </div>
         ))}
+
+        {/* one line per project */}
         <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-          <polygon points={area} fill="rgb(16 185 129 / 0.12)" />
-          <polyline
-            points={line}
-            fill="none"
-            stroke="rgb(16 185 129)"
-            strokeWidth={2}
-            vectorEffect="non-scaling-stroke"
-            strokeLinejoin="round"
-          />
+          {series.map((s, idx) => {
+            if (s.points.length < 2) return null;
+            const line = s.points.map((p) => `${xFor(p.t).toFixed(2)},${yFor(p.rate).toFixed(2)}`).join(" ");
+            return (
+              <polyline
+                key={s.name}
+                points={line}
+                fill="none"
+                stroke={colorFor(idx)}
+                strokeWidth={2}
+                vectorEffect="non-scaling-stroke"
+                strokeLinejoin="round"
+                strokeLinecap="round"
+              />
+            );
+          })}
         </svg>
-        <span className="absolute right-2 top-2 rounded bg-surface-panel/80 px-1.5 py-0.5 text-xs font-medium text-emerald-300">
-          {latest}% now
-        </span>
+
+        {/* round data-point markers (HTML so they aren't distorted by the stretched svg) */}
+        {series.map((s, idx) =>
+          s.points.map((p) => (
+            <span
+              key={`${s.name}-${p.runNumber}-${p.t}`}
+              title={`${s.name} · #${p.runNumber} · ${Math.round(p.rate * 100)}% · ${formatRelativeTime(p.createdAt)}`}
+              className="absolute h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-surface-panel"
+              style={{ left: `${xFor(p.t)}%`, top: `${yFor(p.rate)}%`, backgroundColor: colorFor(idx) }}
+            />
+          ))
+        )}
       </div>
+
+      {/* per-project legend with latest pass rate */}
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
+        {series.map((s, idx) => (
+          <LegendDot
+            key={s.name}
+            color={colorFor(idx)}
+            label={s.name}
+            value={`${Math.round(s.points[s.points.length - 1].rate * 100)}%`}
+          />
+        ))}
+      </div>
+
       <div className="mt-2 flex items-center justify-between text-[11px] text-gray-500">
-        <span>{formatRelativeTime(points[0].createdAt)}</span>
+        <span>{formatRelativeTime(new Date(minT).toISOString())}</span>
         <span>5-run trailing pass rate</span>
-        <span>{formatRelativeTime(points[n - 1].createdAt)}</span>
+        <span>{formatRelativeTime(new Date(maxT).toISOString())}</span>
       </div>
     </div>
   );

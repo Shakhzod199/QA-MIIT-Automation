@@ -24,7 +24,7 @@ export function ConditionalLayout({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-screen">
       <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col overflow-y-auto border-r border-surface-border bg-surface-panel p-6">
         <div className="mb-8">
-          <Link href="/" className="text-lg font-semibold text-white transition hover:text-indigo-300">
+          <Link href="/trends" className="text-lg font-semibold text-white transition hover:text-indigo-300">
             QA Dashboard
           </Link>
           <p className="text-xs text-gray-500">{t("app.subtitle")}</p>

@@ -9,12 +9,6 @@ export interface DurationPoint {
   conclusion: string | null;
 }
 
-export interface PassRatePoint {
-  createdAt: string;
-  /** Trailing pass rate over the rolling window, 0..1. */
-  rate: number;
-}
-
 export interface SuiteTrend {
   name: string;
   total: number;
@@ -48,17 +42,63 @@ export function durationSeries(runs: RunSummary[]): DurationPoint[] {
     .reverse();
 }
 
-/** Trailing pass rate across the completed-run sequence (oldest → newest). */
-export function rollingPassRate(runs: RunSummary[], window = 5): PassRatePoint[] {
-  const completed = runs.filter((r) => r.status === "completed").reverse();
-  const points: PassRatePoint[] = [];
-  for (let i = 0; i < completed.length; i++) {
-    const start = Math.max(0, i - window + 1);
-    const slice = completed.slice(start, i + 1);
-    const passed = slice.filter((r) => r.conclusion === "success").length;
-    points.push({ createdAt: completed[i].createdAt, rate: passed / slice.length });
+export interface ProjectPassRatePoint {
+  t: number; // epoch ms of the run
+  rate: number; // trailing pass rate at this point, 0..1
+  createdAt: string;
+  runNumber: number;
+}
+
+export interface ProjectPassRateSeries {
+  name: string;
+  points: ProjectPassRatePoint[];
+}
+
+export interface PassRateByProject {
+  series: ProjectPassRateSeries[];
+  minT: number;
+  maxT: number;
+}
+
+/**
+ * Trailing pass rate per project, plotted on a shared time axis so each
+ * project becomes its own line in a multi-series chart (oldest → newest).
+ */
+export function passRateByProject(runs: RunSummary[], window = 5): PassRateByProject {
+  const groups = new Map<string, RunSummary[]>();
+  for (const run of runs) {
+    if (run.status !== "completed") continue;
+    if (!groups.has(run.name)) groups.set(run.name, []);
+    groups.get(run.name)!.push(run);
   }
-  return points;
+
+  const series: ProjectPassRateSeries[] = [];
+  let minT = Infinity;
+  let maxT = -Infinity;
+
+  for (const [name, list] of groups) {
+    const chrono = [...list].reverse(); // oldest → newest
+    const points: ProjectPassRatePoint[] = [];
+    for (let i = 0; i < chrono.length; i++) {
+      const start = Math.max(0, i - window + 1);
+      const slice = chrono.slice(start, i + 1);
+      const passed = slice.filter((r) => r.conclusion === "success").length;
+      const t = Date.parse(chrono[i].createdAt);
+      points.push({ t, rate: passed / slice.length, createdAt: chrono[i].createdAt, runNumber: chrono[i].runNumber });
+      if (t < minT) minT = t;
+      if (t > maxT) maxT = t;
+    }
+    if (points.length) series.push({ name, points });
+  }
+
+  // Stable ordering by name keeps each project's color assignment consistent.
+  series.sort((a, b) => a.name.localeCompare(b.name));
+
+  return {
+    series,
+    minT: Number.isFinite(minT) ? minT : 0,
+    maxT: Number.isFinite(maxT) ? maxT : 0,
+  };
 }
 
 export function suiteBreakdown(runs: RunSummary[]): SuiteTrend[] {
