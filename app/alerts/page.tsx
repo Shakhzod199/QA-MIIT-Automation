@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import useSWR from "swr";
+import { useI18n } from "@/components/I18nProvider";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -28,6 +29,7 @@ function StatusPill({ ok, label }: { ok: boolean; label: string }) {
 }
 
 export default function AlertsPage() {
+  const { t } = useI18n();
   const { data: status, mutate } = useSWR<NotifyStatus>("/api/notify/status", fetcher);
   const [busy, setBusy] = useState<null | "test" | "check">(null);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
@@ -71,11 +73,8 @@ export default function AlertsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-semibold text-white">Telegram Alerts</h2>
-        <p className="mt-1 max-w-2xl text-sm text-gray-500">
-          Get a Telegram message for <span className="text-gray-300">every</span> run result —
-          passed, failed, or cancelled.
-        </p>
+        <h2 className="text-2xl font-semibold text-white">{t("alerts.title")}</h2>
+        <p className="mt-1 max-w-2xl text-sm text-gray-500">{t("alerts.subtitle")}</p>
       </div>
 
       {/* Status */}
@@ -97,20 +96,20 @@ export default function AlertsPage() {
             disabled={!ready || busy !== null}
             className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {busy === "test" ? "Sending…" : "Send test message"}
+            {busy === "test" ? "…" : t("alerts.sendTest")}
           </button>
           <button
             onClick={checkNow}
             disabled={!ready || busy !== null}
             className="inline-flex items-center gap-2 rounded-lg border border-surface-border bg-surface-hover px-4 py-2 text-sm font-medium text-gray-200 transition hover:border-gray-500 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {busy === "check" ? "Checking…" : "Check for new results now"}
+            {busy === "check" ? "…" : t("alerts.checkNow")}
           </button>
           <button
             onClick={() => mutate()}
             className="inline-flex items-center rounded-lg px-3 py-2 text-sm text-gray-500 transition hover:text-gray-300"
           >
-            Refresh status
+            {t("alerts.refresh")}
           </button>
         </div>
 

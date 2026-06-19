@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useI18n } from "@/components/I18nProvider";
 import type { WorkflowSummary } from "@/lib/types";
 
 export function SuiteCard({
@@ -10,6 +11,7 @@ export function SuiteCard({
   workflow: WorkflowSummary;
   onRun: (workflowId: number) => Promise<{ ok: boolean; error?: string }>;
 }) {
+  const { t } = useI18n();
   const [status, setStatus] = useState<"idle" | "running" | "triggered" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
 
@@ -44,7 +46,7 @@ export function SuiteCard({
           rel="noreferrer"
           className="text-xs text-gray-500 hover:text-gray-300"
         >
-          View on GitHub
+          {t("suite.viewOnGithub")}
         </a>
         <button
           onClick={handleRun}
@@ -72,7 +74,7 @@ export function SuiteCard({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
             </svg>
           )}
-          {status === "running" ? "Running…" : status === "triggered" ? "Triggered!" : "Run"}
+          {status === "running" ? t("suite.running") : status === "triggered" ? t("suite.triggered") : t("suite.run")}
         </button>
       </div>
       {error && <p className="mt-2 text-xs text-red-400">{error}</p>}

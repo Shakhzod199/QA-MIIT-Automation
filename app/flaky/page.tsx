@@ -3,6 +3,7 @@
 import { useState } from "react";
 import useSWR from "swr";
 import { FlakyTests } from "@/components/FlakyTests";
+import { useI18n } from "@/components/I18nProvider";
 import { formatRelativeTime } from "@/lib/format";
 import type { FlakyResponse } from "@/lib/types";
 
@@ -10,6 +11,7 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json());
 const WINDOWS = [5, 10, 15, 20];
 
 export default function FlakyPage() {
+  const { t } = useI18n();
   const [windowSize, setWindowSize] = useState(10);
   const { data, isLoading } = useSWR<FlakyResponse>(`/api/flaky?limit=${windowSize}`, fetcher, {
     revalidateOnFocus: false,
@@ -19,14 +21,11 @@ export default function FlakyPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-semibold text-white">Flaky Tests</h2>
-          <p className="mt-1 max-w-2xl text-sm text-gray-500">
-            Tests whose results flip-flop across recent runs (or pass only on retry). A consistently
-            failing test is treated as a real failure, not flaky.
-          </p>
+          <h2 className="text-2xl font-semibold text-white">{t("flaky.title")}</h2>
+          <p className="mt-1 max-w-2xl text-sm text-gray-500">{t("flaky.subtitle")}</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-500">Analyze last</span>
+          <span className="text-xs text-gray-500">{t("flaky.analyzeLast")}</span>
           <div className="flex items-center gap-1 rounded-lg border border-surface-border bg-surface-panel p-1">
             {WINDOWS.map((w) => (
               <button
@@ -40,7 +39,7 @@ export default function FlakyPage() {
               </button>
             ))}
           </div>
-          <span className="text-xs text-gray-500">runs</span>
+          <span className="text-xs text-gray-500">{t("flaky.runs")}</span>
         </div>
       </div>
 

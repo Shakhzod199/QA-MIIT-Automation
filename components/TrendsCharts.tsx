@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
+import { useI18n } from "@/components/I18nProvider";
 import { formatDuration, formatRelativeTime } from "@/lib/format";
 import {
   durationSeries,
@@ -172,6 +173,7 @@ function ChartCard({ title, children }: { title: string; children: React.ReactNo
 }
 
 export function TrendsView({ runs }: { runs: RunSummary[] }) {
+  const { t } = useI18n();
   const summary = useMemo(() => trendSummary(runs), [runs]);
 
   if (runs.length === 0) {
@@ -185,29 +187,29 @@ export function TrendsView({ runs }: { runs: RunSummary[] }) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Kpi label="Pass Rate" value={`${summary.passRate}%`} hint={`${summary.completedRuns} completed runs`} />
-        <Kpi label="Fail Rate" value={`${100 - summary.passRate}%`} />
+        <Kpi label={t("trends.passRate")} value={`${summary.passRate}%`} hint={`${summary.completedRuns} ✓`} />
+        <Kpi label={t("trends.failRate")} value={`${100 - summary.passRate}%`} />
         <Kpi
-          label="Avg Duration"
+          label={t("trends.avgDuration")}
           value={summary.avgDurationSec != null ? formatDuration(summary.avgDurationSec) : "—"}
         />
         <Kpi
-          label="Median Duration"
+          label={t("trends.medianDuration")}
           value={summary.medianDurationSec != null ? formatDuration(summary.medianDurationSec) : "—"}
         />
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <ChartCard title="Run duration & outcome (oldest → newest)">
+        <ChartCard title={t("trends.durationChart")}>
           <DurationChart runs={runs} />
         </ChartCard>
-        <ChartCard title="Pass rate over time">
+        <ChartCard title={t("trends.passRateChart")}>
           <PassRateChart runs={runs} />
         </ChartCard>
       </div>
 
       <div>
-        <h3 className="mb-3 text-lg font-medium text-white">By suite</h3>
+        <h3 className="mb-3 text-lg font-medium text-white">{t("trends.bySuite")}</h3>
         <SuiteTable runs={runs} />
       </div>
     </div>

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { formatDuration, formatRelativeTime } from "@/lib/format";
+import { useI18n } from "@/components/I18nProvider";
 import type { RunSummary } from "@/lib/types";
 
 // Re-render every second while a run is active so the progress bar animates smoothly
@@ -71,6 +72,7 @@ function RunProgressBar({ run, estimateSec }: { run: RunSummary; estimateSec: nu
 }
 
 function StatusBadge({ status, conclusion }: { status: string; conclusion: string | null }) {
+  const { t } = useI18n();
   if (status === "in_progress") {
     return (
       <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/15 px-2.5 py-1 text-xs font-medium text-blue-300 ring-1 ring-inset ring-blue-500/30">
@@ -78,7 +80,7 @@ function StatusBadge({ status, conclusion }: { status: string; conclusion: strin
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-75" />
           <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-blue-400" />
         </span>
-        Running
+        {t("status.running")}
       </span>
     );
   }
@@ -87,7 +89,7 @@ function StatusBadge({ status, conclusion }: { status: string; conclusion: strin
     return (
       <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-500/15 px-2.5 py-1 text-xs font-medium text-gray-400 ring-1 ring-inset ring-gray-500/30">
         <span className="h-1.5 w-1.5 rounded-full bg-gray-400" />
-        Queued
+        {t("status.queued")}
       </span>
     );
   }
@@ -99,7 +101,7 @@ function StatusBadge({ status, conclusion }: { status: string; conclusion: strin
           <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
           </svg>
-          Passed
+          {t("status.passed")}
         </span>
       );
     case "failure":
@@ -108,7 +110,7 @@ function StatusBadge({ status, conclusion }: { status: string; conclusion: strin
           <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
           </svg>
-          Failed
+          {t("status.failed")}
         </span>
       );
     case "cancelled":
@@ -117,7 +119,7 @@ function StatusBadge({ status, conclusion }: { status: string; conclusion: strin
           <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636" />
           </svg>
-          Cancelled
+          {t("status.cancelled")}
         </span>
       );
     default:
@@ -137,6 +139,7 @@ function CancelButton({
   runId: number;
   onCancel: (runId: number) => Promise<{ ok: boolean; error?: string }>;
 }) {
+  const { t } = useI18n();
   const [state, setState] = useState<"idle" | "cancelling" | "error">("idle");
 
   const handleClick = async () => {
@@ -161,7 +164,7 @@ function CancelButton({
       <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <rect x="6" y="6" width="12" height="12" rx="1.5" strokeWidth={2} />
       </svg>
-      {state === "cancelling" ? "Cancelling…" : "Cancel"}
+      {state === "cancelling" ? t("table.cancelling") : t("table.cancel")}
     </button>
   );
 }
@@ -177,6 +180,7 @@ export function RunsTable({
   pageSize?: number;
   onCancel?: (runId: number) => Promise<{ ok: boolean; error?: string }>;
 }) {
+  const { t } = useI18n();
   const hasActiveRun = runs.some((run) => run.status !== "completed");
   useTicker(hasActiveRun);
   const estimateSec = estimateDurationSec(runs);
@@ -191,7 +195,7 @@ export function RunsTable({
   if (runs.length === 0) {
     return (
       <div className="rounded-lg border border-surface-border bg-surface-panel p-8 text-center text-sm text-gray-500">
-        No runs yet.
+        {t("dashboard.noRuns")}
       </div>
     );
   }
@@ -201,12 +205,12 @@ export function RunsTable({
       <table className="w-full text-left text-sm">
         <thead>
           <tr className="border-b border-surface-border text-xs uppercase tracking-wide text-gray-500">
-            <th className="px-4 py-3">Run</th>
-            <th className="px-4 py-3">Status</th>
-            <th className="px-4 py-3">Progress</th>
-            <th className="px-4 py-3">Branch</th>
-            <th className="px-4 py-3">Duration</th>
-            <th className="px-4 py-3">Triggered</th>
+            <th className="px-4 py-3">{t("table.run")}</th>
+            <th className="px-4 py-3">{t("table.status")}</th>
+            <th className="px-4 py-3">{t("table.progress")}</th>
+            <th className="px-4 py-3">{t("table.branch")}</th>
+            <th className="px-4 py-3">{t("table.duration")}</th>
+            <th className="px-4 py-3">{t("table.triggered")}</th>
             <th className="px-4 py-3" />
           </tr>
         </thead>
@@ -242,7 +246,15 @@ export function RunsTable({
                   {run.branch ?? "—"}
                 </span>
               </td>
-              <td className="px-4 py-3 tabular-nums text-gray-400">{formatDuration(run.durationSec)}</td>
+              <td className="px-4 py-3 tabular-nums">
+                {run.status === "in_progress" ? (
+                  <span className="text-blue-300">
+                    {formatDuration(Math.max(0, Math.floor((Date.now() - new Date(run.createdAt).getTime()) / 1000)))}
+                  </span>
+                ) : (
+                  <span className="text-gray-400">{formatDuration(run.durationSec)}</span>
+                )}
+              </td>
               <td className="px-4 py-3 text-gray-500">{formatRelativeTime(run.createdAt)}</td>
               <td className="px-4 py-3">
                 <div className="flex items-center justify-end gap-2">
@@ -270,7 +282,7 @@ export function RunsTable({
       {totalPages > 1 && (
         <div className="flex items-center justify-between border-t border-surface-border px-4 py-2.5 text-xs text-gray-500">
           <span className="tabular-nums">
-            {start + 1}–{Math.min(start + pageSize, runs.length)} of {runs.length}
+            {start + 1}–{Math.min(start + pageSize, runs.length)} {t("table.of")} {runs.length}
           </span>
           <div className="flex items-center gap-1">
             <button
@@ -278,7 +290,7 @@ export function RunsTable({
               disabled={currentPage === 0}
               className="rounded-md px-2.5 py-1 font-medium text-gray-400 transition hover:bg-surface-hover hover:text-white disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
             >
-              ← Prev
+              ← {t("table.prev")}
             </button>
             <span className="px-1.5 tabular-nums text-gray-400">
               {currentPage + 1} / {totalPages}
@@ -288,7 +300,7 @@ export function RunsTable({
               disabled={currentPage >= totalPages - 1}
               className="rounded-md px-2.5 py-1 font-medium text-gray-400 transition hover:bg-surface-hover hover:text-white disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
             >
-              Next →
+              {t("table.next")} →
             </button>
           </div>
         </div>

@@ -6,6 +6,7 @@ import { StatsCards } from "@/components/StatsCards";
 import { SuiteCard } from "@/components/SuiteCard";
 import { RunsTable } from "@/components/RunsTable";
 import { RefreshButton } from "@/components/RefreshButton";
+import { useI18n } from "@/components/I18nProvider";
 import type { RunsResponse, RunSummary, TriggerResponse, WorkflowsResponse } from "@/lib/types";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -20,6 +21,7 @@ const EMPTY_STATS = {
 };
 
 export default function DashboardPage() {
+  const { t } = useI18n();
   const { data: workflowsData, mutate: mutateWorkflows } = useSWR<WorkflowsResponse>(
     "/api/workflows",
     fetcher,
@@ -77,27 +79,25 @@ export default function DashboardPage() {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-semibold text-white">Dashboard</h2>
-          <p className="text-sm text-gray-500">Playwright suite runs for new-export</p>
+          <h2 className="text-2xl font-semibold text-white">{t("dashboard.title")}</h2>
+          <p className="text-sm text-gray-500">{t("dashboard.subtitle")}</p>
         </div>
         <RefreshButton onRefresh={handleRefresh} />
       </div>
 
       {!configured && (
         <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-300">
-          GitHub is not configured yet. Copy <code>dashboard/.env.local.example</code> to{" "}
-          <code>.env.local</code> and set <code>GITHUB_TOKEN</code>, <code>GITHUB_OWNER</code>, and{" "}
-          <code>GITHUB_REPO</code>, then restart the dev server.
+          {t("dashboard.githubNotConfigured")}
         </div>
       )}
 
       <StatsCards stats={stats} />
 
       <div>
-        <h3 className="mb-3 text-lg font-medium text-white">Suites</h3>
+        <h3 className="mb-3 text-lg font-medium text-white">{t("dashboard.suites")}</h3>
         {workflows.length === 0 ? (
           <div className="rounded-lg border border-surface-border bg-surface-panel p-8 text-center text-sm text-gray-500">
-            No workflows found{configured ? "" : " — configure GitHub first"}.
+            {t("dashboard.noWorkflows")}
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -109,10 +109,10 @@ export default function DashboardPage() {
       </div>
 
       <div className="space-y-6">
-        <h3 className="text-lg font-medium text-white">Recent Runs</h3>
+        <h3 className="text-lg font-medium text-white">{t("dashboard.recentRuns")}</h3>
         {runs.length === 0 ? (
           <div className="rounded-lg border border-surface-border bg-surface-panel p-8 text-center text-sm text-gray-500">
-            No runs yet.
+            {t("dashboard.noRuns")}
           </div>
         ) : (
           Array.from(projectGroups.entries()).map(([projectName, projectRuns]) => (
@@ -121,7 +121,7 @@ export default function DashboardPage() {
                 <span className="rounded bg-indigo-500/20 px-2 py-0.5 text-xs font-mono font-medium text-indigo-300">
                   {projectName}
                 </span>
-                <span className="text-xs text-gray-500">{projectRuns.length} run{projectRuns.length !== 1 ? "s" : ""}</span>
+                <span className="text-xs text-gray-500">{projectRuns.length} {t(projectRuns.length === 1 ? "dashboard.run" : "dashboard.runs")}</span>
               </div>
               <RunsTable runs={projectRuns} hideProject pageSize={5} onCancel={handleCancel} />
             </div>

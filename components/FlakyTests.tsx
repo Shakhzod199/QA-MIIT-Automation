@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { useI18n } from "@/components/I18nProvider";
 import type { FlakyTest, TestStatus } from "@/lib/types";
 
 const HISTORY_COLOR: Record<TestStatus, string> = {
@@ -74,14 +75,13 @@ function FlakyRow({ test }: { test: FlakyTest }) {
 }
 
 export function FlakyTests({ tests }: { tests: FlakyTest[] }) {
+  const { t } = useI18n();
   if (tests.length === 0) {
     return (
       <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-8 text-center">
         <p className="text-2xl">🎉</p>
-        <p className="mt-2 text-sm font-medium text-gray-200">No flaky tests detected</p>
-        <p className="mt-1 text-xs text-gray-500">
-          Every test was consistent across the analyzed runs.
-        </p>
+        <p className="mt-2 text-sm font-medium text-gray-200">{t("flaky.none")}</p>
+        <p className="mt-1 text-xs text-gray-500">{t("flaky.noneHint")}</p>
       </div>
     );
   }

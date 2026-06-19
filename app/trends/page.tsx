@@ -3,12 +3,14 @@
 import { useState } from "react";
 import useSWR from "swr";
 import { TrendsView } from "@/components/TrendsCharts";
+import { useI18n } from "@/components/I18nProvider";
 import type { RunsResponse } from "@/lib/types";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 const WINDOWS = [25, 50, 100];
 
 export default function TrendsPage() {
+  const { t } = useI18n();
   const [count, setCount] = useState(50);
   const { data, isLoading } = useSWR<RunsResponse>(`/api/runs?per_page=${count}`, fetcher, {
     refreshInterval: 30000,
@@ -20,13 +22,11 @@ export default function TrendsPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-semibold text-white">Trends</h2>
-          <p className="mt-1 max-w-2xl text-sm text-gray-500">
-            Pass rate, duration, and per-suite health over your recent runs.
-          </p>
+          <h2 className="text-2xl font-semibold text-white">{t("trends.title")}</h2>
+          <p className="mt-1 max-w-2xl text-sm text-gray-500">{t("trends.subtitle")}</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-500">Last</span>
+          <span className="text-xs text-gray-500">{t("trends.last")}</span>
           <div className="flex items-center gap-1 rounded-lg border border-surface-border bg-surface-panel p-1">
             {WINDOWS.map((w) => (
               <button
@@ -40,7 +40,7 @@ export default function TrendsPage() {
               </button>
             ))}
           </div>
-          <span className="text-xs text-gray-500">runs</span>
+          <span className="text-xs text-gray-500">{t("trends.runs")}</span>
         </div>
       </div>
 

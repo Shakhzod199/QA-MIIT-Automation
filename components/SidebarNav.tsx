@@ -2,17 +2,19 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useI18n } from "@/components/I18nProvider";
 
 const links = [
-  { href: "/", label: "Dashboard" },
-  { href: "/reports", label: "Reports" },
-  { href: "/trends", label: "Trends" },
-  { href: "/flaky", label: "Flaky Tests" },
-  { href: "/alerts", label: "Telegram Alerts" },
+  { href: "/", key: "nav.dashboard" },
+  { href: "/reports", key: "nav.reports" },
+  { href: "/trends", key: "nav.trends" },
+  { href: "/flaky", key: "nav.flaky" },
+  { href: "/alerts", key: "nav.alerts" },
 ];
 
 export function SidebarNav() {
   const pathname = usePathname();
+  const { t } = useI18n();
 
   return (
     <nav className="space-y-1">
@@ -26,7 +28,7 @@ export function SidebarNav() {
               active ? "bg-surface-hover text-white" : "text-gray-400 hover:bg-surface-hover hover:text-white"
             }`}
           >
-            {link.label}
+            {t(link.key)}
           </Link>
         );
       })}
