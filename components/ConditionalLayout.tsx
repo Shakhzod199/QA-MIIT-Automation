@@ -11,7 +11,9 @@ export function ConditionalLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { t } = useI18n();
 
-  if (pathname === "/login") {
+  // The mobile PWA (/m/*) and the login page provide their own chrome, so skip
+  // the desktop sidebar shell for them.
+  if (pathname === "/login" || pathname === "/m" || pathname.startsWith("/m/")) {
     return <>{children}</>;
   }
 
