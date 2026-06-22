@@ -45,6 +45,13 @@ const en: Dict = {
   "suiteTests.loading": "Loading tests…",
   "suiteTests.empty": "No tests found yet. Run the whole suite once so its tests can be listed here.",
 
+  "runModal.title": "Run a test",
+  "runModal.allTests": "All test cases",
+  "runModal.run": "Run",
+  "runModal.cancel": "Cancel",
+  "runModal.loading": "Loading tests…",
+  "runModal.empty": "No tests found yet. Run the whole suite once so its tests can be listed here.",
+
   "table.run": "Run",
   "table.singleTest": "single test",
   "table.status": "Status",
@@ -136,6 +143,13 @@ const uz: Dict = {
   "suiteTests.loading": "Testlar yuklanmoqda…",
   "suiteTests.empty": "Testlar topilmadi. Avval butun to‘plamni bir marta ishga tushiring, shunda testlar bu yerda ko‘rinadi.",
 
+  "runModal.title": "Testni ishga tushirish",
+  "runModal.allTests": "Barcha test holatlari",
+  "runModal.run": "Ishga tushirish",
+  "runModal.cancel": "Bekor qilish",
+  "runModal.loading": "Testlar yuklanmoqda…",
+  "runModal.empty": "Testlar topilmadi. Avval butun to‘plamni bir marta ishga tushiring, shunda testlar bu yerda ko‘rinadi.",
+
   "table.run": "Ish",
   "table.singleTest": "alohida test",
   "table.status": "Holat",
@@ -226,6 +240,13 @@ const ru: Dict = {
   "suiteTests.triggered": "Запущено!",
   "suiteTests.loading": "Загрузка тестов…",
   "suiteTests.empty": "Тесты пока не найдены. Запустите весь набор один раз, чтобы его тесты появились здесь.",
+
+  "runModal.title": "Запустить тест",
+  "runModal.allTests": "Все тест-кейсы",
+  "runModal.run": "Запустить",
+  "runModal.cancel": "Отмена",
+  "runModal.loading": "Загрузка тестов…",
+  "runModal.empty": "Тесты пока не найдены. Запустите весь набор один раз, чтобы его тесты появились здесь.",
 
   "table.run": "Запуск",
   "table.singleTest": "отдельный тест",

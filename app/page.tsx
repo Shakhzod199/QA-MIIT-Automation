@@ -47,11 +47,17 @@ export default function DashboardPage() {
     return result;
   };
 
-  const handleRun = async (workflowId: number): Promise<TriggerResponse> => {
+  const handleRun = async (
+    workflowId: number,
+    filter?: string
+  ): Promise<TriggerResponse> => {
     const res = await fetch("/api/runs/trigger", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ workflowId }),
+      // A filter runs a single test; without it the whole suite runs.
+      body: JSON.stringify(
+        filter ? { workflowId, inputs: { test_filter: filter } } : { workflowId }
+      ),
     });
     const result: TriggerResponse = await res.json();
     if (result.ok) {

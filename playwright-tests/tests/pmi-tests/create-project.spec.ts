@@ -49,6 +49,41 @@ async function selectMultiOption(page: Page, label: string, optionText: string) 
   await page.keyboard.press("Escape");
 }
 
+/**
+ * Single n-select: open the field and pick the FIRST real option. Skips the
+ * "Aniqlanmoqda" placeholder. Returns false (without failing) when the field
+ * has no *enabled* selection — e.g. Investor stays disabled until upstream
+ * fields are set — so the caller can move on.
+ */
+async function selectFirstOption(page: Page, label: string): Promise<boolean> {
+  const selection = formItem(page, label)
+    .locator(".n-base-selection:not(.n-base-selection--disabled)")
+    .first();
+  if ((await selection.count()) === 0) return false;
+
+  await selection.click();
+  const options = page
+    .locator(".n-base-select-option")
+    .filter({ hasNotText: "Aniqlanmoqda" });
+  await expect(options.first()).toBeVisible();
+  await options.first().click();
+  // Harmless for single-selects; required if the control turns out multiple.
+  await page.keyboard.press("Escape");
+  return true;
+}
+
+/**
+ * Naive UI n-date-picker. The input commits a typed value on Enter. Format is
+ * the form default `yyyy-MM-dd`; adjust here if the live form uses another.
+ */
+async function fillDate(page: Page, label: string, dateStr: string) {
+  const input = formItem(page, label).locator("input").first();
+  await input.click();
+  await input.fill(dateStr);
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("Escape");
+}
+
 test.describe("PMI — Loyihalar CRUD", () => {
   test("creates a 'Davlat investitsiya dasturi' project and gets 200 on save", async ({
     page,
@@ -76,29 +111,61 @@ test.describe("PMI — Loyihalar CRUD", () => {
       })
       .toBeGreaterThan(fieldsBefore);
 
-    // ── Loyiha nomi (unique so reruns don't collide) ─────────────────────
+    // ── 1. Loyiha nomi (unique so reruns don't collide) ──────────────────
     await formItem(page, "Loyiha nomi")
       .locator("input")
       .first()
       .fill(`Avtotest loyiha ${Date.now()}`);
 
-    // ── Davlat: pick a random country ────────────────────────────────────
+    // ── 2. Davlat: pick a random country ─────────────────────────────────
     await selectRandomDavlat(page);
 
-    // ── Loyiha qiymati ───────────────────────────────────────────────────
+    // ── 3. Investor: first option (skipped automatically if still disabled)
+    await selectFirstOption(page, "Investor");
+
+    // ── 4. Loyiha qiymati ────────────────────────────────────────────────
     await formItem(page, "Loyiha qiymati").locator("input").first().fill("1.2");
 
-    // ── Viloyat → enables Tuman/Shahar (both multiple-selects) ───────────
+    // ── 5. Soha: first option ────────────────────────────────────────────
+    await selectFirstOption(page, "Soha");
+
+    // ── 5. Viloyat → enables Tuman/Shahar (both multiple-selects) ────────
     const tuman = formItem(page, "Tuman/Shahar").locator(".n-base-selection").first();
     await expect(tuman).toHaveClass(/n-base-selection--disabled/);
     await selectMultiOption(page, "Viloyat", "Andijon viloyati");
     await expect(tuman).not.toHaveClass(/n-base-selection--disabled/);
+
+    // ── 6. Tuman/Shahar ──────────────────────────────────────────────────
     await selectMultiOption(page, "Tuman/Shahar", "Asaka");
+
+    // ── 7. INN ───────────────────────────────────────────────────────────
+    await formItem(page, "INN").locator("input").first().fill("310161998");
 
     // ── Toggle the "Aniqlanmoqda" switch next to "Mahalliy hamkor" ───────
     await formItem(page, "Mahalliy hamkor").locator(".n-switch").first().click();
 
-    // ── Saqlash → expect a 200 from the create POST ──────────────────────
+    // ── 8. Biriktirilgan mas'ul rahbarlar: first option ──────────────────
+    await selectFirstOption(page, "Biriktirilgan mas'ul rahbarlar");
+
+    // ── 9. Tashabbuskor: first option ────────────────────────────────────
+    await selectFirstOption(page, "Tashabbuskor");
+
+    // ── 10. ISSV mas'ul departament: first option ────────────────────────
+    await selectFirstOption(page, "ISSV mas'ul departament");
+
+    // ── 11. ISSV mas'ul o'rinbosari: first option ────────────────────────
+    await selectFirstOption(page, "ISSV mas'ul o'rinbosari");
+
+    // ── 12. ISSV mas'ul xodim: first option ──────────────────────────────
+    await selectFirstOption(page, "ISSV mas'ul xodim");
+
+    // ── 13. Boshlanish sanasi (today) ────────────────────────────────────
+    await fillDate(page, "Boshlanish sanasi", "2026-06-22");
+
+    // ── 15. Tugallanish sanasi (one year from start) ─────────────────────
+    await fillDate(page, "Tugallanish sanasi", "2027-06-22");
+
+    // ── 16. Saqlash → expect a 200 from the create POST ──────────────────
     const createResponse = page.waitForResponse(
       (resp) =>
         resp.request().method() === "POST" && /(project|loyiha)/i.test(resp.url())
