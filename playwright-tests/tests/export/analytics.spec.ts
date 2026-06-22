@@ -48,33 +48,33 @@ async function expectStatsNonZero(stats: Locator, label: string) {
   expect(checked, `no numeric "${label}" stats were parsed — selector may be stale`).toBeGreaterThan(0);
 }
 
-test.describe("Stat numbers are non-zero - export.miit.uz", () => {
-  test("Export page header stats are non-zero", async ({ page }) => {
+test.describe("Analytics: non-zero stats", () => {
+  test("Export — header stats", async ({ page }) => {
     await page.goto(`${BASE_URL}/dashboard`);
     await expectStatsNonZero(page.locator(".export-header-stats .leading-none"), "Export header");
   });
 
-  test("Import page summary stats are non-zero", async ({ page }) => {
+  test("Import — summary stats", async ({ page }) => {
     await page.goto(`${BASE_URL}/dashboard/import`);
     await expectStatsNonZero(page.locator(".leading-none.tracking-tight"), "Import summary");
   });
 
-  test("Devitorka (debts) page summary stats are non-zero", async ({ page }) => {
+  test("Devitorka (debts) — summary stats", async ({ page }) => {
     await page.goto(`${BASE_URL}/dashboard/debts`);
     await expectStatsNonZero(page.locator(".leading-none.tracking-tight"), "Devitorka summary");
   });
 
-  test("Transport page route summary stats are non-zero", async ({ page }) => {
+  test("Transport — route summary stats", async ({ page }) => {
     await page.goto(`${BASE_URL}/dashboard/transport`);
     await expectStatsNonZero(page.locator(".min-w-60 .text-lg.font-semibold"), "Transport route summary");
   });
 
-  test("Dashboard preview stats are non-zero", async ({ page }) => {
+  test("Dashboard — preview stats", async ({ page }) => {
     await page.goto(`${BASE_URL}/app/dashboard`);
     await expectStatsNonZero(page.locator(".text-blue-500.font-bold"), "Dashboard preview");
   });
 
-  test("Analitika (analytics) KPI cards are non-zero", async ({ page }) => {
+  test("Analitika — KPI cards", async ({ page }) => {
     await page.goto(`${BASE_URL}/analytics`);
     await expectStatsNonZero(page.locator(".text-lg.font-bold"), "Analitika KPI");
   });

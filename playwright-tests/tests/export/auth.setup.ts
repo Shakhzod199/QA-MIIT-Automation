@@ -6,7 +6,7 @@ import { AUTH_FILE, loginViaUi } from "./helpers";
 // the session removes the per-test login that previously raced the shared
 // account on the live server — which is why those specs no longer need serial
 // mode and can run in parallel again.
-setup("authenticate", async ({ page }) => {
+setup("Authenticate & save session", async ({ page }) => {
   await loginViaUi(page);
   await page.context().storageState({ path: AUTH_FILE });
 });

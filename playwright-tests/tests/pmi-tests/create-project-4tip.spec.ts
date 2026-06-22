@@ -10,6 +10,10 @@ import { login } from "./helpers";
 //   - regular n-select  → options are `.n-base-select-option`
 //   - n-tree-select     → options are tree nodes `.n-tree-node-content`
 //   - multiple n-select stays open after a pick, so we Escape to close it
+//
+// This spec covers the "Qo‘shimcha loyiha" sub-type, which is a CHILD node
+// nested under "Davlat investitsiya dasturiga kiritilgan loyihalar" in the
+// Loyiha turi tree — so we expand the parent first, then pick the child.
 // ---------------------------------------------------------------------------
 
 /**
@@ -40,6 +44,9 @@ async function selectRandomDavlat(page: Page) {
   await expect(options.first()).toBeVisible();
   const count = await options.count();
   await options.nth(Math.floor(Math.random() * count)).click();
+  // Davlat is a *multiple* select: its menu stays open after a pick. Close it
+  // so the lingering menu's options don't shadow the next field's dropdown.
+  await page.keyboard.press("Escape");
 }
 
 /** Multiple-select: pick one option, then close the still-open menu. */
@@ -52,7 +59,7 @@ async function selectMultiOption(page: Page, label: string, optionText: string) 
 /**
  * Single n-select: open the field and pick the FIRST real option. Skips the
  * "Aniqlanmoqda" placeholder. Returns false (without failing) when the field
- * has no *enabled* selection — e.g. Investor stays disabled until upstream
+ * has no *enabled* selection — e.g. a field that stays disabled until upstream
  * fields are set — so the caller can move on.
  */
 async function selectFirstOption(page: Page, label: string): Promise<boolean> {
@@ -61,9 +68,19 @@ async function selectFirstOption(page: Page, label: string): Promise<boolean> {
     .first();
   if ((await selection.count()) === 0) return false;
 
+  // Wait for any previous dropdown to finish closing. A still-animating menu
+  // stays `:visible` briefly, and (being earlier in the DOM) its options would
+  // otherwise be matched as our "first" option, then vanish mid-click.
+  await expect(page.locator(".n-base-select-menu:visible")).toHaveCount(0);
+  // Bring the field fully into view *before* opening it. Naive UI teleports the
+  // menu to <body> and repositions/closes it if the page scrolls mid-click, so
+  // any scrolling must happen now — not while clicking an option.
+  await selection.scrollIntoViewIfNeeded();
   await selection.click();
+  // Scope to the dropdown that just opened (the only *visible* select menu) so
+  // a stale/closing menu from a previous field can't be matched first.
   const options = page
-    .locator(".n-base-select-option")
+    .locator(".n-base-select-menu:visible .n-base-select-option")
     .filter({ hasNotText: "Aniqlanmoqda" });
   await expect(options.first()).toBeVisible();
   await options.first().click();
@@ -72,20 +89,8 @@ async function selectFirstOption(page: Page, label: string): Promise<boolean> {
   return true;
 }
 
-/**
- * Naive UI n-date-picker. The input commits a typed value on Enter. Format is
- * the form default `yyyy-MM-dd`; adjust here if the live form uses another.
- */
-async function fillDate(page: Page, label: string, dateStr: string) {
-  const input = formItem(page, label).locator("input").first();
-  await input.click();
-  await input.fill(dateStr);
-  await page.keyboard.press("Enter");
-  await page.keyboard.press("Escape");
-}
-
 test.describe("PMI — Loyihalar CRUD", () => {
-  test("creates a 'Davlat investitsiya dasturi' project and gets 200 on save", async ({
+  test("creates a 'Qo'shimcha loyiha' sub-type project and gets 200 on save", async ({
     page,
   }) => {
     await login(page);
@@ -96,13 +101,24 @@ test.describe("PMI — Loyihalar CRUD", () => {
     await expect(page).toHaveURL(/\/app\/projects\/create/);
     await expect(formItem(page, "Loyiha turi")).toBeVisible();
 
-    // ── Loyiha turi (tree-select) → reveals the conditional fields ───────
+    // ── Loyiha turi (tree-select) → expand parent, pick nested child ─────
     const fieldsBefore = await page.locator(".n-form-item").count();
     await formItem(page, "Loyiha turi").locator(".n-base-selection").first().click();
-    await page
-      .locator(".n-tree-node-content", {
-        hasText: "Davlat investitsiya dasturiga kiritilgan loyihalar",
+    // Expand the "Davlat investitsiya..." parent via its switcher arrow (NOT
+    // its label, which would select the parent itself) to reveal sub-options.
+    const parentNode = page
+      .locator(".n-tree-node")
+      .filter({
+        has: page.locator(".n-tree-node-content", {
+          hasText: "Davlat investitsiya dasturiga kiritilgan loyihalar",
+        }),
       })
+      .first();
+    await parentNode.locator(".n-tree-node-switcher").click();
+    // Pick the nested "Qo‘shimcha loyiha" child (apostrophe-free substring —
+    // the live label uses a curly "Qo‘shimcha").
+    await page
+      .locator(".n-tree-node-content", { hasText: "shimcha loyiha" })
       .first()
       .click();
     await expect
@@ -120,13 +136,10 @@ test.describe("PMI — Loyihalar CRUD", () => {
     // ── 2. Davlat: pick a random country ─────────────────────────────────
     await selectRandomDavlat(page);
 
-    // ── 3. Investor: first option (skipped automatically if still disabled)
-    await selectFirstOption(page, "Investor");
-
-    // ── 4. Loyiha qiymati ────────────────────────────────────────────────
+    // ── 3. Loyiha qiymati ────────────────────────────────────────────────
     await formItem(page, "Loyiha qiymati").locator("input").first().fill("1.2");
 
-    // ── 5. Soha: first option ────────────────────────────────────────────
+    // ── 4. Soha: first option ────────────────────────────────────────────
     await selectFirstOption(page, "Soha");
 
     // ── 5. Viloyat → enables Tuman/Shahar (both multiple-selects) ────────
@@ -140,9 +153,6 @@ test.describe("PMI — Loyihalar CRUD", () => {
 
     // ── 7. INN ───────────────────────────────────────────────────────────
     await formItem(page, "INN").locator("input").first().fill("310161998");
-
-    // ── Toggle the "Aniqlanmoqda" switch next to "Mahalliy hamkor" ───────
-    await formItem(page, "Mahalliy hamkor").locator(".n-switch").first().click();
 
     // ── 8. Biriktirilgan mas'ul rahbarlar: first option ──────────────────
     await selectFirstOption(page, "Biriktirilgan mas'ul rahbarlar");
@@ -159,13 +169,7 @@ test.describe("PMI — Loyihalar CRUD", () => {
     // ── 12. ISSV mas'ul xodim: first option ──────────────────────────────
     await selectFirstOption(page, "ISSV mas'ul xodim");
 
-    // ── 13. Boshlanish sanasi (today) ────────────────────────────────────
-    await fillDate(page, "Boshlanish sanasi", "2026-06-22");
-
-    // ── 15. Tugallanish sanasi (one year from start) ─────────────────────
-    await fillDate(page, "Tugallanish sanasi", "2027-06-22");
-
-    // ── 16. Saqlash → expect a 200 from the create POST ──────────────────
+    // ── Saqlash → expect a 200 from the create POST ──────────────────────
     const createResponse = page.waitForResponse(
       (resp) =>
         resp.request().method() === "POST" && /(project|loyiha)/i.test(resp.url())

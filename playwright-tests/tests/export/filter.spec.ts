@@ -18,12 +18,12 @@ async function waitForTableReady(page: Page) {
   return table;
 }
 
-test.describe("Dashboard filter - export.miit.uz", () => {
+test.describe("Dashboard filter", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(`${BASE_URL}/dashboard`);
   });
 
-  test("Search filter narrows the companies table and clearing restores it", async ({ page }) => {
+  test("Search — narrows table, clearing restores it", async ({ page }) => {
     const table = await waitForTableReady(page);
 
     const initialRowCount = await table.locator(".n-data-table-tbody .n-data-table-tr").count();
@@ -45,7 +45,7 @@ test.describe("Dashboard filter - export.miit.uz", () => {
       .toBe(initialRowCount);
   });
 
-  test("Drawer filter applies a tag and removing it clears the filter", async ({ page }) => {
+  test("Drawer — applies a tag, removing it clears the filter", async ({ page }) => {
     await waitForTableReady(page);
 
     // Open the advanced filter drawer via the toggle button inside the search box's suffix
