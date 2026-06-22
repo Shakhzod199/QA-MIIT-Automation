@@ -19,9 +19,14 @@ function testFilter(test: TestCaseResult): string {
 /**
  * Modal launched from a suite's "Run" button. Instead of dispatching the whole
  * suite immediately, it lists the suite's test cases (from the latest full-suite
- * run's report) with radio buttons so the user can run a single one — or pick
- * "All test cases" to keep the original behaviour. Confirm dispatches; Cancel
- * closes without running.
+ * run's report) with checkboxes so the user can run one, several, or all of
+ * them. Confirm dispatches; Cancel closes without running.
+ *
+ * The selected filters are joined with spaces and passed as `test_filter`; the
+ * workflow forwards them as positional args to `playwright test`, which treats
+ * each as an OR filter. When every test is selected we send `null` instead so
+ * the run stays a true full-suite run (no filter) — keeping it usable as the
+ * test-catalog source and keeping the run-name short.
  */
 export function RunTestsModal({
   workflowId,
@@ -31,12 +36,12 @@ export function RunTestsModal({
 }: {
   workflowId: number;
   workflowName: string;
-  // `null` filter = run the whole suite; a string = run that single test.
+  // `null` filter = run the whole suite; a string = run those test(s).
   onConfirm: (filter: string | null) => void | Promise<void>;
   onClose: () => void;
 }) {
   const { t } = useI18n();
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
 
   const { data: runsData } = useSWR<RunsResponse>("/api/runs?per_page=50", fetcher);
@@ -60,6 +65,13 @@ export function RunTestsModal({
   );
   const tests = testsData?.tests ?? [];
 
+  // Distinct filters available (two tests can share a file:line across projects).
+  const allFilters = useMemo(
+    () => Array.from(new Set(tests.map(testFilter))),
+    [tests]
+  );
+  const allSelected = allFilters.length > 0 && selected.size === allFilters.length;
+
   // Close on Escape.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -69,10 +81,27 @@ export function RunTestsModal({
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
 
+  const toggleOne = (filter: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(filter)) next.delete(filter);
+      else next.add(filter);
+      return next;
+    });
+  };
+
+  const toggleAll = () => {
+    setSelected((prev) =>
+      prev.size === allFilters.length ? new Set() : new Set(allFilters)
+    );
+  };
+
   const handleConfirm = async () => {
-    if (submitting) return;
+    if (submitting || selected.size === 0) return;
     setSubmitting(true);
-    await onConfirm(selected);
+    // Every test selected → run the whole suite with no filter; otherwise pass
+    // the chosen filters space-joined.
+    await onConfirm(allSelected ? null : Array.from(selected).join(" "));
     // Parent unmounts the modal on confirm, so no need to reset state.
   };
 
@@ -101,14 +130,14 @@ export function RunTestsModal({
             <p className="py-6 text-center text-sm text-gray-500">{t("runModal.empty")}</p>
           ) : (
             <div className="space-y-1">
-              {/* "All test cases" — preserves the original full-suite run. */}
+              {/* "Select all" — checking every test makes Run dispatch the
+                  whole suite with no filter (see handleConfirm). */}
               <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-surface-border px-3 py-2.5 transition hover:bg-surface-hover">
                 <input
-                  type="radio"
-                  name="test-select"
+                  type="checkbox"
                   className="h-4 w-4 accent-indigo-500"
-                  checked={selected === null}
-                  onChange={() => setSelected(null)}
+                  checked={allSelected}
+                  onChange={toggleAll}
                 />
                 <span className="text-sm font-medium text-white">{t("runModal.allTests")}</span>
               </label>
@@ -122,11 +151,10 @@ export function RunTestsModal({
                     className="flex cursor-pointer items-center gap-3 rounded-lg border border-surface-border px-3 py-2.5 transition hover:bg-surface-hover"
                   >
                     <input
-                      type="radio"
-                      name="test-select"
+                      type="checkbox"
                       className="h-4 w-4 shrink-0 accent-indigo-500"
-                      checked={selected === filter}
-                      onChange={() => setSelected(filter)}
+                      checked={selected.has(filter)}
+                      onChange={() => toggleOne(filter)}
                     />
                     <span className="min-w-0">
                       <span className="block truncate text-sm font-medium text-white">
@@ -154,7 +182,7 @@ export function RunTestsModal({
           </button>
           <button
             onClick={handleConfirm}
-            disabled={submitting}
+            disabled={submitting || selected.size === 0}
             className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-4 py-1.5 text-sm font-medium text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-70"
           >
             {submitting && (

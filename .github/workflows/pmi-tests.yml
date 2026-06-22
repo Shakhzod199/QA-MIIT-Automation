@@ -45,8 +45,11 @@ jobs:
           TEST_FILTER: ${{ inputs.test_filter }}
         run: |
           if [ -n "$TEST_FILTER" ]; then
-            echo "Running single test: $TEST_FILTER"
-            npx playwright test --project=pmi "$TEST_FILTER"
+            # TEST_FILTER may hold several space-separated filters (multi-select
+            # in the dashboard). Leave it unquoted so each becomes its own
+            # positional arg; Playwright runs any test matching any of them.
+            echo "Running selected tests: $TEST_FILTER"
+            npx playwright test --project=pmi $TEST_FILTER
           else
             npx playwright test --project=pmi
           fi
