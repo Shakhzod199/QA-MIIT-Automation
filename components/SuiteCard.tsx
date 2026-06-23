@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useI18n } from "@/components/I18nProvider";
 import type { WorkflowSummary } from "@/lib/types";
 
+type TestType = "frontend" | "api" | "load";
+
 export function SuiteCard({
   workflow,
   onRun,
@@ -12,9 +14,11 @@ export function SuiteCard({
 }: {
   workflow: WorkflowSummary;
   // `filter` omitted → run the whole suite; provided → run that single test.
+  // `type` selects frontend/api/load (defaults to "frontend" server-side).
   onRun: (
     workflowId: number,
-    filter?: string
+    filter?: string,
+    type?: TestType
   ) => Promise<{ ok: boolean; error?: string }>;
   // True while this workflow has a queued/in-progress run (from polled run data).
   isRunning?: boolean;
@@ -25,6 +29,7 @@ export function SuiteCard({
   // active (isRunning), we hand off to that as the source of truth.
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [type, setType] = useState<TestType>("frontend");
 
   useEffect(() => {
     if (isRunning) setPending(false);
@@ -33,14 +38,14 @@ export function SuiteCard({
   // The run stays disabled for its whole lifetime, not just a few seconds.
   const busy = pending || isRunning;
 
-  // "Run" dispatches the whole suite (all tests). To run a subset, use
-  // "Run separately" (the per-suite page with selectable test cases).
+  // "Run" dispatches the whole suite (all tests) for the selected type. To
+  // run a subset of frontend tests, use "Run separately".
   const handleRun = async () => {
     if (busy) return;
     setPending(true);
     setError(null);
 
-    const result = await onRun(workflow.id);
+    const result = await onRun(workflow.id, undefined, type);
 
     if (!result.ok) {
       setPending(false);
@@ -75,6 +80,21 @@ export function SuiteCard({
           >
             {t("suite.runSeparately")}
           </Link>
+          <select
+            value={type}
+            onChange={(e) => setType(e.target.value as TestType)}
+            disabled={busy}
+            aria-label={t("suite.testType")}
+            className="rounded-md border border-surface-border bg-surface-panel px-2 py-1.5 text-sm text-gray-300 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <optgroup label={t("suite.frontend")}>
+              <option value="frontend">{t("suite.frontend")}</option>
+            </optgroup>
+            <optgroup label={t("suite.backend")}>
+              <option value="api">{t("suite.api")}</option>
+              <option value="load">{t("suite.load")}</option>
+            </optgroup>
+          </select>
           <button
             onClick={handleRun}
             disabled={busy}
