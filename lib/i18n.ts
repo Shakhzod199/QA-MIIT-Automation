@@ -38,7 +38,7 @@ const en: Dict = {
   "suite.viewOnGithub": "View on GitHub",
   "suite.runSeparately": "Run separately",
 
-  "suiteTests.subtitle": "Run an individual test from the latest results of this suite.",
+  "suiteTests.subtitle": "Select the test cases to run from the latest results of this suite.",
   "suiteTests.back": "Back to dashboard",
   "suiteTests.run": "Run",
   "suiteTests.triggered": "Triggered!",
@@ -136,7 +136,7 @@ const uz: Dict = {
   "suite.viewOnGithub": "GitHub’da ko‘rish",
   "suite.runSeparately": "Alohida ishga tushirish",
 
-  "suiteTests.subtitle": "Ushbu to‘plamning so‘nggi natijalaridan bitta testni alohida ishga tushiring.",
+  "suiteTests.subtitle": "Ushbu to‘plamning so‘nggi natijalaridan ishga tushiriladigan testlarni tanlang.",
   "suiteTests.back": "Boshqaruv paneliga qaytish",
   "suiteTests.run": "Ishga tushirish",
   "suiteTests.triggered": "Boshlandi!",
@@ -234,7 +234,7 @@ const ru: Dict = {
   "suite.viewOnGithub": "Открыть в GitHub",
   "suite.runSeparately": "Запустить отдельно",
 
-  "suiteTests.subtitle": "Запустите отдельный тест из последних результатов этого набора.",
+  "suiteTests.subtitle": "Выберите тест-кейсы для запуска из последних результатов этого набора.",
   "suiteTests.back": "Назад к панели",
   "suiteTests.run": "Запустить",
   "suiteTests.triggered": "Запущено!",

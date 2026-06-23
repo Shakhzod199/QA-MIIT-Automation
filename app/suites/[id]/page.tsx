@@ -19,71 +19,6 @@ function testFilter(test: TestCaseResult): string {
   return test.line ? `${test.file}:${test.line}` : test.file;
 }
 
-function TestRow({
-  test,
-  onRun,
-}: {
-  test: TestCaseResult;
-  onRun: (filter: string) => Promise<TriggerResponse>;
-}) {
-  const { t } = useI18n();
-  const [state, setState] = useState<"idle" | "pending" | "triggered">("idle");
-  const [error, setError] = useState<string | null>(null);
-
-  const handleRun = async () => {
-    if (state === "pending") return;
-    setState("pending");
-    setError(null);
-    const result = await onRun(testFilter(test));
-    if (result.ok) {
-      setState("triggered");
-      // Let the user fire it again after a short confirmation window.
-      setTimeout(() => setState("idle"), 4000);
-    } else {
-      setState("idle");
-      setError(result.error ?? "Failed to trigger run");
-    }
-  };
-
-  const title = test.titlePath.join(" › ");
-
-  return (
-    <div className="flex items-center justify-between gap-4 rounded-lg border border-surface-border bg-surface-panel px-4 py-3">
-      <div className="min-w-0">
-        <p className="truncate text-sm font-medium text-white">{title}</p>
-        <p className="mt-0.5 truncate font-mono text-xs text-gray-500">
-          {testFilter(test)}
-          {test.project ? ` · ${test.project}` : ""}
-        </p>
-        {error && <p className="mt-1 text-xs text-red-400">{error}</p>}
-      </div>
-      <button
-        onClick={handleRun}
-        disabled={state === "pending"}
-        className={[
-          "inline-flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-white transition disabled:cursor-not-allowed",
-          state === "triggered"
-            ? "bg-emerald-600"
-            : "bg-indigo-600 hover:bg-indigo-500 disabled:opacity-70",
-        ].join(" ")}
-      >
-        {state === "pending" && (
-          <svg
-            className="h-3.5 w-3.5 animate-spin"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-        )}
-        {state === "triggered" ? t("suiteTests.triggered") : t("suiteTests.run")}
-      </button>
-    </div>
-  );
-}
-
 export default function SuiteTestsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { t } = useI18n();
@@ -115,16 +50,55 @@ export default function SuiteTestsPage({ params }: { params: Promise<{ id: strin
     fetcher
   );
 
-  const handleRun = async (filter: string): Promise<TriggerResponse> => {
+  const tests = testsData?.tests ?? [];
+
+  // ── Selection (checkboxes) ──────────────────────────────────────────────
+  // Distinct filters (two tests can share a file:line across projects).
+  const allFilters = useMemo(() => Array.from(new Set(tests.map(testFilter))), [tests]);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [state, setState] = useState<"idle" | "pending" | "triggered">("idle");
+  const [error, setError] = useState<string | null>(null);
+
+  const allSelected = allFilters.length > 0 && selected.size === allFilters.length;
+
+  const toggleOne = (filter: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(filter)) next.delete(filter);
+      else next.add(filter);
+      return next;
+    });
+
+  const toggleAll = () =>
+    setSelected((prev) =>
+      prev.size === allFilters.length ? new Set() : new Set(allFilters)
+    );
+
+  // Run the checked tests. Every test checked → run the whole suite (no filter);
+  // otherwise pass the selected filters space-joined.
+  const handleRunSelected = async () => {
+    if (state === "pending" || selected.size === 0) return;
+    setState("pending");
+    setError(null);
+
+    const filter = allSelected ? "" : Array.from(selected).join(" ");
     const res = await fetch("/api/runs/trigger", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ workflowId, inputs: { test_filter: filter } }),
+      body: JSON.stringify(
+        filter ? { workflowId, inputs: { test_filter: filter } } : { workflowId }
+      ),
     });
-    return res.json();
-  };
+    const result: TriggerResponse = await res.json();
 
-  const tests = testsData?.tests ?? [];
+    if (result.ok) {
+      setState("triggered");
+      setTimeout(() => setState("idle"), 4000);
+    } else {
+      setState("idle");
+      setError(result.error ?? "Failed to trigger run");
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -145,14 +119,69 @@ export default function SuiteTestsPage({ params }: { params: Promise<{ id: strin
           {t("suiteTests.empty")}
         </div>
       ) : (
-        <div className="space-y-2">
-          {tests.map((test) => (
-            <TestRow
-              key={`${testFilter(test)}::${test.project}`}
-              test={test}
-              onRun={handleRun}
-            />
-          ))}
+        <div className="space-y-3">
+          {/* Toolbar: select all + run selected */}
+          <div className="flex items-center justify-between gap-4 rounded-lg border border-surface-border bg-surface-panel px-4 py-3">
+            <label className="flex cursor-pointer items-center gap-3">
+              <input
+                type="checkbox"
+                className="h-4 w-4 accent-indigo-500"
+                checked={allSelected}
+                onChange={toggleAll}
+              />
+              <span className="text-sm font-medium text-white">{t("runModal.allTests")}</span>
+              {selected.size > 0 && (
+                <span className="text-xs text-gray-500">({selected.size})</span>
+              )}
+            </label>
+            <button
+              onClick={handleRunSelected}
+              disabled={state === "pending" || selected.size === 0}
+              className={[
+                "inline-flex shrink-0 items-center gap-1.5 rounded-md px-4 py-1.5 text-sm font-medium text-white transition disabled:cursor-not-allowed disabled:opacity-60",
+                state === "triggered"
+                  ? "bg-emerald-600"
+                  : "bg-indigo-600 hover:bg-indigo-500",
+              ].join(" ")}
+            >
+              {state === "pending" && (
+                <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              )}
+              {state === "triggered" ? t("suiteTests.triggered") : t("suiteTests.run")}
+            </button>
+          </div>
+
+          {error && <p className="text-xs text-red-400">{error}</p>}
+
+          {/* Selectable test rows */}
+          {tests.map((test) => {
+            const filter = testFilter(test);
+            return (
+              <label
+                key={`${filter}::${test.project}`}
+                className="flex cursor-pointer items-center gap-3 rounded-lg border border-surface-border bg-surface-panel px-4 py-3 transition hover:bg-surface-hover"
+              >
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 shrink-0 accent-indigo-500"
+                  checked={selected.has(filter)}
+                  onChange={() => toggleOne(filter)}
+                />
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-medium text-white">
+                    {test.titlePath.join(" › ")}
+                  </span>
+                  <span className="block truncate font-mono text-xs text-gray-500">
+                    {filter}
+                    {test.project ? ` · ${test.project}` : ""}
+                  </span>
+                </span>
+              </label>
+            );
+          })}
         </div>
       )}
     </div>

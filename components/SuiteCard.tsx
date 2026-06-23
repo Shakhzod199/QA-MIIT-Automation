@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useI18n } from "@/components/I18nProvider";
-import { RunTestsModal } from "@/components/RunTestsModal";
 import type { WorkflowSummary } from "@/lib/types";
 
 export function SuiteCard({
@@ -26,7 +25,6 @@ export function SuiteCard({
   // active (isRunning), we hand off to that as the source of truth.
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
     if (isRunning) setPending(false);
@@ -35,20 +33,14 @@ export function SuiteCard({
   // The run stays disabled for its whole lifetime, not just a few seconds.
   const busy = pending || isRunning;
 
-  // Clicking "Run" now opens the test-picker modal instead of dispatching the
-  // whole suite straight away.
-  const handleRunClick = () => {
+  // "Run" dispatches the whole suite (all tests). To run a subset, use
+  // "Run separately" (the per-suite page with selectable test cases).
+  const handleRun = async () => {
     if (busy) return;
-    setModalOpen(true);
-  };
-
-  // Called by the modal once the user confirms a selection (null = whole suite).
-  const handleConfirm = async (filter: string | null) => {
-    setModalOpen(false);
     setPending(true);
     setError(null);
 
-    const result = await onRun(workflow.id, filter ?? undefined);
+    const result = await onRun(workflow.id);
 
     if (!result.ok) {
       setPending(false);
@@ -84,7 +76,7 @@ export function SuiteCard({
             {t("suite.runSeparately")}
           </Link>
           <button
-            onClick={handleRunClick}
+            onClick={handleRun}
             disabled={busy}
             className={[
               "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-white transition disabled:cursor-not-allowed",
@@ -107,15 +99,6 @@ export function SuiteCard({
         </div>
       </div>
       {error && <p className="mt-2 text-xs text-red-400">{error}</p>}
-
-      {modalOpen && (
-        <RunTestsModal
-          workflowId={workflow.id}
-          workflowName={workflow.name}
-          onConfirm={handleConfirm}
-          onClose={() => setModalOpen(false)}
-        />
-      )}
     </div>
   );
 }

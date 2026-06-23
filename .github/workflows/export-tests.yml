@@ -14,6 +14,10 @@ on:
   # (workflow_dispatch).
   workflow_dispatch:
     inputs:
+      type:
+        description: "Test type to run: frontend | api | load"
+        required: false
+        default: "frontend"
       test_filter:
         description: >-
           Optional Playwright filter to run a single test, e.g.
@@ -46,17 +50,30 @@ jobs:
         env:
           EXPORT_USERNAME: ${{ secrets.EXPORT_USERNAME }}
           EXPORT_PASSWORD: ${{ secrets.EXPORT_PASSWORD }}
+          TYPE: ${{ inputs.type }}
           TEST_FILTER: ${{ inputs.test_filter }}
         run: |
-          if [ -n "$TEST_FILTER" ]; then
-            # TEST_FILTER may hold several space-separated filters (multi-select
-            # in the dashboard). Leave it unquoted so each becomes its own
-            # positional arg; Playwright runs any test matching any of them.
-            echo "Running selected tests: $TEST_FILTER"
-            npx playwright test $TEST_FILTER
-          else
-            npx playwright test tests/export
-          fi
+          # Branch on the test type. frontend is the default and keeps the
+          # current behaviour; api/load are placeholders until those suites
+          # exist (they fail loudly so a premature dispatch is obvious).
+          case "${TYPE:-frontend}" in
+            load)
+              echo "Load (K6) tests are not configured yet for Export." >&2
+              exit 1 ;;
+            api)
+              echo "API tests are not configured yet for Export." >&2
+              exit 1 ;;
+            *)
+              if [ -n "$TEST_FILTER" ]; then
+                # TEST_FILTER may hold several space-separated filters (multi-
+                # select in the dashboard). Leave it unquoted so each becomes its
+                # own positional arg; Playwright runs any test matching any.
+                echo "Running selected tests: $TEST_FILTER"
+                npx playwright test $TEST_FILTER
+              else
+                npx playwright test tests/export
+              fi ;;
+          esac
 
       - uses: actions/upload-artifact@v4
         if: always()
