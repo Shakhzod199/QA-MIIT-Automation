@@ -35,13 +35,6 @@ const TABS: Tab[] = [
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
     ),
   },
-  {
-    href: "/m/alerts",
-    key: "nav.alerts",
-    icon: (
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 00-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-    ),
-  },
 ];
 
 export function MobileShell({ children }: { children: React.ReactNode }) {
@@ -85,7 +78,7 @@ export function MobileShell({ children }: { children: React.ReactNode }) {
 
       {/* bottom tab bar */}
       <nav
-        className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-5 border-t border-surface-border bg-surface-panel/95 backdrop-blur"
+        className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-4 border-t border-surface-border bg-surface-panel/95 backdrop-blur"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         {TABS.map((tab) => {

@@ -9,7 +9,6 @@ const links = [
   { href: "/", key: "nav.testcases" },
   { href: "/reports", key: "nav.reports" },
   { href: "/flaky", key: "nav.flaky" },
-  { href: "/alerts", key: "nav.alerts" },
 ];
 
 export function SidebarNav() {
