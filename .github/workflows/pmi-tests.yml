@@ -15,9 +15,14 @@ on:
   workflow_dispatch:
     inputs:
       type:
-        description: "Test type to run: frontend | api | load"
+        description: "Test type to run"
         required: false
         default: "frontend"
+        type: choice
+        options:
+          - frontend
+          - api
+          - load
       test_filter:
         description: >-
           Optional Playwright filter to run a single test, e.g.
@@ -62,8 +67,8 @@ jobs:
               echo "Load (K6) tests are not configured yet for PMI." >&2
               exit 1 ;;
             api)
-              echo "API tests are not configured yet for PMI." >&2
-              exit 1 ;;
+              echo "Running PMI API smoke tests"
+              npx playwright test --project=pmi-api ;;
             *)
               if [ -n "$TEST_FILTER" ]; then
                 # TEST_FILTER may hold several space-separated filters (multi-

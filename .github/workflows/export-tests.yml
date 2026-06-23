@@ -15,9 +15,14 @@ on:
   workflow_dispatch:
     inputs:
       type:
-        description: "Test type to run: frontend | api | load"
+        description: "Test type to run"
         required: false
         default: "frontend"
+        type: choice
+        options:
+          - frontend
+          - api
+          - load
       test_filter:
         description: >-
           Optional Playwright filter to run a single test, e.g.

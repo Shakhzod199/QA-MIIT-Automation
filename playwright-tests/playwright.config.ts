@@ -62,6 +62,15 @@ export default defineConfig({
       testDir: "./tests/pmi-tests",
       use: { ...devices["Desktop Chrome"], baseURL: process.env.PMI_BASE_URL ?? "http://localhost:3000" },
     },
+
+    // ── pmi backend (api smoke tests) ───────────────────────────────────────
+    // No browser — uses Playwright's `request` fixture. Selected via the
+    // "api" workflow_dispatch type.
+    {
+      name: "pmi-api",
+      testDir: "./tests/pmi-api",
+      use: { baseURL: process.env.PMI_BASE_URL ?? "http://localhost:3000" },
+    },
     // {
     //   name: "billing",
     //   testDir: "./tests/billing",
