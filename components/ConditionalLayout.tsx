@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { SidebarNav } from "@/components/SidebarNav";
@@ -32,7 +33,9 @@ export function ConditionalLayout({ children }: { children: React.ReactNode }) {
           <p className="text-xs text-gray-500">{t("app.subtitle")}</p>
         </div>
 
-        <SidebarNav />
+        <Suspense fallback={null}>
+          <SidebarNav />
+        </Suspense>
 
         <div className="mt-auto space-y-3 border-t border-surface-border pt-4">
           <div className="px-1">

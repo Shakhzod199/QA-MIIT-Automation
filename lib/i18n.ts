@@ -16,6 +16,7 @@ const en: Dict = {
 
   "nav.dashboard": "Dashboard",
   "nav.testcases": "Test cases",
+  "nav.allTestcases": "All test cases",
   "nav.reports": "Reports",
   "nav.trends": "Trends",
   "nav.flaky": "Flaky Tests",
@@ -37,9 +38,7 @@ const en: Dict = {
   "suite.triggered": "Triggered!",
   "suite.viewOnGithub": "View on GitHub",
   "suite.runSeparately": "Run separately",
-  "suite.testType": "Test type",
   "suite.frontend": "Frontend",
-  "suite.backend": "Backend",
   "suite.api": "API tests",
   "suite.load": "Load/Stress (K6)",
 
@@ -119,6 +118,7 @@ const uz: Dict = {
 
   "nav.dashboard": "Boshqaruv paneli",
   "nav.testcases": "Test holatlari",
+  "nav.allTestcases": "Barcha test holatlari",
   "nav.reports": "Hisobotlar",
   "nav.trends": "Tendensiyalar",
   "nav.flaky": "Beqaror testlar",
@@ -140,9 +140,7 @@ const uz: Dict = {
   "suite.triggered": "Boshlandi!",
   "suite.viewOnGithub": "GitHub’da ko‘rish",
   "suite.runSeparately": "Alohida ishga tushirish",
-  "suite.testType": "Test turi",
   "suite.frontend": "Frontend",
-  "suite.backend": "Backend",
   "suite.api": "API testlar",
   "suite.load": "Yuklama/Stress (K6)",
 
@@ -222,6 +220,7 @@ const ru: Dict = {
 
   "nav.dashboard": "Панель",
   "nav.testcases": "Тест-кейсы",
+  "nav.allTestcases": "Все тест-кейсы",
   "nav.reports": "Отчёты",
   "nav.trends": "Тренды",
   "nav.flaky": "Нестабильные тесты",
@@ -243,9 +242,7 @@ const ru: Dict = {
   "suite.triggered": "Запущено!",
   "suite.viewOnGithub": "Открыть в GitHub",
   "suite.runSeparately": "Запустить отдельно",
-  "suite.testType": "Тип теста",
   "suite.frontend": "Frontend",
-  "suite.backend": "Backend",
   "suite.api": "API-тесты",
   "suite.load": "Нагрузка/Стресс (K6)",
 

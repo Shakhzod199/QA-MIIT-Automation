@@ -1,7 +1,8 @@
 "use client";
 
-import { use, useMemo, useState } from "react";
+import { Suspense, use, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import useSWR from "swr";
 import { useI18n } from "@/components/I18nProvider";
 import type {
@@ -20,9 +21,21 @@ function testFilter(test: TestCaseResult): string {
 }
 
 export default function SuiteTestsPage({ params }: { params: Promise<{ id: string }> }) {
+  return (
+    <Suspense fallback={null}>
+      <SuiteTestsPageInner params={params} />
+    </Suspense>
+  );
+}
+
+const TYPE_LABEL_KEY = { frontend: "suite.frontend", api: "suite.api", load: "suite.load" } as const;
+
+function SuiteTestsPageInner({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { t } = useI18n();
   const workflowId = Number(id);
+  const searchParams = useSearchParams();
+  const type = (searchParams.get("type") as "frontend" | "api" | "load" | null) ?? "frontend";
 
   const { data: workflowsData } = useSWR<WorkflowsResponse>("/api/workflows", fetcher);
   const { data: runsData } = useSWR<RunsResponse>("/api/runs?per_page=50", fetcher);
@@ -99,6 +112,71 @@ export default function SuiteTestsPage({ params }: { params: Promise<{ id: strin
       setError(result.error ?? "Failed to trigger run");
     }
   };
+
+  // ── Backend (api/load) ──────────────────────────────────────────────────
+  // No per-test selection: api/load runs are dispatched as a single unit via
+  // the workflow's "type" input, so this is a one-button trigger instead of
+  // the frontend checkbox list above.
+  const [typeRunState, setTypeRunState] = useState<"idle" | "pending" | "triggered">("idle");
+  const [typeRunError, setTypeRunError] = useState<string | null>(null);
+
+  const handleRunType = async () => {
+    if (typeRunState === "pending") return;
+    setTypeRunState("pending");
+    setTypeRunError(null);
+
+    const res = await fetch("/api/runs/trigger", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ workflowId, inputs: { type } }),
+    });
+    const result: TriggerResponse = await res.json();
+
+    if (result.ok) {
+      setTypeRunState("triggered");
+      setTimeout(() => setTypeRunState("idle"), 4000);
+    } else {
+      setTypeRunState("idle");
+      setTypeRunError(result.error ?? "Failed to trigger run");
+    }
+  };
+
+  if (type !== "frontend") {
+    return (
+      <div className="space-y-6">
+        <div>
+          <Link href="/" className="text-xs text-gray-500 hover:text-gray-300">
+            ← {t("suiteTests.back")}
+          </Link>
+          <h2 className="mt-2 text-2xl font-semibold text-white">
+            {workflow?.name ?? `Suite #${workflowId}`} · {t(TYPE_LABEL_KEY[type])}
+          </h2>
+        </div>
+
+        <div className="flex items-center justify-between gap-4 rounded-lg border border-surface-border bg-surface-panel px-4 py-3">
+          <span className="text-sm font-medium text-white">{t(TYPE_LABEL_KEY[type])}</span>
+          <button
+            onClick={handleRunType}
+            disabled={typeRunState === "pending"}
+            className={[
+              "inline-flex shrink-0 items-center gap-1.5 rounded-md px-4 py-1.5 text-sm font-medium text-white transition disabled:cursor-not-allowed disabled:opacity-60",
+              typeRunState === "triggered" ? "bg-emerald-600" : "bg-indigo-600 hover:bg-indigo-500",
+            ].join(" ")}
+          >
+            {typeRunState === "pending" && (
+              <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+            )}
+            {typeRunState === "triggered" ? t("suiteTests.triggered") : t("suiteTests.run")}
+          </button>
+        </div>
+
+        {typeRunError && <p className="text-xs text-red-400">{typeRunError}</p>}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
