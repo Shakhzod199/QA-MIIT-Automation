@@ -5,8 +5,13 @@ name: Export Tests
 run-name: Export Tests${{ inputs.test_filter && format(' — {0}', inputs.test_filter) || '' }}
 
 on:
-  # Manual only — runs are triggered from the dashboard "Run" button
-  # (workflow_dispatch). No automatic run on push.
+  # Daily full-suite run. GitHub cron is in UTC; 05:00 UTC = 10:00 Asia/Tashkent
+  # (UTC+5, no DST). Scheduled runs only fire from the default branch (main) and
+  # pass no test_filter, so the whole suite runs.
+  schedule:
+    - cron: "0 5 * * *"
+  # Manual — runs are also triggered from the dashboard "Run" button
+  # (workflow_dispatch).
   workflow_dispatch:
     inputs:
       test_filter:

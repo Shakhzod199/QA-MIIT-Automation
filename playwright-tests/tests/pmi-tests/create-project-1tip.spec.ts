@@ -86,15 +86,20 @@ async function selectFirstOption(page: Page, label: string): Promise<boolean> {
 }
 
 /**
- * Naive UI n-date-picker. The input commits a typed value on Enter. Format is
- * the form default `yyyy-MM-dd`; adjust here if the live form uses another.
+ * Naive UI n-date-picker. The live form's picker only accepts `dd.MM.yyyy`, so
+ * a `yyyy-MM-dd` argument is converted before typing — otherwise the input is
+ * rejected and silently cleared (a no-op).
  */
 async function fillDate(page: Page, label: string, dateStr: string) {
+  const m = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const value = m ? `${m[3]}.${m[2]}.${m[1]}` : dateStr;
   const input = formItem(page, label).locator("input").first();
   await input.click();
-  await input.fill(dateStr);
+  await input.fill(value);
   await page.keyboard.press("Enter");
   await page.keyboard.press("Escape");
+  // Guard against a future format change silently clearing the value again.
+  await expect(input).not.toHaveValue("");
 }
 
 test.describe("PMI — Loyihalar CRUD", () => {
