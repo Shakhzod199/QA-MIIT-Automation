@@ -48,6 +48,8 @@ const en: Dict = {
   "suiteTests.triggered": "Triggered!",
   "suiteTests.loading": "Loading tests…",
   "suiteTests.empty": "No tests found yet. Run the whole suite once so its tests can be listed here.",
+  "suiteTests.testCases": "Test cases",
+  "suiteTests.selected": "selected",
 
   "runModal.title": "Run a test",
   "runModal.allTests": "All test cases",
@@ -150,6 +152,8 @@ const uz: Dict = {
   "suiteTests.triggered": "Boshlandi!",
   "suiteTests.loading": "Testlar yuklanmoqda…",
   "suiteTests.empty": "Testlar topilmadi. Avval butun to‘plamni bir marta ishga tushiring, shunda testlar bu yerda ko‘rinadi.",
+  "suiteTests.testCases": "Test holatlari",
+  "suiteTests.selected": "tanlandi",
 
   "runModal.title": "Testni ishga tushirish",
   "runModal.allTests": "Barcha test holatlari",
@@ -252,6 +256,8 @@ const ru: Dict = {
   "suiteTests.triggered": "Запущено!",
   "suiteTests.loading": "Загрузка тестов…",
   "suiteTests.empty": "Тесты пока не найдены. Запустите весь набор один раз, чтобы его тесты появились здесь.",
+  "suiteTests.testCases": "Тест-кейсы",
+  "suiteTests.selected": "выбрано",
 
   "runModal.title": "Запустить тест",
   "runModal.allTests": "Все тест-кейсы",

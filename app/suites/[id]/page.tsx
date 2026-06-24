@@ -8,6 +8,7 @@ import { useI18n } from "@/components/I18nProvider";
 import { StatsCards } from "@/components/StatsCards";
 import { SuiteCard } from "@/components/SuiteCard";
 import { RunsTable } from "@/components/RunsTable";
+import { FlaskIcon } from "@/components/icons";
 import { computeStats } from "@/lib/stats";
 import type {
   RunsResponse,
@@ -22,6 +23,24 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json());
 /** Playwright filter for a single test, e.g. "tests/pmi-tests/login.spec.ts:5". */
 function testFilter(test: TestCaseResult): string {
   return test.line ? `${test.file}:${test.line}` : test.file;
+}
+
+const STATUS_DOT_CLASS: Record<TestCaseResult["status"], string> = {
+  passed: "bg-emerald-500",
+  failed: "bg-red-500",
+  timedOut: "bg-red-500",
+  flaky: "bg-amber-500",
+  skipped: "bg-gray-500",
+};
+
+/** Compact colored dot conveying the test's last known result (from latestRunId). */
+function TestStatusDot({ status }: { status: TestCaseResult["status"] }) {
+  return (
+    <span
+      title={status}
+      className={`h-2 w-2 shrink-0 rounded-full ${STATUS_DOT_CLASS[status]}`}
+    />
+  );
 }
 
 export default function SuiteTestsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -85,6 +104,17 @@ function SuiteTestsPageInner({ params }: { params: Promise<{ id: string }> }) {
   );
 
   const tests = testsData?.tests ?? [];
+
+  // Grouped by spec file (preserving first-seen order) so the file path is
+  // shown once per group instead of repeated on every single row.
+  const testsByFile = useMemo(() => {
+    const groups = new Map<string, TestCaseResult[]>();
+    for (const test of tests) {
+      if (!groups.has(test.file)) groups.set(test.file, []);
+      groups.get(test.file)!.push(test);
+    }
+    return groups;
+  }, [tests]);
 
   // ── Selection (checkboxes) ──────────────────────────────────────────────
   // Distinct filters (two tests can share a file:line across projects).
@@ -233,78 +263,98 @@ function SuiteTestsPageInner({ params }: { params: Promise<{ id: string }> }) {
         <RunsTable runs={scopedRuns} hideProject pageSize={5} onCancel={handleCancel} />
       </div>
 
-      {isLoading && latestRunId ? (
-        <p className="text-sm text-gray-500">{t("suiteTests.loading")}</p>
-      ) : tests.length === 0 ? (
-        <div className="rounded-lg border border-surface-border bg-surface-panel p-8 text-center text-sm text-gray-500">
-          {t("suiteTests.empty")}
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {/* Toolbar: select all + run selected */}
-          <div className="flex items-center justify-between gap-4 rounded-lg border border-surface-border bg-surface-panel px-4 py-3">
-            <label className="flex cursor-pointer items-center gap-3">
-              <input
-                type="checkbox"
-                className="h-4 w-4 accent-indigo-500"
-                checked={allSelected}
-                onChange={toggleAll}
-              />
-              <span className="text-sm font-medium text-white">{t("runModal.allTests")}</span>
-              {selected.size > 0 && (
-                <span className="text-xs text-gray-500">({selected.size})</span>
-              )}
-            </label>
-            <button
-              onClick={handleRunSelected}
-              disabled={state === "pending" || selected.size === 0}
-              className={[
-                "inline-flex shrink-0 items-center gap-1.5 rounded-md px-4 py-1.5 text-sm font-medium text-white transition disabled:cursor-not-allowed disabled:opacity-60",
-                state === "triggered"
-                  ? "bg-emerald-600"
-                  : "bg-indigo-600 hover:bg-indigo-500",
-              ].join(" ")}
-            >
-              {state === "pending" && (
-                <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-              )}
-              {state === "triggered" ? t("suiteTests.triggered") : t("suiteTests.run")}
-            </button>
+      <div>
+        <h3 className="mb-3 text-lg font-medium text-white">{t("suiteTests.testCases")}</h3>
+
+        {isLoading && latestRunId ? (
+          <p className="text-sm text-gray-500">{t("suiteTests.loading")}</p>
+        ) : tests.length === 0 ? (
+          <div className="rounded-lg border border-surface-border bg-surface-panel p-8 text-center text-sm text-gray-500">
+            {t("suiteTests.empty")}
           </div>
-
-          {error && <p className="text-xs text-red-400">{error}</p>}
-
-          {/* Selectable test rows */}
-          {tests.map((test) => {
-            const filter = testFilter(test);
-            return (
-              <label
-                key={`${filter}::${test.project}`}
-                className="flex cursor-pointer items-center gap-3 rounded-lg border border-surface-border bg-surface-panel px-4 py-3 transition hover:bg-surface-hover"
-              >
+        ) : (
+          <div className="overflow-hidden rounded-lg border border-surface-border bg-surface-panel">
+            {/* Toolbar: select all + run selected — styled like a table header */}
+            <div className="flex items-center justify-between gap-4 border-b border-surface-border bg-surface-hover/40 px-4 py-3">
+              <label className="flex cursor-pointer items-center gap-3">
                 <input
                   type="checkbox"
-                  className="h-4 w-4 shrink-0 accent-indigo-500"
-                  checked={selected.has(filter)}
-                  onChange={() => toggleOne(filter)}
+                  className="h-4 w-4 accent-indigo-500"
+                  checked={allSelected}
+                  onChange={toggleAll}
                 />
-                <span className="min-w-0">
-                  <span className="block truncate text-sm font-medium text-white">
-                    {test.titlePath.join(" › ")}
-                  </span>
-                  <span className="block truncate font-mono text-xs text-gray-500">
-                    {filter}
-                    {test.project ? ` · ${test.project}` : ""}
-                  </span>
+                <span className="text-sm font-medium text-white">{t("runModal.allTests")}</span>
+                <span className="rounded-full bg-surface-border px-2 py-0.5 text-xs tabular-nums text-gray-400">
+                  {tests.length}
                 </span>
+                {selected.size > 0 && (
+                  <span className="text-xs text-indigo-300">{selected.size} {t("suiteTests.selected")}</span>
+                )}
               </label>
-            );
-          })}
-        </div>
-      )}
+              <button
+                onClick={handleRunSelected}
+                disabled={state === "pending" || selected.size === 0}
+                className={[
+                  "inline-flex shrink-0 items-center gap-1.5 rounded-md px-4 py-1.5 text-sm font-medium text-white transition disabled:cursor-not-allowed disabled:opacity-60",
+                  state === "triggered"
+                    ? "bg-emerald-600"
+                    : "bg-indigo-600 hover:bg-indigo-500",
+                ].join(" ")}
+              >
+                {state === "pending" && (
+                  <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                )}
+                {state === "triggered" ? t("suiteTests.triggered") : t("suiteTests.run")}
+              </button>
+            </div>
+
+            {error && (
+              <p className="border-b border-surface-border px-4 py-2 text-xs text-red-400">{error}</p>
+            )}
+
+            {/* Test rows, grouped by spec file so the path appears once per group. */}
+            {Array.from(testsByFile.entries()).map(([file, fileTests]) => (
+              <div key={file}>
+                <div className="flex items-center gap-2 border-b border-surface-border bg-surface-hover/20 px-4 py-1.5">
+                  <FlaskIcon className="h-3 w-3 shrink-0 text-gray-500" />
+                  <span className="truncate font-mono text-xs text-gray-500">{file}</span>
+                </div>
+                {fileTests.map((test) => {
+                  const filter = testFilter(test);
+                  return (
+                    <label
+                      key={`${filter}::${test.project}`}
+                      className="flex cursor-pointer items-center gap-3 border-b border-surface-border px-4 py-2.5 transition last:border-0 hover:bg-surface-hover"
+                    >
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 shrink-0 accent-indigo-500"
+                        checked={selected.has(filter)}
+                        onChange={() => toggleOne(filter)}
+                      />
+                      <TestStatusDot status={test.status} />
+                      <span className="min-w-0 flex-1 truncate text-sm font-medium text-white">
+                        {test.titlePath.join(" › ")}
+                      </span>
+                      {test.project && (
+                        <span className="shrink-0 rounded bg-indigo-500/15 px-1.5 py-0.5 text-[10px] font-medium text-indigo-300 ring-1 ring-inset ring-indigo-500/30">
+                          {test.project}
+                        </span>
+                      )}
+                      <span className="shrink-0 font-mono text-xs text-gray-500">
+                        :{test.line}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
