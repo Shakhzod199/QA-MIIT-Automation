@@ -25,23 +25,10 @@ function testFilter(test: TestCaseResult): string {
   return test.line ? `${test.file}:${test.line}` : test.file;
 }
 
-const STATUS_DOT_CLASS: Record<TestCaseResult["status"], string> = {
-  passed: "bg-emerald-500",
-  failed: "bg-red-500",
-  timedOut: "bg-red-500",
-  flaky: "bg-amber-500",
-  skipped: "bg-gray-500",
-};
-
-/** Compact colored dot conveying the test's last known result (from latestRunId). */
-function TestStatusDot({ status }: { status: TestCaseResult["status"] }) {
-  return (
-    <span
-      title={status}
-      className={`h-2 w-2 shrink-0 rounded-full ${STATUS_DOT_CLASS[status]}`}
-    />
-  );
-}
+// Circular, radio-styled checkbox (keeps native multi-select checkbox
+// semantics — selecting several tests still works — just looks like a radio).
+const RADIO_CHECKBOX_CLASS =
+  "h-5 w-5 shrink-0 cursor-pointer appearance-none rounded-full border-2 border-gray-500 bg-transparent transition-colors checked:border-emerald-500 checked:bg-[radial-gradient(circle,#10b981_40%,transparent_41%)]";
 
 export default function SuiteTestsPage({ params }: { params: Promise<{ id: string }> }) {
   return (
@@ -279,7 +266,7 @@ function SuiteTestsPageInner({ params }: { params: Promise<{ id: string }> }) {
               <label className="flex cursor-pointer items-center gap-3">
                 <input
                   type="checkbox"
-                  className="h-4 w-4 accent-indigo-500"
+                  className={RADIO_CHECKBOX_CLASS}
                   checked={allSelected}
                   onChange={toggleAll}
                 />
@@ -331,11 +318,10 @@ function SuiteTestsPageInner({ params }: { params: Promise<{ id: string }> }) {
                     >
                       <input
                         type="checkbox"
-                        className="h-4 w-4 shrink-0 accent-indigo-500"
+                        className={RADIO_CHECKBOX_CLASS}
                         checked={selected.has(filter)}
                         onChange={() => toggleOne(filter)}
                       />
-                      <TestStatusDot status={test.status} />
                       <span className="min-w-0 flex-1 truncate text-sm font-medium text-white">
                         {test.titlePath.join(" › ")}
                       </span>
