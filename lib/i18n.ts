@@ -60,6 +60,9 @@ const en: Dict = {
 
   "table.run": "Run",
   "table.singleTest": "single test",
+  "table.triggerSource": "Run",
+  "table.triggerManual": "Manual",
+  "table.triggerCi": "CI/CD",
   "table.status": "Status",
   "table.progress": "Progress",
   "table.branch": "Branch",
@@ -168,6 +171,9 @@ const uz: Dict = {
 
   "table.run": "Ish",
   "table.singleTest": "alohida test",
+  "table.triggerSource": "Ishga tushirish",
+  "table.triggerManual": "Qo‘lda",
+  "table.triggerCi": "CI/CD",
   "table.status": "Holat",
   "table.progress": "Jarayon",
   "table.branch": "Tarmoq",
@@ -276,6 +282,9 @@ const ru: Dict = {
 
   "table.run": "Запуск",
   "table.singleTest": "отдельный тест",
+  "table.triggerSource": "Запуск",
+  "table.triggerManual": "Вручную",
+  "table.triggerCi": "CI/CD",
   "table.status": "Статус",
   "table.progress": "Прогресс",
   "table.branch": "Ветка",

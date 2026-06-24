@@ -133,6 +133,24 @@ function StatusBadge({ status, conclusion }: { status: string; conclusion: strin
   }
 }
 
+function TriggerSourceBadge({ source }: { source: RunSummary["triggerSource"] }) {
+  const { t } = useI18n();
+  if (source === "ci-cd") {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-500/15 px-2.5 py-1 text-xs font-medium text-purple-300 ring-1 ring-inset ring-purple-500/30">
+        <span className="h-1.5 w-1.5 rounded-full bg-purple-400" />
+        {t("table.triggerCi")}
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-500/15 px-2.5 py-1 text-xs font-medium text-gray-400 ring-1 ring-inset ring-gray-500/30">
+      <span className="h-1.5 w-1.5 rounded-full bg-gray-400" />
+      {t("table.triggerManual")}
+    </span>
+  );
+}
+
 function CancelButton({
   runId,
   onCancel,
@@ -207,12 +225,13 @@ export function RunsTable({
         {/* Fixed column widths so every project's table lines up identically,
             regardless of each table's own content. */}
         <colgroup>
-          <col className="w-[12%]" />
-          <col className="w-[13%]" />
-          <col className="w-[24%]" />
-          <col className="w-[14%]" />
           <col className="w-[11%]" />
-          <col className="w-[15%]" />
+          <col className="w-[12%]" />
+          <col className="w-[20%]" />
+          <col className="w-[12%]" />
+          <col className="w-[10%]" />
+          <col className="w-[13%]" />
+          <col className="w-[11%]" />
           <col className="w-[11%]" />
         </colgroup>
         <thead>
@@ -223,6 +242,7 @@ export function RunsTable({
             <th className="px-4 py-3">{t("table.branch")}</th>
             <th className="px-4 py-3">{t("table.duration")}</th>
             <th className="px-4 py-3">{t("table.triggered")}</th>
+            <th className="px-4 py-3">{t("table.triggerSource")}</th>
             <th className="px-4 py-3" />
           </tr>
         </thead>
@@ -279,6 +299,9 @@ export function RunsTable({
                 )}
               </td>
               <td className="px-4 py-3 text-gray-500">{formatRelativeTime(run.createdAt)}</td>
+              <td className="px-4 py-3">
+                <TriggerSourceBadge source={run.triggerSource} />
+              </td>
               <td className="px-4 py-3">
                 <div className="flex items-center justify-end gap-2">
                   {onCancel && run.status !== "completed" && (

@@ -21,6 +21,8 @@ export interface RunSummary {
   testFilter: string | null;
   /** Test type dispatched (from run-name); defaults to "frontend" when absent (older runs). */
   runType: "frontend" | "api" | "load";
+  /** Who started the run (from run-name's " (CI/CD)" marker): the dashboard ("manual") or an automated caller like the GitLab deploy pipeline ("ci-cd"). */
+  triggerSource: "manual" | "ci-cd";
 }
 
 export interface RunStats {

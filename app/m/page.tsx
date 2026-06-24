@@ -134,7 +134,11 @@ export default function MobileDashboard() {
                   <p className="truncate text-sm text-gray-300">
                     {run.name} <span className="font-mono text-indigo-400">#{run.runNumber}</span>
                   </p>
-                  <p className="text-[11px] text-gray-500">{formatRelativeTime(run.createdAt)}</p>
+                  <p className="text-[11px] text-gray-500">
+                    {formatRelativeTime(run.createdAt)}
+                    {" · "}
+                    {run.triggerSource === "ci-cd" ? t("table.triggerCi") : t("table.triggerManual")}
+                  </p>
                 </div>
                 <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${pill.cls}`}>
                   {pill.label}

@@ -16,15 +16,24 @@ const RUN_NAME_SEP = " — ";
 // above. Absent (older runs, or default "frontend" dispatches) → "frontend".
 const TYPE_SUFFIX_RE = / \[(frontend|api|load)\]$/;
 
+// Automated (non-dashboard) triggers — e.g. the GitLab deploy pipeline — encode
+// as "<Suite> [type] (CI/CD)" right before the filter suffix. Absent (dashboard
+// "Run" button, or older runs predating this) → "manual".
+const CI_SUFFIX_RE = / \(CI\/CD\)$/;
+
 export function mapRun(run: any): RunSummary {
   const rawName = run.name ?? run.display_title ?? "Run";
   const sep = rawName.indexOf(RUN_NAME_SEP);
   const beforeFilter = sep >= 0 ? rawName.slice(0, sep) : rawName;
   const testFilter = sep >= 0 ? rawName.slice(sep + RUN_NAME_SEP.length) : null;
 
-  const typeMatch = beforeFilter.match(TYPE_SUFFIX_RE);
+  const ciMatch = beforeFilter.match(CI_SUFFIX_RE);
+  const triggerSource: RunSummary["triggerSource"] = ciMatch ? "ci-cd" : "manual";
+  const beforeCi = ciMatch ? beforeFilter.slice(0, ciMatch.index) : beforeFilter;
+
+  const typeMatch = beforeCi.match(TYPE_SUFFIX_RE);
   const runType = (typeMatch?.[1] as RunSummary["runType"]) ?? "frontend";
-  const name = typeMatch ? beforeFilter.slice(0, typeMatch.index) : beforeFilter;
+  const name = typeMatch ? beforeCi.slice(0, typeMatch.index) : beforeCi;
 
   return {
     id: run.id,
@@ -39,6 +48,7 @@ export function mapRun(run: any): RunSummary {
     htmlUrl: run.html_url,
     testFilter,
     runType,
+    triggerSource,
   };
 }
 

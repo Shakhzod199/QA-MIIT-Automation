@@ -1,9 +1,10 @@
 name: PMI Tests
 
-# Non-default test types append " [type]" and single-test runs append the
-# filter after " — ", so the dashboard can tell apart a full frontend suite
-# run from an api/load run or a single-test run. Defaults → just "PMI Tests".
-run-name: PMI Tests${{ (inputs.type != '' && inputs.type != 'frontend') && format(' [{0}]', inputs.type) || '' }}${{ inputs.test_filter && format(' — {0}', inputs.test_filter) || '' }}
+# Non-default test types append " [type]", automated (non-dashboard) triggers
+# append " (CI/CD)", and single-test runs append the filter after " — ", so
+# the dashboard can tell apart a full frontend suite run from an api/load run,
+# a CI/CD-triggered run, or a single-test run. Defaults → just "PMI Tests".
+run-name: PMI Tests${{ (inputs.type != '' && inputs.type != 'frontend') && format(' [{0}]', inputs.type) || '' }}${{ inputs.triggered_by == 'gitlab-deploy' && ' (CI/CD)' || '' }}${{ inputs.test_filter && format(' — {0}', inputs.test_filter) || '' }}
 
 on:
   # Daily full-suite run. GitHub cron is in UTC; 05:00 UTC = 10:00 Asia/Tashkent
@@ -30,6 +31,13 @@ on:
           "tests/pmi-tests/login.spec.ts:5". Empty runs the whole suite.
         required: false
         default: ""
+      triggered_by:
+        description: >-
+          Internal — set to "gitlab-deploy" by the GitLab deploy pipeline's
+          automated trigger. Leave as "manual" when running from the dashboard.
+        required: false
+        default: "manual"
+        type: string
 
 env:
   # Origin only — the login test appends "/auth" itself.
