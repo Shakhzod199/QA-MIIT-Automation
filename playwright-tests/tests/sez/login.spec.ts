@@ -1,6 +1,11 @@
 import { test, expect } from "@playwright/test";
 import { BASE_URL, USERNAME, PASSWORD, login } from "./helpers";
 
+// Serial: both tests perform a fresh UI login with the same account, and the
+// SEZ backend appears to invalidate a session when it logs in concurrently
+// elsewhere — running them one at a time avoids that race.
+test.describe.configure({ mode: "serial" });
+
 test.describe("SEZ login flow", () => {
   test("Shows OneID and performs login via email/password", async ({ page }) => {
     await page.goto(`${BASE_URL}/login`);

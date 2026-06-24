@@ -18,6 +18,13 @@ function requireCredential(name: "SEZ_USERNAME" | "SEZ_PASSWORD"): string {
 export const USERNAME = requireCredential("SEZ_USERNAME");
 export const PASSWORD = requireCredential("SEZ_PASSWORD");
 
+// Where auth.setup.ts caches the authenticated session. The data-driven specs
+// (columns/filter) reuse it via test.use({ storageState: AUTH_FILE }) instead
+// of logging in again — the SEZ backend appears to invalidate a session when
+// the same account logs in concurrently elsewhere, which made every spec
+// calling login() in its own beforeEach flaky under parallel workers.
+export const AUTH_FILE = "playwright/.auth/sez-user.json";
+
 /**
  * The email/password login button is hidden on test/prod (only shown on
  * localhost or after OneID fails). An invisible button next to the OneID

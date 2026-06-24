@@ -57,9 +57,41 @@ export default defineConfig({
     },
 
     // ── add new projects below this line ──────────────────────────────────
+    // SEZ's account appears to be single-session: even just *reusing* one
+    // cached login from two contexts at once (not only fresh UI logins) can
+    // knock one of them back to the login page. So every sez-* project below
+    // is chained via "dependencies" into one strictly serial pipeline —
+    // login.spec.ts's fresh logins finish first, then sez-setup caches the
+    // final session, then columns and filter each get that session to
+    // themselves, one project at a time.
     {
-      name: "sez",
+      name: "sez-login",
       testDir: "./tests/sez",
+      testMatch: /login\.spec\.ts/,
+      use: { ...devices["Desktop Chrome"], baseURL: process.env.SEZ_BASE_URL ?? "https://testsez2.miit.uz" },
+    },
+
+    {
+      name: "sez-setup",
+      testDir: "./tests/sez",
+      testMatch: /auth\.setup\.ts/,
+      dependencies: ["sez-login"],
+      use: { ...devices["Desktop Chrome"], baseURL: process.env.SEZ_BASE_URL ?? "https://testsez2.miit.uz" },
+    },
+
+    {
+      name: "sez-columns",
+      testDir: "./tests/sez",
+      testMatch: /columns\.spec\.ts/,
+      dependencies: ["sez-setup"],
+      use: { ...devices["Desktop Chrome"], baseURL: process.env.SEZ_BASE_URL ?? "https://testsez2.miit.uz" },
+    },
+
+    {
+      name: "sez-filter",
+      testDir: "./tests/sez",
+      testMatch: /filter\.spec\.ts/,
+      dependencies: ["sez-columns"],
       use: { ...devices["Desktop Chrome"], baseURL: process.env.SEZ_BASE_URL ?? "https://testsez2.miit.uz" },
     },
 
