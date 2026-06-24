@@ -58,6 +58,12 @@ export default defineConfig({
 
     // ── add new projects below this line ──────────────────────────────────
     {
+      name: "sez",
+      testDir: "./tests/sez",
+      use: { ...devices["Desktop Chrome"], baseURL: process.env.SEZ_BASE_URL ?? "https://testsez2.miit.uz" },
+    },
+
+    {
       name: "pmi",
       testDir: "./tests/pmi-tests",
       use: { ...devices["Desktop Chrome"], baseURL: process.env.PMI_BASE_URL ?? "http://localhost:3000" },
