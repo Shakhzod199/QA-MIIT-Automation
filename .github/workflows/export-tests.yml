@@ -74,10 +74,14 @@ jobs:
                 # TEST_FILTER may hold several space-separated filters (multi-
                 # select in the dashboard). Leave it unquoted so each becomes its
                 # own positional arg; Playwright runs any test matching any.
+                # --project=export keeps this scoped to the export project even
+                # with a path filter — without it, Playwright loads every
+                # project's test files (including ones whose credentials aren't
+                # set in this job's env) just to build the test list.
                 echo "Running selected tests: $TEST_FILTER"
-                npx playwright test $TEST_FILTER
+                npx playwright test --project=export $TEST_FILTER
               else
-                npx playwright test tests/export
+                npx playwright test --project=export
               fi ;;
           esac
 
