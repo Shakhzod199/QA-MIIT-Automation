@@ -33,10 +33,17 @@ export async function selectRandomDavlat(page: Page) {
   await page.keyboard.press("Escape");
 }
 
-/** Multiple-select: pick one option, then close the still-open menu. */
+/**
+ * Multiple-select: pick one option, then close the still-open menu. The
+ * option list is fetched from the backend (e.g. districts for a region) and
+ * can be slow to resolve, so the visibility wait gets a generous timeout
+ * instead of relying on the default 5s expect timeout.
+ */
 export async function selectMultiOption(page: Page, label: string, optionText: string) {
   await formItem(page, label).locator(".n-base-selection").first().click();
-  await page.locator(".n-base-select-option", { hasText: optionText }).first().click();
+  const option = page.locator(".n-base-select-option", { hasText: optionText }).first();
+  await expect(option).toBeVisible({ timeout: 20000 });
+  await option.click();
   await page.keyboard.press("Escape");
 }
 
@@ -53,7 +60,9 @@ export async function selectFirstOption(page: Page, label: string): Promise<bool
   const options = page
     .locator(".n-base-select-menu:visible .n-base-select-option")
     .filter({ hasNotText: "Aniqlanmoqda" });
-  await expect(options.first()).toBeVisible();
+  // Options load from the backend and can be slow — wait longer than the
+  // default 5s before giving up.
+  await expect(options.first()).toBeVisible({ timeout: 20000 });
   await options.first().click();
   await page.keyboard.press("Escape");
   return true;
@@ -89,7 +98,7 @@ export async function createProject1tip(page: Page): Promise<CreatedProject> {
 
   await page.getByText("Loyihalar", { exact: true }).first().click();
   await page.getByRole("link", { name: "Loyiha qo'shish" }).click();
-  await expect(page).toHaveURL(/\/app\/projects\/create/);
+  await expect(page).toHaveURL(/\/app\/projects\/create/, { timeout: 15000 });
   await expect(formItem(page, "Loyiha turi")).toBeVisible();
 
   const fieldsBefore = await page.locator(".n-form-item").count();
@@ -152,7 +161,7 @@ export async function createProject2tip(page: Page): Promise<CreatedProject> {
 
   await page.getByText("Loyihalar", { exact: true }).first().click();
   await page.getByRole("link", { name: "Loyiha qo'shish" }).click();
-  await expect(page).toHaveURL(/\/app\/projects\/create/);
+  await expect(page).toHaveURL(/\/app\/projects\/create/, { timeout: 15000 });
   await expect(formItem(page, "Loyiha turi")).toBeVisible();
 
   const fieldsBefore = await page.locator(".n-form-item").count();
@@ -211,7 +220,7 @@ export async function createProject3tip(page: Page): Promise<CreatedProject> {
 
   await page.getByText("Loyihalar", { exact: true }).first().click();
   await page.getByRole("link", { name: "Loyiha qo'shish" }).click();
-  await expect(page).toHaveURL(/\/app\/projects\/create/);
+  await expect(page).toHaveURL(/\/app\/projects\/create/, { timeout: 15000 });
   await expect(formItem(page, "Loyiha turi")).toBeVisible();
 
   const fieldsBefore = await page.locator(".n-form-item").count();
@@ -265,7 +274,7 @@ export async function createProject4tip(page: Page): Promise<CreatedProject> {
 
   await page.getByText("Loyihalar", { exact: true }).first().click();
   await page.getByRole("link", { name: "Loyiha qo'shish" }).click();
-  await expect(page).toHaveURL(/\/app\/projects\/create/);
+  await expect(page).toHaveURL(/\/app\/projects\/create/, { timeout: 15000 });
   await expect(formItem(page, "Loyiha turi")).toBeVisible();
 
   const fieldsBefore = await page.locator(".n-form-item").count();
