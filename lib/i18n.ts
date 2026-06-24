@@ -112,6 +112,10 @@ const en: Dict = {
   "reports.shown": "runs shown",
   "reports.noMatch": "No runs match your filters.",
   "common.all": "All",
+  "common.close": "Close",
+
+  "testInfo.tooltip": "What does this test check?",
+  "testInfo.title": "What this test checks",
 };
 
 const uz: Dict = {
@@ -216,6 +220,10 @@ const uz: Dict = {
   "reports.shown": "ta ishga tushirish ko‘rsatildi",
   "reports.noMatch": "Filtrlarga mos ishga tushirishlar yo‘q.",
   "common.all": "Hammasi",
+  "common.close": "Yopish",
+
+  "testInfo.tooltip": "Bu test nimani tekshiradi?",
+  "testInfo.title": "Bu test nimani tekshiradi",
 };
 
 const ru: Dict = {
@@ -320,6 +328,10 @@ const ru: Dict = {
   "reports.shown": "запусков показано",
   "reports.noMatch": "Нет запусков по заданным фильтрам.",
   "common.all": "Все",
+  "common.close": "Закрыть",
+
+  "testInfo.tooltip": "Что проверяет этот тест?",
+  "testInfo.title": "Что проверяет этот тест",
 };
 
 export const TRANSLATIONS: Record<Locale, Dict> = { en, uz, ru };

@@ -76,6 +76,8 @@ test.describe("Analytics: non-zero stats", () => {
 
   test("Analitika — KPI cards", async ({ page }) => {
     await page.goto(`${BASE_URL}/analytics`);
-    await expectStatsNonZero(page.locator(".text-lg.font-bold"), "Analitika KPI");
+    // Value class for these cards changed from .text-lg.font-bold to
+    // .text-base.font-bold.leading-tight in a recent UI redesign.
+    await expectStatsNonZero(page.locator(".text-base.font-bold.leading-tight"), "Analitika KPI");
   });
 });

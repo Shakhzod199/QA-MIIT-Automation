@@ -8,8 +8,10 @@ import { useI18n } from "@/components/I18nProvider";
 import { StatsCards } from "@/components/StatsCards";
 import { SuiteCard } from "@/components/SuiteCard";
 import { RunsTable } from "@/components/RunsTable";
-import { FlaskIcon } from "@/components/icons";
+import { TestInfoModal } from "@/components/TestInfoModal";
+import { FlaskIcon, InfoIcon } from "@/components/icons";
 import { computeStats } from "@/lib/stats";
+import { getTestDescription } from "@/lib/testDescriptions";
 import type {
   RunsResponse,
   TestCaseResult,
@@ -42,7 +44,8 @@ const TYPE_LABEL_KEY = { frontend: "suite.frontend", api: "suite.api", load: "su
 
 function SuiteTestsPageInner({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const [infoTest, setInfoTest] = useState<TestCaseResult | null>(null);
   const workflowId = Number(id);
   const searchParams = useSearchParams();
   const type = (searchParams.get("type") as "frontend" | "api" | "load" | null) ?? "frontend";
@@ -311,6 +314,7 @@ function SuiteTestsPageInner({ params }: { params: Promise<{ id: string }> }) {
                 </div>
                 {fileTests.map((test) => {
                   const filter = testFilter(test);
+                  const description = getTestDescription(test.file, test.line, locale);
                   return (
                     <label
                       key={`${filter}::${test.project}`}
@@ -325,6 +329,21 @@ function SuiteTestsPageInner({ params }: { params: Promise<{ id: string }> }) {
                       <span className="min-w-0 flex-1 truncate text-sm font-medium text-white">
                         {test.titlePath.join(" › ")}
                       </span>
+                      {description && (
+                        <button
+                          type="button"
+                          title={t("testInfo.tooltip")}
+                          aria-label={t("testInfo.tooltip")}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setInfoTest(test);
+                          }}
+                          className="shrink-0 rounded-full p-1 text-gray-500 transition hover:bg-surface-hover hover:text-indigo-300"
+                        >
+                          <InfoIcon className="h-4 w-4" />
+                        </button>
+                      )}
                       {test.project && (
                         <span className="shrink-0 rounded bg-indigo-500/15 px-1.5 py-0.5 text-[10px] font-medium text-indigo-300 ring-1 ring-inset ring-indigo-500/30">
                           {test.project}
@@ -341,6 +360,14 @@ function SuiteTestsPageInner({ params }: { params: Promise<{ id: string }> }) {
           </div>
         )}
       </div>
+
+      {infoTest && (
+        <TestInfoModal
+          title={infoTest.titlePath.join(" › ")}
+          description={getTestDescription(infoTest.file, infoTest.line, locale) ?? ""}
+          onClose={() => setInfoTest(null)}
+        />
+      )}
     </div>
   );
 }

@@ -21,3 +21,21 @@ export function ExternalLinkIcon({ className }: { className?: string }) {
     </svg>
   );
 }
+
+export function InfoIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 11v5" strokeLinecap="round" />
+      <circle cx="12" cy="7.5" r="0.75" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+export function CloseIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
+      <path d="M6 6l12 12M18 6 6 18" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
