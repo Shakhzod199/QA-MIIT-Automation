@@ -61,7 +61,6 @@ export function SuiteCard({
     <div className="flex flex-col justify-between rounded-lg border border-surface-border bg-surface-panel p-4">
       <div>
         <h3 className="font-medium text-white">{workflow.name}</h3>
-        <p className="mt-1 text-xs text-gray-500">{workflow.path}</p>
         {workflow.state !== "active" && (
           <p className="mt-1 text-xs text-amber-500">workflow is {workflow.state}</p>
         )}
