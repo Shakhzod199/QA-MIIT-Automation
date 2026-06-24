@@ -1,8 +1,9 @@
 name: Export Tests
 
-# Single-test runs append the filter after " — " so the dashboard can tell them
-# apart from a full-suite run. Empty filter → just "Export Tests".
-run-name: Export Tests${{ inputs.test_filter && format(' — {0}', inputs.test_filter) || '' }}
+# Non-default test types append " [type]" and single-test runs append the
+# filter after " — ", so the dashboard can tell apart a full frontend suite
+# run from an api/load run or a single-test run. Defaults → just "Export Tests".
+run-name: Export Tests${{ (inputs.type != '' && inputs.type != 'frontend') && format(' [{0}]', inputs.type) || '' }}${{ inputs.test_filter && format(' — {0}', inputs.test_filter) || '' }}
 
 on:
   # Daily full-suite run. GitHub cron is in UTC; 05:00 UTC = 10:00 Asia/Tashkent

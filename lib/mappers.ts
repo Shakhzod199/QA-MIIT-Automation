@@ -12,11 +12,19 @@ function durationBetween(startIso: string | null, endIso: string | null): number
 // surfaces separately.
 const RUN_NAME_SEP = " — ";
 
+// Non-default test types encode as "<Suite> [type]" before the filter suffix
+// above. Absent (older runs, or default "frontend" dispatches) → "frontend".
+const TYPE_SUFFIX_RE = / \[(frontend|api|load)\]$/;
+
 export function mapRun(run: any): RunSummary {
   const rawName = run.name ?? run.display_title ?? "Run";
   const sep = rawName.indexOf(RUN_NAME_SEP);
-  const name = sep >= 0 ? rawName.slice(0, sep) : rawName;
+  const beforeFilter = sep >= 0 ? rawName.slice(0, sep) : rawName;
   const testFilter = sep >= 0 ? rawName.slice(sep + RUN_NAME_SEP.length) : null;
+
+  const typeMatch = beforeFilter.match(TYPE_SUFFIX_RE);
+  const runType = (typeMatch?.[1] as RunSummary["runType"]) ?? "frontend";
+  const name = typeMatch ? beforeFilter.slice(0, typeMatch.index) : beforeFilter;
 
   return {
     id: run.id,
@@ -30,6 +38,7 @@ export function mapRun(run: any): RunSummary {
     durationSec: run.status === "completed" ? durationBetween(run.run_started_at, run.updated_at) : null,
     htmlUrl: run.html_url,
     testFilter,
+    runType,
   };
 }
 

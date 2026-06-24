@@ -19,6 +19,8 @@ export interface RunSummary {
   htmlUrl: string;
   /** Playwright filter for a single-test run (from run-name), else null = full suite. */
   testFilter: string | null;
+  /** Test type dispatched (from run-name); defaults to "frontend" when absent (older runs). */
+  runType: "frontend" | "api" | "load";
 }
 
 export interface RunStats {

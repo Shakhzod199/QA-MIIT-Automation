@@ -5,6 +5,10 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import useSWR from "swr";
 import { useI18n } from "@/components/I18nProvider";
+import { StatsCards } from "@/components/StatsCards";
+import { SuiteCard } from "@/components/SuiteCard";
+import { RunsTable } from "@/components/RunsTable";
+import { computeStats } from "@/lib/stats";
 import type {
   RunsResponse,
   TestCaseResult,
@@ -38,9 +42,26 @@ function SuiteTestsPageInner({ params }: { params: Promise<{ id: string }> }) {
   const type = (searchParams.get("type") as "frontend" | "api" | "load" | null) ?? "frontend";
 
   const { data: workflowsData } = useSWR<WorkflowsResponse>("/api/workflows", fetcher);
-  const { data: runsData } = useSWR<RunsResponse>("/api/runs?per_page=50", fetcher);
+  const { data: runsData, mutate: mutateRuns } = useSWR<RunsResponse>("/api/runs?per_page=50", fetcher);
 
   const workflow = workflowsData?.workflows.find((w) => w.id === workflowId);
+
+  // This page's runs, stats, and card are scoped to just this workflow + type
+  // (unlike the home dashboard, which mixes every project/type together).
+  const scopedRuns = useMemo(
+    () => (runsData?.runs ?? []).filter((r) => r.workflowId === workflowId && r.runType === type),
+    [runsData, workflowId, type]
+  );
+  const scopedStats = useMemo(() => computeStats(scopedRuns), [scopedRuns]);
+
+  const handleCancel = async (runId: number): Promise<TriggerResponse> => {
+    const res = await fetch(`/api/runs/${runId}/cancel`, { method: "POST" });
+    const result: TriggerResponse = await res.json();
+    if (result.ok) {
+      setTimeout(() => mutateRuns(), 1500);
+    }
+    return result;
+  };
 
   // Newest *full-suite* run for this workflow that produced a report artifact.
   // - success/failure only: those upload a report (via `if: always()`);
@@ -153,6 +174,17 @@ function SuiteTestsPageInner({ params }: { params: Promise<{ id: string }> }) {
           </h2>
         </div>
 
+        <StatsCards stats={scopedStats} />
+
+        {workflow && (
+          <SuiteCard workflow={workflow} showRunButton={false} showRunSeparately={false} />
+        )}
+
+        <div>
+          <h3 className="mb-3 text-lg font-medium text-white">{t("dashboard.recentRuns")}</h3>
+          <RunsTable runs={scopedRuns} hideProject pageSize={5} onCancel={handleCancel} />
+        </div>
+
         <div className="flex items-center justify-between gap-4 rounded-lg border border-surface-border bg-surface-panel px-4 py-3">
           <span className="text-sm font-medium text-white">{t(TYPE_LABEL_KEY[type])}</span>
           <button
@@ -188,6 +220,17 @@ function SuiteTestsPageInner({ params }: { params: Promise<{ id: string }> }) {
           {workflow?.name ?? `Suite #${workflowId}`}
         </h2>
         <p className="text-sm text-gray-500">{t("suiteTests.subtitle")}</p>
+      </div>
+
+      <StatsCards stats={scopedStats} />
+
+      {workflow && (
+        <SuiteCard workflow={workflow} showRunButton={false} showRunSeparately={false} />
+      )}
+
+      <div>
+        <h3 className="mb-3 text-lg font-medium text-white">{t("dashboard.recentRuns")}</h3>
+        <RunsTable runs={scopedRuns} hideProject pageSize={5} onCancel={handleCancel} />
       </div>
 
       {isLoading && latestRunId ? (
