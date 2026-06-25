@@ -26,7 +26,10 @@ export const PASSWORD = requireCredential("PMI_PASSWORD");
  */
 async function openLoginModalViaSecretHatch(page: Page): Promise<void> {
   const hatch = page.getByRole("button", { name: "Kirish", exact: true });
-  await expect(hatch).toBeVisible();
+  // testpmi.miit.uz can take 15-25s to render under load (see the pmi
+  // project's timeout comment in playwright.config.ts) — the default 5s
+  // visibility wait is too tight when several specs log in concurrently.
+  await expect(hatch).toBeVisible({ timeout: 20000 });
   for (let i = 0; i < 5; i++) {
     await hatch.click({ force: true });
   }

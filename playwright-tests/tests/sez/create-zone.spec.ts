@@ -50,7 +50,10 @@ async function drawTriangle(
   const p2 = { x: center.x + radius.x, y: center.y - radius.y };
   const p3 = { x: center.x, y: center.y + radius.y };
 
-  await page.locator('a[title="Нарисовать зону или лот"]').click();
+  // Matched by Leaflet.draw's stable CSS class rather than its title/text,
+  // which is translated (was Russian "Нарисовать зону или лот", now Uzbek
+  // "Zona yoki lot chizish") and broke this locator once already.
+  await page.locator("a.leaflet-draw-draw-polygon").click();
   await page.mouse.click(p1.x, p1.y);
   await page.waitForTimeout(200);
   await page.mouse.click(p2.x, p2.y);

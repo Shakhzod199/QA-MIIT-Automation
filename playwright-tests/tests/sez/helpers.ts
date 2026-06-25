@@ -32,7 +32,9 @@ export const AUTH_FILE = "playwright/.auth/sez-user.json";
  */
 async function openLoginModalViaSecretHatch(page: Page): Promise<void> {
   const hatch = page.locator('button[aria-hidden="true"]');
-  await expect(hatch).toBeAttached();
+  // testsez2.miit.uz can render slowly under load — the default 5s wait is
+  // too tight (mirrors the same fix in tests/pmi-tests/helpers.ts).
+  await expect(hatch).toBeAttached({ timeout: 20000 });
   for (let i = 0; i < 5; i++) {
     await hatch.click({ force: true });
   }

@@ -19,7 +19,7 @@ test.describe("SEZ login flow", () => {
     // The email/password button is hidden on test/prod — opened instead via
     // the invisible 5-click hatch next to the OneID button.
     const hatch = page.locator('button[aria-hidden="true"]');
-    await expect(hatch).toBeAttached();
+    await expect(hatch).toBeAttached({ timeout: 20000 });
     for (let i = 0; i < 5; i++) {
       await hatch.click({ force: true });
     }
