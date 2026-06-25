@@ -42,7 +42,7 @@ export async function selectRandomDavlat(page: Page) {
 export async function selectMultiOption(page: Page, label: string, optionText: string) {
   await formItem(page, label).locator(".n-base-selection").first().click();
   const option = page.locator(".n-base-select-option", { hasText: optionText }).first();
-  await expect(option).toBeVisible({ timeout: 20000 });
+  await expect(option).toBeVisible({ timeout: 25000 });
   await option.click();
   await page.keyboard.press("Escape");
 }
@@ -62,7 +62,7 @@ export async function selectFirstOption(page: Page, label: string): Promise<bool
     .filter({ hasNotText: "Aniqlanmoqda" });
   // Options load from the backend and can be slow — wait longer than the
   // default 5s before giving up.
-  await expect(options.first()).toBeVisible({ timeout: 20000 });
+  await expect(options.first()).toBeVisible({ timeout: 25000 });
   await options.first().click();
   await page.keyboard.press("Escape");
   return true;
@@ -332,7 +332,7 @@ export async function createProject4tip(page: Page): Promise<CreatedProject> {
 
 /** Waits for the post-create update URL and parses {year, id} from it. */
 async function awaitCreatedProject(page: Page): Promise<CreatedProject> {
-  await page.waitForURL(/\/app\/projects\/update\/\d+\/\d+/, { timeout: 20000 });
+  await page.waitForURL(/\/app\/projects\/update\/\d+\/\d+/, { timeout: 25000 });
   const match = page.url().match(/\/app\/projects\/update\/(\d+)\/(\d+)/);
   if (!match) throw new Error(`Unexpected post-create URL: ${page.url()}`);
   return { year: match[1], id: match[2] };

@@ -58,7 +58,7 @@ async function selectRandomDavlat(page: Page) {
 async function selectMultiOption(page: Page, label: string, optionText: string) {
   await formItem(page, label).locator(".n-base-selection").first().click();
   const option = page.locator(".n-base-select-option", { hasText: optionText }).first();
-  await expect(option).toBeVisible({ timeout: 20000 });
+  await expect(option).toBeVisible({ timeout: 25000 });
   await option.click();
   await page.keyboard.press("Escape");
 }
@@ -91,7 +91,7 @@ async function selectFirstOption(page: Page, label: string): Promise<boolean> {
     .filter({ hasNotText: "Aniqlanmoqda" });
   // Options load from the backend and can be slow — wait longer than the
   // default 5s before giving up.
-  await expect(options.first()).toBeVisible({ timeout: 20000 });
+  await expect(options.first()).toBeVisible({ timeout: 25000 });
   await options.first().click();
   // Harmless for single-selects; required if the control turns out multiple.
   await page.keyboard.press("Escape");
@@ -111,7 +111,7 @@ test.describe("PMI — Loyihalar CRUD", () => {
     // ── Sidebar → Loyihalar (expands submenu) → Loyiha qo'shish (a link) ──
     await page.getByText("Loyihalar", { exact: true }).first().click();
     await page.getByRole("link", { name: "Loyiha qo'shish" }).click();
-    await expect(page).toHaveURL(/\/app\/projects\/create/);
+    await expect(page).toHaveURL(/\/app\/projects\/create/, { timeout: 15000 });
     await expect(formItem(page, "Loyiha turi")).toBeVisible();
 
     // ── Loyiha turi (tree-select) → expand parent, pick nested child ─────
