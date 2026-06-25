@@ -73,9 +73,10 @@ jobs:
           #
           # SEZ's account is single-session: reusing one cached login from two
           # contexts at once knocks one of them back to the login page. The
-          # sez-login -> sez-setup -> sez-columns -> sez-filter project chain
-          # (see playwright.config.ts) keeps everything serial, so all four
-          # --project flags are always passed together, never just "sez".
+          # sez-login -> sez-setup -> sez-columns -> sez-filter -> sez-create-zone
+          # project chain (see playwright.config.ts) keeps everything serial,
+          # so all five --project flags are always passed together, never
+          # just "sez".
           case "${TYPE:-frontend}" in
             load)
               echo "Load (K6) tests are not configured yet for SEZ." >&2
@@ -89,9 +90,9 @@ jobs:
                 # select in the dashboard). Leave it unquoted so each becomes its
                 # own positional arg; Playwright runs any test matching any.
                 echo "Running selected tests: $TEST_FILTER"
-                npx playwright test --project=sez-login --project=sez-setup --project=sez-columns --project=sez-filter $TEST_FILTER
+                npx playwright test --project=sez-login --project=sez-setup --project=sez-columns --project=sez-filter --project=sez-create-zone $TEST_FILTER
               else
-                npx playwright test --project=sez-login --project=sez-setup --project=sez-columns --project=sez-filter
+                npx playwright test --project=sez-login --project=sez-setup --project=sez-columns --project=sez-filter --project=sez-create-zone
               fi ;;
           esac
 

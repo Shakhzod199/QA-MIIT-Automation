@@ -124,7 +124,9 @@ test.describe("SEZ — Sanoat zonalari filter", () => {
     await expect(tags.first()).toBeVisible({ timeout: 10000 });
 
     // Re-open the drawer and clear; all filter tags should disappear.
-    await page.getByRole("button", { name: "Filtr" }).click();
+    // exact: true — once tags are active, the toolbar's own "Filtrni
+    // tozalash" button also matches a substring search for "Filtr".
+    await page.getByRole("button", { name: "Filtr", exact: true }).click();
     await expect(drawer).toBeVisible();
     await drawer.getByRole("button", { name: "Tozalash" }).click();
     await drawer.getByRole("button", { name: "Yopish" }).click();

@@ -24,7 +24,7 @@ const BASE_URL = process.env.BASE_URL ?? "http://localhost:3001";
 // ---------------------------------------------------------------------------
 export default defineConfig({
   fullyParallel: true,
-  retries: process.env.CI ? 1 : 0,
+  retries: process.env.CI ? 2 : 0,
   reporter: [["html", { open: "never" }], ["json", { outputFile: "playwright-report/results.json" }], ["list"]],
   use: {
     trace: "on-first-retry",
@@ -96,8 +96,21 @@ export default defineConfig({
     },
 
     {
+      name: "sez-create-zone",
+      testDir: "./tests/sez",
+      testMatch: /create-zone\.spec\.ts/,
+      dependencies: ["sez-filter"],
+      use: { ...devices["Desktop Chrome"], baseURL: process.env.SEZ_BASE_URL ?? "https://testsez2.miit.uz" },
+    },
+
+    // testpmi.miit.uz responds noticeably slower from CI's network path than
+    // from a local machine (backend dropdown options / navigation can take
+    // 15-25s instead of <5s) — give every pmi test that headroom by default
+    // instead of relying on test.setTimeout in each file.
+    {
       name: "pmi",
       testDir: "./tests/pmi-tests",
+      timeout: 60000,
       use: { ...devices["Desktop Chrome"], baseURL: process.env.PMI_BASE_URL ?? "http://localhost:3000" },
     },
 

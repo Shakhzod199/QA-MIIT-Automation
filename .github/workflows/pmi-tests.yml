@@ -79,14 +79,17 @@ jobs:
               echo "Running PMI API smoke tests"
               npx playwright test --project=pmi-api ;;
             *)
+              # --workers=2: testpmi.miit.uz responds slower to CI's network
+              # path than to a local machine, and too many parallel sessions
+              # hitting the shared test account at once makes that worse.
               if [ -n "$TEST_FILTER" ]; then
                 # TEST_FILTER may hold several space-separated filters (multi-
                 # select in the dashboard). Leave it unquoted so each becomes its
                 # own positional arg; Playwright runs any test matching any.
                 echo "Running selected tests: $TEST_FILTER"
-                npx playwright test --project=pmi $TEST_FILTER
+                npx playwright test --project=pmi --workers=2 $TEST_FILTER
               else
-                npx playwright test --project=pmi
+                npx playwright test --project=pmi --workers=2
               fi ;;
           esac
 
