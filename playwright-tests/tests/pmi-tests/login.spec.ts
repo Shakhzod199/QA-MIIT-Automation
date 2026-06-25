@@ -11,8 +11,12 @@ test.describe("PMI login flow", () => {
       page.getByRole("button", { name: "OneID orqali kirish" })
     ).toBeVisible();
 
-    // The credential modal is opened by the "Kirish" button, NOT the OneID one.
-    await page.getByRole("button", { name: "Kirish", exact: true }).click();
+    // The visible "Kirish" button no longer opens the credential modal on a
+    // single click — like SEZ, it needs 5 clicks within 5s to reveal it.
+    const hatch = page.getByRole("button", { name: "Kirish", exact: true });
+    for (let i = 0; i < 5; i++) {
+      await hatch.click({ force: true });
+    }
 
     const loginModal = page.locator(".n-card.n-modal");
     await expect(loginModal).toBeVisible();

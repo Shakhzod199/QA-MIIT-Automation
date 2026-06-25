@@ -102,6 +102,20 @@ export default defineConfig({
       dependencies: ["sez-filter"],
       use: { ...devices["Desktop Chrome"], baseURL: process.env.SEZ_BASE_URL ?? "https://testsez2.miit.uz" },
     },
+    {
+      name: "sez-create-zone-required-fields",
+      testDir: "./tests/sez",
+      testMatch: /create-zone-required-fields\.spec\.ts/,
+      dependencies: ["sez-create-zone"],
+      use: { ...devices["Desktop Chrome"], baseURL: process.env.SEZ_BASE_URL ?? "https://testsez2.miit.uz" },
+    },
+    {
+      name: "sez-invest-project",
+      testDir: "./tests/sez",
+      testMatch: /invest-project\.spec\.ts/,
+      dependencies: ["sez-create-zone-required-fields"],
+      use: { ...devices["Desktop Chrome"], baseURL: process.env.SEZ_BASE_URL ?? "https://testsez2.miit.uz" },
+    },
 
     // testpmi.miit.uz responds noticeably slower from CI's network path than
     // from a local machine (backend dropdown options / navigation can take

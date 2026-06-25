@@ -21,14 +21,25 @@ export const USERNAME = requireCredential("PMI_USERNAME");
 export const PASSWORD = requireCredential("PMI_PASSWORD");
 
 /**
+ * The visible "Kirish" button no longer opens the credential modal on a
+ * single click — like SEZ, it now needs 5 clicks within 5s to reveal it.
+ */
+async function openLoginModalViaSecretHatch(page: Page): Promise<void> {
+  const hatch = page.getByRole("button", { name: "Kirish", exact: true });
+  await expect(hatch).toBeVisible();
+  for (let i = 0; i < 5; i++) {
+    await hatch.click({ force: true });
+  }
+}
+
+/**
  * Logs in with OneID credentials and waits until the dashboard is loaded.
  * Mirrors the flow asserted in login.spec.ts so other specs can reuse it.
  */
 export async function login(page: Page): Promise<void> {
   await page.goto(`${BASE_URL}/auth`);
 
-  // The credential modal is opened by the "Kirish" button, NOT the OneID one.
-  await page.getByRole("button", { name: "Kirish", exact: true }).click();
+  await openLoginModalViaSecretHatch(page);
 
   const loginModal = page.locator(".n-card.n-modal");
   await expect(loginModal).toBeVisible();
