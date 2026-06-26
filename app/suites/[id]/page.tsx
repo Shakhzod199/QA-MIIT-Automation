@@ -14,6 +14,7 @@ import { FlaskIcon, InfoIcon } from "@/components/icons";
 import { computeStats } from "@/lib/stats";
 import { getSuiteDisabledReason } from "@/lib/disabledSuites";
 import { getTestDescription } from "@/lib/testDescriptions";
+import { formatDuration, getStatusBadge } from "@/lib/format";
 import type {
   RunsResponse,
   TestCaseResult,
@@ -194,6 +195,20 @@ function SuiteTestsPageInner({ params }: { params: Promise<{ id: string }> }) {
     // it keeps the original run-based cards.
     const apiSummary = testsData?.summary;
 
+    // K6 has no per-test catalog (just thresholds), so its cards stay
+    // run-level — but reframed around what actually matters for a load
+    // test: how long it takes and what happened most recently, rather than
+    // a generic "Last Run" timestamp.
+    const latestRun = scopedRuns[0];
+    const completedDurations = scopedRuns
+      .filter((r) => r.status === "completed" && r.durationSec != null)
+      .map((r) => r.durationSec as number);
+    const avgDurationSec =
+      completedDurations.length > 0
+        ? Math.round(completedDurations.reduce((a, b) => a + b, 0) / completedDurations.length)
+        : null;
+    const latestBadge = latestRun ? getStatusBadge(latestRun.status, latestRun.conclusion) : null;
+
     return (
       <div className="space-y-6">
         <div>
@@ -222,7 +237,30 @@ function SuiteTestsPageInner({ params }: { params: Promise<{ id: string }> }) {
             />
           </div>
         ) : (
-          <StatsCards stats={scopedStats} />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <StatCard label={t("suiteTests.totalRuns")} value={String(scopedStats.total)} />
+            <StatCard
+              label={t("suiteTests.thresholdPassRate")}
+              value={`${scopedStats.passRate}%`}
+              sub={t("suiteTests.thresholdPassRateSub")}
+            />
+            <StatCard
+              label={t("suiteTests.avgDuration")}
+              value={avgDurationSec != null ? formatDuration(avgDurationSec) : "—"}
+            />
+            {latestRun && latestBadge ? (
+              <Link href={`/reports/${latestRun.id}/results`} className="block">
+                <StatCard
+                  label={t("suiteTests.latestResult")}
+                  value={latestBadge.label}
+                  sub={t("table.viewK6Report")}
+                  interactive
+                />
+              </Link>
+            ) : (
+              <StatCard label={t("suiteTests.latestResult")} value="—" />
+            )}
+          </div>
         )}
 
         <div className="rounded-lg border border-surface-border bg-surface-panel p-4">
