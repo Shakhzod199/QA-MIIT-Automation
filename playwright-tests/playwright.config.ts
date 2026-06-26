@@ -150,6 +150,15 @@ export default defineConfig({
       testDir: "./tests/pmi-api",
       use: { baseURL: process.env.PMI_BASE_URL ?? "http://localhost:3000" },
     },
+
+    // ── export backend (api tests against the real Swagger-documented API) ──
+    // No browser — uses Playwright's `request` fixture. Selected via the
+    // "api" workflow_dispatch type.
+    {
+      name: "export-api",
+      testDir: "./tests/export-api",
+      use: { baseURL: process.env.BASE_URL ?? "https://export.miit.uz" },
+    },
     // {
     //   name: "billing",
     //   testDir: "./tests/billing",
