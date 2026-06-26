@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useI18n } from "@/components/I18nProvider";
+import { getSuiteDisabledReason } from "@/lib/disabledSuites";
 import type { WorkflowSummary } from "@/lib/types";
 
 export function SuiteCard({
@@ -37,13 +38,15 @@ export function SuiteCard({
     if (isRunning) setPending(false);
   }, [isRunning]);
 
+  const disabledReason = getSuiteDisabledReason(workflow.name);
+
   // The run stays disabled for its whole lifetime, not just a few seconds.
-  const busy = pending || isRunning;
+  const busy = pending || isRunning || !!disabledReason;
 
   // "Run" dispatches the whole suite (all tests). To run a subset, or pick
   // API/K6 test types, use the sidebar's "Test cases" project menu.
   const handleRun = async () => {
-    if (busy || !onRun) return;
+    if (busy || !onRun || disabledReason) return;
     setPending(true);
     setError(null);
 
@@ -64,6 +67,7 @@ export function SuiteCard({
         {workflow.state !== "active" && (
           <p className="mt-1 text-xs text-amber-500">workflow is {workflow.state}</p>
         )}
+        {disabledReason && <p className="mt-1 text-xs text-amber-500">{disabledReason}</p>}
       </div>
       <div className="mt-4 flex items-center justify-between">
         <a

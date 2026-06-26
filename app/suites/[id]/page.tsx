@@ -12,6 +12,7 @@ import { TypeTabs } from "@/components/TypeTabs";
 import { TestInfoModal } from "@/components/TestInfoModal";
 import { FlaskIcon, InfoIcon } from "@/components/icons";
 import { computeStats } from "@/lib/stats";
+import { getSuiteDisabledReason } from "@/lib/disabledSuites";
 import { getTestDescription } from "@/lib/testDescriptions";
 import type {
   RunsResponse,
@@ -55,6 +56,7 @@ function SuiteTestsPageInner({ params }: { params: Promise<{ id: string }> }) {
   const { data: runsData, mutate: mutateRuns } = useSWR<RunsResponse>("/api/runs?per_page=50", fetcher);
 
   const workflow = workflowsData?.workflows.find((w) => w.id === workflowId);
+  const disabledReason = getSuiteDisabledReason(workflow?.name);
 
   // This page's runs, stats, and card are scoped to just this workflow + type
   // (unlike the home dashboard, which mixes every project/type together).
@@ -132,7 +134,7 @@ function SuiteTestsPageInner({ params }: { params: Promise<{ id: string }> }) {
   // Run the checked tests. Every test checked → run the whole suite (no filter);
   // otherwise pass the selected filters space-joined.
   const handleRunSelected = async () => {
-    if (state === "pending" || selected.size === 0) return;
+    if (state === "pending" || selected.size === 0 || disabledReason) return;
     setState("pending");
     setError(null);
 
@@ -163,7 +165,7 @@ function SuiteTestsPageInner({ params }: { params: Promise<{ id: string }> }) {
   const [typeRunError, setTypeRunError] = useState<string | null>(null);
 
   const handleRunType = async () => {
-    if (typeRunState === "pending") return;
+    if (typeRunState === "pending" || disabledReason) return;
     setTypeRunState("pending");
     setTypeRunError(null);
 
@@ -212,7 +214,7 @@ function SuiteTestsPageInner({ params }: { params: Promise<{ id: string }> }) {
           <span className="text-sm font-medium text-white">{t(TYPE_LABEL_KEY[type])}</span>
           <button
             onClick={handleRunType}
-            disabled={typeRunState === "pending"}
+            disabled={typeRunState === "pending" || !!disabledReason}
             className={[
               "inline-flex shrink-0 items-center gap-1.5 rounded-md px-4 py-1.5 text-sm font-medium text-white transition disabled:cursor-not-allowed disabled:opacity-60",
               typeRunState === "triggered" ? "bg-emerald-600" : "bg-indigo-600 hover:bg-indigo-500",
@@ -229,6 +231,7 @@ function SuiteTestsPageInner({ params }: { params: Promise<{ id: string }> }) {
         </div>
 
         {typeRunError && <p className="text-xs text-red-400">{typeRunError}</p>}
+        {disabledReason && <p className="text-xs text-amber-500">{disabledReason}</p>}
       </div>
     );
   }
@@ -288,7 +291,7 @@ function SuiteTestsPageInner({ params }: { params: Promise<{ id: string }> }) {
               </label>
               <button
                 onClick={handleRunSelected}
-                disabled={state === "pending" || selected.size === 0}
+                disabled={state === "pending" || selected.size === 0 || !!disabledReason}
                 className={[
                   "inline-flex shrink-0 items-center gap-1.5 rounded-md px-4 py-1.5 text-sm font-medium text-white transition disabled:cursor-not-allowed disabled:opacity-60",
                   state === "triggered"
@@ -308,6 +311,9 @@ function SuiteTestsPageInner({ params }: { params: Promise<{ id: string }> }) {
 
             {error && (
               <p className="border-b border-surface-border px-4 py-2 text-xs text-red-400">{error}</p>
+            )}
+            {disabledReason && (
+              <p className="border-b border-surface-border px-4 py-2 text-xs text-amber-500">{disabledReason}</p>
             )}
 
             {/* Test rows, grouped by spec file so the path appears once per group. */}
