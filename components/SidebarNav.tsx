@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import useSWR from "swr";
 import { useI18n } from "@/components/I18nProvider";
 import type { WorkflowsResponse } from "@/lib/types";
@@ -28,31 +28,13 @@ function Chevron({ open }: { open: boolean }) {
   );
 }
 
-const TYPE_SUBLINKS: { type: "frontend" | "api" | "load"; key: string }[] = [
-  { type: "frontend", key: "suite.frontend" },
-  { type: "api", key: "suite.api" },
-  { type: "load", key: "suite.load" },
-];
-
 export function SidebarNav() {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const { t } = useI18n();
   const { data } = useSWR<WorkflowsResponse>("/api/workflows", fetcher);
   const workflows = data?.workflows ?? [];
 
   const [testCasesOpen, setTestCasesOpen] = useState(pathname.startsWith("/suites") || pathname === "/");
-  const [openWorkflowIds, setOpenWorkflowIds] = useState<Set<number>>(new Set());
-
-  const toggleWorkflow = (id: number) =>
-    setOpenWorkflowIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-
-  const currentType = searchParams.get("type") ?? "frontend";
 
   const baseItemClass = (active: boolean) =>
     `block rounded-md px-3 py-2 text-sm font-medium transition ${
@@ -67,8 +49,8 @@ export function SidebarNav() {
         </Link>
       ))}
 
-      {/* Test cases — expands to the project list, each project expands to
-          Frontend / API / K6 (mirrors the workflow_dispatch "type" input). */}
+      {/* Test cases — expands to the project list. Frontend/API/K6 selection
+          happens via tabs on each project's own page, not here. */}
       <button
         type="button"
         onClick={() => setTestCasesOpen((v) => !v)}
@@ -88,39 +70,15 @@ export function SidebarNav() {
             {t("nav.allTestcases")}
           </Link>
 
-          {workflows.map((workflow) => {
-            const open = openWorkflowIds.has(workflow.id);
-            return (
-              <div key={workflow.id}>
-                <button
-                  type="button"
-                  onClick={() => toggleWorkflow(workflow.id)}
-                  className="flex w-full items-center justify-between rounded-md px-3 py-2 text-sm font-medium text-gray-400 transition hover:bg-surface-hover hover:text-white"
-                >
-                  <span className="truncate">{workflow.name}</span>
-                  <Chevron open={open} />
-                </button>
-
-                {open && (
-                  <div className="ml-2 space-y-1 border-l border-surface-border pl-2">
-                    {TYPE_SUBLINKS.map((sub) => {
-                      const href =
-                        sub.type === "frontend"
-                          ? `/suites/${workflow.id}`
-                          : `/suites/${workflow.id}?type=${sub.type}`;
-                      const active =
-                        pathname === `/suites/${workflow.id}` && currentType === sub.type;
-                      return (
-                        <Link key={sub.type} href={href} className={baseItemClass(active)}>
-                          {t(sub.key)}
-                        </Link>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+          {workflows.map((workflow) => (
+            <Link
+              key={workflow.id}
+              href={`/suites/${workflow.id}`}
+              className={`${baseItemClass(pathname === `/suites/${workflow.id}`)} truncate`}
+            >
+              {workflow.name}
+            </Link>
+          ))}
         </div>
       )}
 
