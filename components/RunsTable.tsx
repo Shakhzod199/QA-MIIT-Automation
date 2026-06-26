@@ -315,7 +315,15 @@ export function RunsTable({
                       className="inline-flex max-w-full items-center gap-1 rounded bg-indigo-500/15 px-1.5 py-0.5 text-[10px] font-medium text-indigo-300 ring-1 ring-inset ring-indigo-500/30"
                     >
                       <FlaskIcon className="h-2.5 w-2.5 shrink-0" />
-                      <span className="truncate">{t("table.singleTest")}</span>
+                      <span className="truncate">
+                        {/* K6 runs repurpose testFilter as "which script ran"
+                            (e.g. "load"/"stress") rather than a Playwright
+                            filter — show that value directly instead of the
+                            generic "single test" label. */}
+                        {run.runType === "load"
+                          ? run.testFilter.charAt(0).toUpperCase() + run.testFilter.slice(1)
+                          : t("table.singleTest")}
+                      </span>
                     </span>
                   )}
                 </div>

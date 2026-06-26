@@ -27,8 +27,9 @@ on:
           - load
       test_filter:
         description: >-
-          Optional Playwright filter to run a single test, e.g.
-          "tests/export/some.spec.ts:5". Empty runs the whole suite.
+          For frontend/api: optional Playwright filter to run a single test,
+          e.g. "tests/export/some.spec.ts:5". For load: which k6 script to
+          run ("load" or "stress"). Empty runs everything for the given type.
         required: false
         default: ""
       triggered_by:
@@ -132,9 +133,15 @@ jobs:
             --data-urlencode "text=${TEXT}"
 
   load_test:
-    # k6 load + stress tests against the real API. Both run back-to-back
-    # under one "load" dispatch type — there's no separate UI input to pick
-    # just one. Their thresholds are deliberately strict (see
+    # k6 load/stress tests against the real API, under the "load" dispatch
+    # type. Which script(s) actually run is picked via the existing
+    # test_filter input — repurposed here (for this job only) as a k6 script
+    # selector ("load" / "stress", and later "spike" / "smoke") rather than a
+    # Playwright test filter. Empty test_filter = run every k6 script, same
+    # "no filter = whole suite" convention test_filter already has elsewhere.
+    # This piggybacks on run-name's existing "— {test_filter}" suffix and
+    # mapRun()'s existing parsing, so no schema/mapper changes were needed to
+    # add this. Their thresholds are deliberately strict (see
     # export-load-api-test/*.js) and the live API is known to fail them
     # under 100 concurrent users (rate-limited — see README in that folder),
     # so a red run here reflects a real backend limitation, not a broken test.
@@ -154,13 +161,14 @@ jobs:
       - uses: grafana/setup-k6-action@v1
 
       - name: Run k6 load test
+        if: ${{ inputs.test_filter == '' || inputs.test_filter == 'load' }}
         env:
           EXPORT_USERNAME: ${{ secrets.EXPORT_USERNAME }}
           EXPORT_PASSWORD: ${{ secrets.EXPORT_PASSWORD }}
         run: k6 run load-test.js
 
       - name: Run k6 stress test
-        if: always()
+        if: ${{ always() && (inputs.test_filter == '' || inputs.test_filter == 'stress') }}
         env:
           EXPORT_USERNAME: ${{ secrets.EXPORT_USERNAME }}
           EXPORT_PASSWORD: ${{ secrets.EXPORT_PASSWORD }}

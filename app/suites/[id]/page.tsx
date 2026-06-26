@@ -160,32 +160,56 @@ function SuiteTestsPageInner({ params }: { params: Promise<{ id: string }> }) {
   };
 
   // ── Backend (api/load) ──────────────────────────────────────────────────
-  // No per-test selection: api/load runs are dispatched as a single unit via
-  // the workflow's "type" input, so this is a one-button trigger instead of
-  // the frontend checkbox list above.
+  // No per-test selection: api runs are dispatched as a single unit via the
+  // workflow's "type" input. load (K6) additionally offers a per-kind
+  // button (Load/Stress/...) by passing that kind as `test_filter` — the
+  // same input frontend/api use for a single-test filter, repurposed here
+  // (workflow-side) as "which k6 script to run". Empty = run every kind,
+  // same "no filter = whole suite" convention test_filter has elsewhere.
   const [typeRunState, setTypeRunState] = useState<"idle" | "pending" | "triggered">("idle");
   const [typeRunError, setTypeRunError] = useState<string | null>(null);
+  // Which k6 kind ("", "load", "stress", ...) is mid-flight, so only that
+  // button shows a spinner while the others stay clickable... except we
+  // disable all of them together below to avoid piling up concurrent runs
+  // against the same live API.
+  const [pendingKind, setPendingKind] = useState<string | null>(null);
 
-  const handleRunType = async () => {
+  const handleRunType = async (kind = "") => {
     if (typeRunState === "pending" || disabledReason) return;
     setTypeRunState("pending");
+    setPendingKind(kind);
     setTypeRunError(null);
 
     const res = await fetch("/api/runs/trigger", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ workflowId, inputs: { type } }),
+      body: JSON.stringify({
+        workflowId,
+        inputs: kind ? { type, test_filter: kind } : { type },
+      }),
     });
     const result: TriggerResponse = await res.json();
 
     if (result.ok) {
       setTypeRunState("triggered");
-      setTimeout(() => setTypeRunState("idle"), 4000);
+      setTimeout(() => {
+        setTypeRunState("idle");
+        setPendingKind(null);
+      }, 4000);
     } else {
       setTypeRunState("idle");
+      setPendingKind(null);
       setTypeRunError(result.error ?? "Failed to trigger run");
     }
   };
+
+  // Extend this list when spike/smoke scripts exist — each entry is just a
+  // test_filter value plus a label, nothing else needs to change.
+  const K6_KINDS = [
+    { value: "", label: t("suiteTests.runAll") },
+    { value: "load", label: t("suiteTests.runLoad") },
+    { value: "stress", label: t("suiteTests.runStress") },
+  ];
 
   if (type !== "frontend") {
     // API tests have a real per-test catalog (the report's test list), so
@@ -284,22 +308,31 @@ function SuiteTestsPageInner({ params }: { params: Promise<{ id: string }> }) {
             ) : (
               <span />
             )}
-            <button
-              onClick={handleRunType}
-              disabled={typeRunState === "pending" || !!disabledReason}
-              className={[
-                "inline-flex shrink-0 items-center gap-1.5 rounded-md px-4 py-1.5 text-sm font-medium text-white transition disabled:cursor-not-allowed disabled:opacity-60",
-                typeRunState === "triggered" ? "bg-emerald-600" : "bg-indigo-600 hover:bg-indigo-500",
-              ].join(" ")}
-            >
-              {typeRunState === "pending" && (
-                <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-              )}
-              {typeRunState === "triggered" ? t("suiteTests.triggered") : t("suiteTests.run")}
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              {(type === "load" ? K6_KINDS : [{ value: "", label: t("suiteTests.run") }]).map((kind) => {
+                const isThisPending = typeRunState === "pending" && pendingKind === kind.value;
+                const isThisTriggered = typeRunState === "triggered" && pendingKind === kind.value;
+                return (
+                  <button
+                    key={kind.value}
+                    onClick={() => handleRunType(kind.value)}
+                    disabled={typeRunState === "pending" || !!disabledReason}
+                    className={[
+                      "inline-flex shrink-0 items-center gap-1.5 rounded-md px-4 py-1.5 text-sm font-medium text-white transition disabled:cursor-not-allowed disabled:opacity-60",
+                      isThisTriggered ? "bg-emerald-600" : "bg-indigo-600 hover:bg-indigo-500",
+                    ].join(" ")}
+                  >
+                    {isThisPending && (
+                      <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                    )}
+                    {isThisTriggered ? t("suiteTests.triggered") : kind.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
           {typeRunError && <p className="mt-2 text-xs text-red-400">{typeRunError}</p>}
         </div>

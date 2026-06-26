@@ -6,8 +6,10 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { SHARED_STYLES, escapeHtml, renderReportBody } from "./report-render.mjs";
 
 const SECTIONS = [
-  { id: "load", nav: "Load test", json: "load-summary.json", title: "Export API — Load Test Report" },
-  { id: "stress", nav: "Stress test", json: "stress-summary.json", title: "Export API — Stress Test Report" },
+  // Matches report.js's buildSummary(), which derives the JSON filename
+  // from the HTML filename by replacing ".html" with ".json".
+  { id: "load", nav: "Load test", json: "load-report.json", title: "Export API — Load Test Report" },
+  { id: "stress", nav: "Stress test", json: "stress-report.json", title: "Export API — Stress Test Report" },
 ];
 
 const blocks = SECTIONS.map(({ id, json, title }) => {
