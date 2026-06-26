@@ -35,7 +35,7 @@ function K6ReportLink({ runId }: { runId: number }) {
   const { t } = useI18n();
   return (
     <Link
-      href={`/reports/${runId}/results`}
+      href={`/reports/${runId}`}
       className="inline-flex items-center gap-1.5 text-xs font-medium text-indigo-400 transition hover:text-indigo-300"
     >
       <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

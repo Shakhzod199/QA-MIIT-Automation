@@ -249,7 +249,7 @@ function SuiteTestsPageInner({ params }: { params: Promise<{ id: string }> }) {
               value={avgDurationSec != null ? formatDuration(avgDurationSec) : "—"}
             />
             {latestRun && latestBadge ? (
-              <Link href={`/reports/${latestRun.id}/results`} className="block">
+              <Link href={`/reports/${latestRun.id}`} className="block">
                 <StatCard
                   label={t("suiteTests.latestResult")}
                   value={latestBadge.label}
