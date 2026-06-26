@@ -133,6 +133,33 @@ function StatusBadge({ status, conclusion }: { status: string; conclusion: strin
   }
 }
 
+function RunTypeBadge({ runType }: { runType: RunSummary["runType"] }) {
+  const { t } = useI18n();
+  switch (runType) {
+    case "api":
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-500/15 px-2.5 py-1 text-xs font-medium text-sky-300 ring-1 ring-inset ring-sky-500/30">
+          <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />
+          {t("table.typeApi")}
+        </span>
+      );
+    case "load":
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-500/15 px-2.5 py-1 text-xs font-medium text-orange-300 ring-1 ring-inset ring-orange-500/30">
+          <span className="h-1.5 w-1.5 rounded-full bg-orange-400" />
+          {t("table.typeLoad")}
+        </span>
+      );
+    default:
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-violet-500/15 px-2.5 py-1 text-xs font-medium text-violet-300 ring-1 ring-inset ring-violet-500/30">
+          <span className="h-1.5 w-1.5 rounded-full bg-violet-400" />
+          {t("table.typeFrontend")}
+        </span>
+      );
+  }
+}
+
 function TriggerSourceBadge({ source }: { source: RunSummary["triggerSource"] }) {
   const { t } = useI18n();
   if (source === "ci-cd") {
@@ -225,17 +252,19 @@ export function RunsTable({
         {/* Fixed column widths so every project's table lines up identically,
             regardless of each table's own content. */}
         <colgroup>
+          <col className="w-[12%]" />
+          <col className="w-[9%]" />
+          <col className="w-[12%]" />
+          <col className="w-[19%]" />
+          <col className="w-[10%]" />
           <col className="w-[13%]" />
-          <col className="w-[13%]" />
-          <col className="w-[24%]" />
           <col className="w-[11%]" />
-          <col className="w-[15%]" />
-          <col className="w-[12%]" />
-          <col className="w-[12%]" />
+          <col className="w-[14%]" />
         </colgroup>
         <thead>
           <tr className="border-b border-surface-border text-xs uppercase tracking-wide text-gray-500">
             <th className="px-4 py-3">{t("table.run")}</th>
+            <th className="px-4 py-3">{t("table.type")}</th>
             <th className="px-4 py-3">{t("table.status")}</th>
             <th className="px-4 py-3">{t("table.progress")}</th>
             <th className="px-4 py-3">{t("table.duration")}</th>
@@ -272,6 +301,9 @@ export function RunsTable({
                     </span>
                   )}
                 </div>
+              </td>
+              <td className="px-4 py-3">
+                <RunTypeBadge runType={run.runType} />
               </td>
               <td className="px-4 py-3">
                 <StatusBadge status={run.status} conclusion={run.conclusion} />

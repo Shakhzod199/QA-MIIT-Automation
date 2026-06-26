@@ -8,6 +8,7 @@ import { useI18n } from "@/components/I18nProvider";
 import { StatsCards } from "@/components/StatsCards";
 import { SuiteCard } from "@/components/SuiteCard";
 import { RunsTable } from "@/components/RunsTable";
+import { TypeTabs } from "@/components/TypeTabs";
 import { TestInfoModal } from "@/components/TestInfoModal";
 import { FlaskIcon, InfoIcon } from "@/components/icons";
 import { computeStats } from "@/lib/stats";
@@ -194,6 +195,8 @@ function SuiteTestsPageInner({ params }: { params: Promise<{ id: string }> }) {
           </h2>
         </div>
 
+        <TypeTabs workflowId={workflowId} active={type} />
+
         <StatsCards stats={scopedStats} />
 
         {workflow && (
@@ -241,6 +244,8 @@ function SuiteTestsPageInner({ params }: { params: Promise<{ id: string }> }) {
         </h2>
         <p className="text-sm text-gray-500">{t("suiteTests.subtitle")}</p>
       </div>
+
+      <TypeTabs workflowId={workflowId} active={type} />
 
       <StatsCards stats={scopedStats} />
 
