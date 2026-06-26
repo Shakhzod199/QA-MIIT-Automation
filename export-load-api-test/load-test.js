@@ -1,4 +1,5 @@
 import { makeIterate } from "./scenario.js";
+import { buildSummary } from "./report.js";
 
 // Load test — simulates realistic expected traffic: ramp 0 -> 100 users
 // over the first 30s, then hold steady at 100 for the remaining 60s.
@@ -23,3 +24,7 @@ export const options = {
 };
 
 export default makeIterate(1, 3);
+
+export function handleSummary(data) {
+  return buildSummary(data, "load-report.html", "Export API — Load Test Report");
+}

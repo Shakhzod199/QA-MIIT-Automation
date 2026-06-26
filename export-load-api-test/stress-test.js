@@ -1,4 +1,5 @@
 import { makeIterate } from "./scenario.js";
+import { buildSummary } from "./report.js";
 
 // Stress test — simulates a sudden traffic surge: spike straight to 100
 // users with no ramp-up, then hold for the full 1:30 (90s), to find
@@ -23,3 +24,7 @@ export const options = {
 };
 
 export default makeIterate(0.1, 0.3);
+
+export function handleSummary(data) {
+  return buildSummary(data, "stress-report.html", "Export API — Stress Test Report");
+}
