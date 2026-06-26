@@ -103,6 +103,11 @@ const en: Dict = {
   "trends.durationChart": "Run duration & outcome (oldest → newest)",
   "trends.passRateChart": "Pass rate over time",
   "trends.bySuite": "By suite",
+  "trends.tabOverview": "Overview",
+  "trends.runMix": "Run mix by type",
+  "trends.triggerMix": "Run mix by trigger",
+  "trends.noRunsForType": "No runs of this type yet.",
+  "trends.thresholdPassRateChart": "Threshold pass rate over time",
 
   "flaky.title": "Flaky Tests",
   "flaky.subtitle":
@@ -226,6 +231,11 @@ const uz: Dict = {
   "trends.durationChart": "Davomiyligi va natija (eskidan → yangiga)",
   "trends.passRateChart": "Vaqt bo‘yicha muvaffaqiyat darajasi",
   "trends.bySuite": "To‘plamlar bo‘yicha",
+  "trends.tabOverview": "Umumiy",
+  "trends.runMix": "Turi bo‘yicha ishga tushirishlar",
+  "trends.triggerMix": "Manba bo‘yicha ishga tushirishlar",
+  "trends.noRunsForType": "Bu turdagi ishga tushirishlar hali yo‘q.",
+  "trends.thresholdPassRateChart": "Vaqt bo‘yicha chegara qiymatlar bajarilishi",
 
   "flaky.title": "Beqaror testlar",
   "flaky.subtitle":
@@ -349,6 +359,11 @@ const ru: Dict = {
   "trends.durationChart": "Длительность и результат (от старых → к новым)",
   "trends.passRateChart": "Доля прохождений со временем",
   "trends.bySuite": "По наборам",
+  "trends.tabOverview": "Обзор",
+  "trends.runMix": "Запуски по типу",
+  "trends.triggerMix": "Запуски по источнику",
+  "trends.noRunsForType": "Пока нет запусков этого типа.",
+  "trends.thresholdPassRateChart": "Доля пройденных порогов со временем",
 
   "flaky.title": "Нестабильные тесты",
   "flaky.subtitle":

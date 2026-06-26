@@ -131,6 +131,30 @@ export function suiteBreakdown(runs: RunSummary[]): SuiteTrend[] {
   return out.sort((a, b) => b.total - a.total);
 }
 
+export interface RunTypeCount {
+  type: RunSummary["runType"];
+  count: number;
+}
+
+/** How many runs of each test type (frontend/api/load) are in this window. */
+export function runTypeBreakdown(runs: RunSummary[]): RunTypeCount[] {
+  const counts: Record<RunSummary["runType"], number> = { frontend: 0, api: 0, load: 0 };
+  for (const run of runs) counts[run.runType] += 1;
+  return (["frontend", "api", "load"] as const).map((type) => ({ type, count: counts[type] }));
+}
+
+export interface TriggerSourceCount {
+  source: RunSummary["triggerSource"];
+  count: number;
+}
+
+/** How many runs were started manually (dashboard) vs by an automated caller (CI/CD). */
+export function triggerSourceBreakdown(runs: RunSummary[]): TriggerSourceCount[] {
+  const counts: Record<RunSummary["triggerSource"], number> = { manual: 0, "ci-cd": 0 };
+  for (const run of runs) counts[run.triggerSource] += 1;
+  return (["manual", "ci-cd"] as const).map((source) => ({ source, count: counts[source] }));
+}
+
 export function trendSummary(runs: RunSummary[]): TrendSummary {
   const completed = runs.filter((r) => r.status === "completed");
   const passed = completed.filter((r) => r.conclusion === "success").length;

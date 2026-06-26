@@ -1,16 +1,36 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useI18n } from "@/components/I18nProvider";
 import { formatDuration, formatRelativeTime } from "@/lib/format";
 import {
   durationSeries,
   passRateByProject,
+  runTypeBreakdown,
   suiteBreakdown,
   trendSummary,
+  triggerSourceBreakdown,
 } from "@/lib/trends";
 import type { RunSummary } from "@/lib/types";
+
+// Matches RunTypeBadge (components/RunsTable.tsx) so a type means the same
+// color everywhere on the dashboard.
+const TYPE_COLORS: Record<RunSummary["runType"], string> = {
+  frontend: "#a78bfa",
+  api: "#0ea5e9",
+  load: "#f59e0b",
+};
+const TYPE_LABEL_KEYS: Record<RunSummary["runType"], string> = {
+  frontend: "suite.frontend",
+  api: "suite.api",
+  load: "suite.load",
+};
+// Matches TriggerSourceBadge.
+const SOURCE_COLORS: Record<RunSummary["triggerSource"], string> = {
+  manual: "#9ca3af",
+  "ci-cd": "#a855f7",
+};
 
 function barColor(conclusion: string | null): string {
   if (conclusion === "success") return "bg-emerald-500/80 hover:bg-emerald-400";
@@ -39,6 +59,39 @@ function Kpi({ label, value, hint }: { label: string; value: string; hint?: stri
       <p className="text-xs uppercase tracking-wide text-gray-500">{label}</p>
       <p className="mt-2 text-2xl font-semibold text-white">{value}</p>
       {hint && <p className="mt-0.5 text-xs text-gray-500">{hint}</p>}
+    </div>
+  );
+}
+
+/** Single proportional bar + legend, used for "what kind of runs are these" breakdowns. */
+function MixBar({ items }: { items: { label: string; count: number; color: string }[] }) {
+  const total = items.reduce((sum, i) => sum + i.count, 0);
+  if (total === 0) {
+    return <p className="text-sm text-gray-500">No runs yet.</p>;
+  }
+  return (
+    <div>
+      <div className="flex h-3 w-full overflow-hidden rounded-full bg-surface-border">
+        {items
+          .filter((i) => i.count > 0)
+          .map((i) => (
+            <div
+              key={i.label}
+              title={`${i.label}: ${i.count}`}
+              style={{ width: `${(i.count / total) * 100}%`, backgroundColor: i.color }}
+            />
+          ))}
+      </div>
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
+        {items.map((i) => (
+          <LegendDot
+            key={i.label}
+            color={i.color}
+            label={i.label}
+            value={`${i.count} (${Math.round((i.count / total) * 100)}%)`}
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -206,6 +259,15 @@ function PassRateChart({ runs }: { runs: RunSummary[] }) {
 
 function SuiteTable({ runs }: { runs: RunSummary[] }) {
   const suites = useMemo(() => suiteBreakdown(runs), [runs]);
+
+  if (suites.length === 0) {
+    return (
+      <div className="rounded-lg border border-surface-border bg-surface-panel p-8 text-center text-sm text-gray-500">
+        No completed runs to break down yet.
+      </div>
+    );
+  }
+
   return (
     <div className="overflow-hidden rounded-lg border border-surface-border bg-surface-panel">
       <table className="w-full text-left text-sm">
@@ -259,22 +321,28 @@ function ChartCard({ title, children }: { title: string; children: React.ReactNo
   );
 }
 
-export function TrendsView({ runs }: { runs: RunSummary[] }) {
+// Per-type section: same KPI/duration/pass-rate/suite-table layout as the
+// overview, just scoped to one runType — and worded around k6 thresholds
+// instead of generic "pass/fail" when type is "load".
+function TypeSection({ runs, type }: { runs: RunSummary[]; type: RunSummary["runType"] }) {
   const { t } = useI18n();
   const summary = useMemo(() => trendSummary(runs), [runs]);
 
   if (runs.length === 0) {
     return (
       <div className="rounded-lg border border-surface-border bg-surface-panel p-8 text-center text-sm text-gray-500">
-        No runs yet to build trends from.
+        {t("trends.noRunsForType")}
       </div>
     );
   }
 
+  const passRateLabel = type === "load" ? t("suiteTests.thresholdPassRate") : t("trends.passRate");
+  const passRateChartTitle = type === "load" ? t("trends.thresholdPassRateChart") : t("trends.passRateChart");
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Kpi label={t("trends.passRate")} value={`${summary.passRate}%`} hint={`${summary.completedRuns} ✓`} />
+        <Kpi label={passRateLabel} value={`${summary.passRate}%`} hint={`${summary.completedRuns} ✓`} />
         <Kpi label={t("trends.failRate")} value={`${100 - summary.passRate}%`} />
         <Kpi
           label={t("trends.avgDuration")}
@@ -290,7 +358,7 @@ export function TrendsView({ runs }: { runs: RunSummary[] }) {
         <ChartCard title={t("trends.durationChart")}>
           <DurationChart runs={runs} />
         </ChartCard>
-        <ChartCard title={t("trends.passRateChart")}>
+        <ChartCard title={passRateChartTitle}>
           <PassRateChart runs={runs} />
         </ChartCard>
       </div>
@@ -299,6 +367,112 @@ export function TrendsView({ runs }: { runs: RunSummary[] }) {
         <h3 className="mb-3 text-lg font-medium text-white">{t("trends.bySuite")}</h3>
         <SuiteTable runs={runs} />
       </div>
+    </div>
+  );
+}
+
+const SECTION_TABS = [
+  { key: "overview", labelKey: "trends.tabOverview" },
+  { key: "frontend", labelKey: "suite.frontend" },
+  { key: "api", labelKey: "suite.api" },
+  { key: "load", labelKey: "suite.load" },
+] as const;
+type SectionKey = (typeof SECTION_TABS)[number]["key"];
+
+export function TrendsView({ runs }: { runs: RunSummary[] }) {
+  const { t } = useI18n();
+  const [section, setSection] = useState<SectionKey>("overview");
+  const summary = useMemo(() => trendSummary(runs), [runs]);
+  const typeMix = useMemo(() => runTypeBreakdown(runs), [runs]);
+  const triggerMix = useMemo(() => triggerSourceBreakdown(runs), [runs]);
+
+  const frontendRuns = useMemo(() => runs.filter((r) => r.runType === "frontend"), [runs]);
+  const apiRuns = useMemo(() => runs.filter((r) => r.runType === "api"), [runs]);
+  const loadRuns = useMemo(() => runs.filter((r) => r.runType === "load"), [runs]);
+
+  if (runs.length === 0) {
+    return (
+      <div className="rounded-lg border border-surface-border bg-surface-panel p-8 text-center text-sm text-gray-500">
+        No runs yet to build trends from.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex gap-1 border-b border-surface-border">
+        {SECTION_TABS.map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            onClick={() => setSection(tab.key)}
+            className={[
+              "px-4 py-2 text-sm font-medium transition",
+              section === tab.key
+                ? "border-b-2 border-indigo-500 text-white"
+                : "border-b-2 border-transparent text-gray-500 hover:text-gray-300",
+            ].join(" ")}
+          >
+            {t(tab.labelKey)}
+          </button>
+        ))}
+      </div>
+
+      {section === "overview" && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+            <Kpi label={t("trends.passRate")} value={`${summary.passRate}%`} hint={`${summary.completedRuns} ✓`} />
+            <Kpi label={t("trends.failRate")} value={`${100 - summary.passRate}%`} />
+            <Kpi
+              label={t("trends.avgDuration")}
+              value={summary.avgDurationSec != null ? formatDuration(summary.avgDurationSec) : "—"}
+            />
+            <Kpi
+              label={t("trends.medianDuration")}
+              value={summary.medianDurationSec != null ? formatDuration(summary.medianDurationSec) : "—"}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <ChartCard title={t("trends.durationChart")}>
+              <DurationChart runs={runs} />
+            </ChartCard>
+            <ChartCard title={t("trends.passRateChart")}>
+              <PassRateChart runs={runs} />
+            </ChartCard>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <ChartCard title={t("trends.runMix")}>
+              <MixBar
+                items={typeMix.map((m) => ({
+                  label: t(TYPE_LABEL_KEYS[m.type]),
+                  count: m.count,
+                  color: TYPE_COLORS[m.type],
+                }))}
+              />
+            </ChartCard>
+            <ChartCard title={t("trends.triggerMix")}>
+              <MixBar
+                items={triggerMix.map((m) => ({
+                  label: m.source === "ci-cd" ? t("table.triggerCi") : t("table.triggerManual"),
+                  count: m.count,
+                  color: SOURCE_COLORS[m.source],
+                }))}
+              />
+            </ChartCard>
+          </div>
+
+          <div>
+            <h3 className="mb-3 text-lg font-medium text-white">{t("trends.bySuite")}</h3>
+            <SuiteTable runs={runs} />
+          </div>
+        </div>
+      )}
+
+      {section === "frontend" && <TypeSection runs={frontendRuns} type="frontend" />}
+      {section === "api" && <TypeSection runs={apiRuns} type="api" />}
+      {section === "load" && <TypeSection runs={loadRuns} type="load" />}
     </div>
   );
 }
