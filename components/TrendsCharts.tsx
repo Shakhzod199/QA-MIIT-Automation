@@ -5,12 +5,17 @@ import Link from "next/link";
 import { useI18n } from "@/components/I18nProvider";
 import { formatDuration, formatRelativeTime } from "@/lib/format";
 import {
+  durationHistogram,
   durationSeries,
   passRateByProject,
   runTypeBreakdown,
+  runsPerDay,
+  slowestRuns,
+  statusBreakdown,
   suiteBreakdown,
   trendSummary,
   triggerSourceBreakdown,
+  triggerSourceComparison,
 } from "@/lib/trends";
 import type { RunSummary } from "@/lib/types";
 
@@ -31,6 +36,13 @@ const SOURCE_COLORS: Record<RunSummary["triggerSource"], string> = {
   manual: "#9ca3af",
   "ci-cd": "#a855f7",
 };
+// Matches StatusBadge (components/RunsTable.tsx).
+const STATUS_COLORS = {
+  passed: "#10b981",
+  failed: "#ef4444",
+  cancelled: "#f59e0b",
+  other: "#6b7280",
+} as const;
 
 function barColor(conclusion: string | null): string {
   if (conclusion === "success") return "bg-emerald-500/80 hover:bg-emerald-400";
@@ -92,6 +104,151 @@ function MixBar({ items }: { items: { label: string; count: number; color: strin
           />
         ))}
       </div>
+    </div>
+  );
+}
+
+/** Simple categorical bar chart for a fixed set of labeled buckets (e.g. duration histogram). */
+function HistogramChart({ buckets }: { buckets: { label: string; count: number }[] }) {
+  if (buckets.length === 0 || buckets.every((b) => b.count === 0)) {
+    return <p className="text-sm text-gray-500">No completed runs to chart yet.</p>;
+  }
+  const max = Math.max(1, ...buckets.map((b) => b.count));
+  return (
+    <div className="flex h-40 items-end gap-2">
+      {buckets.map((b) => (
+        <div key={b.label} className="flex flex-1 flex-col items-center gap-1.5" title={`${b.label}: ${b.count}`}>
+          <span className="text-[11px] tabular-nums text-gray-400">{b.count}</span>
+          <div className="flex h-28 w-full items-end">
+            <div
+              className="w-full rounded-t-sm bg-indigo-500/70 transition-all hover:bg-indigo-400"
+              style={{ height: `${Math.max(2, (b.count / max) * 100)}%` }}
+            />
+          </div>
+          <span className="text-[10px] text-gray-600">{b.label}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Stacked daily bars: total run volume, colored by outcome — shows how active a suite/window is. */
+function ActivityChart({ days }: { days: { date: string; total: number; passed: number; failed: number; other: number }[] }) {
+  const { t } = useI18n();
+  if (days.length === 0) {
+    return <p className="text-sm text-gray-500">No runs to chart yet.</p>;
+  }
+  const max = Math.max(1, ...days.map((d) => d.total));
+  return (
+    <div>
+      <div className="flex h-32 items-end gap-1">
+        {days.map((d) => (
+          <div
+            key={d.date}
+            className="group flex flex-1 flex-col items-stretch justify-end gap-px"
+            style={{ height: "100%" }}
+            title={`${d.date} · ${d.total} runs (${d.passed} passed, ${d.failed} failed)`}
+          >
+            <div className="flex flex-1 flex-col items-stretch justify-end" style={{ height: `${(d.total / max) * 100}%`, minHeight: 2 }}>
+              {d.other > 0 && <div className="w-full flex-1 bg-gray-600/80 transition group-hover:brightness-125" />}
+              {d.failed > 0 && <div className="w-full flex-1 bg-red-500/80 transition group-hover:brightness-125" />}
+              {d.passed > 0 && <div className="w-full flex-1 rounded-t-sm bg-emerald-500/80 transition group-hover:brightness-125" />}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="mt-2 flex items-center justify-between text-[11px] text-gray-500">
+        <span>{days[0].date}</span>
+        <span>{days.reduce((s, d) => s + d.total, 0)} {t("trends.runs")}</span>
+        <span>{days[days.length - 1].date}</span>
+      </div>
+    </div>
+  );
+}
+
+/** Side-by-side Manual vs CI/CD comparison — are automated runs as reliable as manual ones? */
+function TriggerComparisonCards({
+  items,
+}: {
+  items: { source: RunSummary["triggerSource"]; count: number; passRate: number; avgDurationSec: number | null }[];
+}) {
+  const { t } = useI18n();
+  if (items.every((i) => i.count === 0)) {
+    return <p className="text-sm text-gray-500">No runs yet.</p>;
+  }
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      {items.map((i) => (
+        <div key={i.source} className="rounded-md border border-surface-border bg-surface-hover/30 p-3">
+          <div className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: SOURCE_COLORS[i.source] }} />
+            <span className="text-xs font-medium text-gray-300">
+              {i.source === "ci-cd" ? t("table.triggerCi") : t("table.triggerManual")}
+            </span>
+          </div>
+          <p className="mt-2 text-xl font-semibold text-white">{i.count > 0 ? `${i.passRate}%` : "—"}</p>
+          <p className="text-[11px] text-gray-500">
+            {i.count} {t("trends.runs")}
+            {i.avgDurationSec != null ? ` · ${formatDuration(i.avgDurationSec)} ${t("trends.avgAbbrev")}` : ""}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Top N longest-running completed runs — flags duration outliers/perf regressions at a glance. */
+function SlowestRunsList({
+  items,
+}: {
+  items: { id: number; name: string; runNumber: number; durationSec: number; conclusion: string | null; createdAt: string }[];
+}) {
+  if (items.length === 0) {
+    return <p className="text-sm text-gray-500">No completed runs yet.</p>;
+  }
+  return (
+    <ul className="space-y-2">
+      {items.map((run, i) => (
+        <li key={run.id}>
+          <Link
+            href={`/reports/${run.id}`}
+            className="flex items-center gap-3 rounded-md px-2 py-1.5 transition hover:bg-surface-hover"
+          >
+            <span className="w-4 shrink-0 text-xs tabular-nums text-gray-500">#{i + 1}</span>
+            <span className={`h-2 w-2 shrink-0 rounded-full ${barColor(run.conclusion).split(" ")[0]}`} />
+            <span className="min-w-0 flex-1 truncate text-sm text-gray-300">
+              {run.name} <span className="text-gray-500">#{run.runNumber}</span>
+            </span>
+            <span className="shrink-0 text-xs tabular-nums text-gray-400">{formatDuration(run.durationSec)}</span>
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** Newest-first run outcomes as a compact GitHub-Actions-style dot strip. */
+function ResultStrip({ recent }: { recent: { id: number; status: string; conclusion: string | null }[] }) {
+  const chrono = [...recent].reverse(); // oldest → newest, left to right
+  return (
+    <div className="flex items-center gap-0.5">
+      {chrono.map((r) => (
+        <span
+          key={r.id}
+          title={r.conclusion ?? r.status}
+          className={`h-2.5 w-1.5 rounded-sm ${
+            r.status !== "completed"
+              ? "bg-blue-500/70"
+              : r.conclusion === "success"
+                ? "bg-emerald-500"
+                : r.conclusion === "failure"
+                  ? "bg-red-500"
+                  : r.conclusion === "cancelled"
+                    ? "bg-amber-500/70"
+                    : "bg-gray-600"
+          }`}
+        />
+      ))}
     </div>
   );
 }
@@ -258,6 +415,7 @@ function PassRateChart({ runs }: { runs: RunSummary[] }) {
 }
 
 function SuiteTable({ runs }: { runs: RunSummary[] }) {
+  const { t } = useI18n();
   const suites = useMemo(() => suiteBreakdown(runs), [runs]);
 
   if (suites.length === 0) {
@@ -278,6 +436,7 @@ function SuiteTable({ runs }: { runs: RunSummary[] }) {
             <th className="px-4 py-3">Pass rate</th>
             <th className="px-4 py-3">Avg duration</th>
             <th className="px-4 py-3">Last run</th>
+            <th className="px-4 py-3">{t("trends.recent")}</th>
           </tr>
         </thead>
         <tbody>
@@ -304,6 +463,9 @@ function SuiteTable({ runs }: { runs: RunSummary[] }) {
                 {s.avgDurationSec != null ? formatDuration(s.avgDurationSec) : "—"}
               </td>
               <td className="px-4 py-3 text-gray-500">{formatRelativeTime(s.lastRunAt)}</td>
+              <td className="px-4 py-3">
+                <ResultStrip recent={s.recent} />
+              </td>
             </tr>
           ))}
         </tbody>
@@ -321,17 +483,25 @@ function ChartCard({ title, children }: { title: string; children: React.ReactNo
   );
 }
 
-// Per-type section: same KPI/duration/pass-rate/suite-table layout as the
-// overview, just scoped to one runType — and worded around k6 thresholds
-// instead of generic "pass/fail" when type is "load".
-function TypeSection({ runs, type }: { runs: RunSummary[]; type: RunSummary["runType"] }) {
+// Shared body for every tab: Overview passes no `type` (and gets the extra
+// run-mix/trigger-mix charts, since those only make sense across all types
+// combined); each type tab passes its filtered runs + type and is worded
+// around k6 thresholds instead of generic "pass/fail" when type is "load".
+function StatsSection({ runs, type }: { runs: RunSummary[]; type?: RunSummary["runType"] }) {
   const { t } = useI18n();
   const summary = useMemo(() => trendSummary(runs), [runs]);
+  const statusCounts = useMemo(() => statusBreakdown(runs), [runs]);
+  const histogram = useMemo(() => durationHistogram(runs), [runs]);
+  const slowest = useMemo(() => slowestRuns(runs, 5), [runs]);
+  const triggerComparison = useMemo(() => triggerSourceComparison(runs), [runs]);
+  const daily = useMemo(() => runsPerDay(runs), [runs]);
+  const typeMix = useMemo(() => runTypeBreakdown(runs), [runs]);
+  const triggerMix = useMemo(() => triggerSourceBreakdown(runs), [runs]);
 
   if (runs.length === 0) {
     return (
       <div className="rounded-lg border border-surface-border bg-surface-panel p-8 text-center text-sm text-gray-500">
-        {t("trends.noRunsForType")}
+        {type ? t("trends.noRunsForType") : "No runs yet to build trends from."}
       </div>
     );
   }
@@ -363,6 +533,67 @@ function TypeSection({ runs, type }: { runs: RunSummary[]; type: RunSummary["run
         </ChartCard>
       </div>
 
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <ChartCard title={t("trends.statusBreakdown")}>
+          <MixBar
+            items={statusCounts
+              .filter((s) => s.bucket !== "other" || s.count > 0)
+              .map((s) => ({
+                label: t(
+                  s.bucket === "passed"
+                    ? "status.passed"
+                    : s.bucket === "failed"
+                      ? "status.failed"
+                      : s.bucket === "cancelled"
+                        ? "status.cancelled"
+                        : "trends.other"
+                ),
+                count: s.count,
+                color: STATUS_COLORS[s.bucket],
+              }))}
+          />
+        </ChartCard>
+        <ChartCard title={t("trends.durationHistogram")}>
+          <HistogramChart buckets={histogram} />
+        </ChartCard>
+      </div>
+
+      <ChartCard title={t("trends.dailyActivity")}>
+        <ActivityChart days={daily} />
+      </ChartCard>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <ChartCard title={t("trends.triggerComparison")}>
+          <TriggerComparisonCards items={triggerComparison} />
+        </ChartCard>
+        <ChartCard title={t("trends.slowestRuns")}>
+          <SlowestRunsList items={slowest} />
+        </ChartCard>
+      </div>
+
+      {!type && (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <ChartCard title={t("trends.runMix")}>
+            <MixBar
+              items={typeMix.map((m) => ({
+                label: t(TYPE_LABEL_KEYS[m.type]),
+                count: m.count,
+                color: TYPE_COLORS[m.type],
+              }))}
+            />
+          </ChartCard>
+          <ChartCard title={t("trends.triggerMix")}>
+            <MixBar
+              items={triggerMix.map((m) => ({
+                label: m.source === "ci-cd" ? t("table.triggerCi") : t("table.triggerManual"),
+                count: m.count,
+                color: SOURCE_COLORS[m.source],
+              }))}
+            />
+          </ChartCard>
+        </div>
+      )}
+
       <div>
         <h3 className="mb-3 text-lg font-medium text-white">{t("trends.bySuite")}</h3>
         <SuiteTable runs={runs} />
@@ -382,9 +613,6 @@ type SectionKey = (typeof SECTION_TABS)[number]["key"];
 export function TrendsView({ runs }: { runs: RunSummary[] }) {
   const { t } = useI18n();
   const [section, setSection] = useState<SectionKey>("overview");
-  const summary = useMemo(() => trendSummary(runs), [runs]);
-  const typeMix = useMemo(() => runTypeBreakdown(runs), [runs]);
-  const triggerMix = useMemo(() => triggerSourceBreakdown(runs), [runs]);
 
   const frontendRuns = useMemo(() => runs.filter((r) => r.runType === "frontend"), [runs]);
   const apiRuns = useMemo(() => runs.filter((r) => r.runType === "api"), [runs]);
@@ -418,61 +646,10 @@ export function TrendsView({ runs }: { runs: RunSummary[] }) {
         ))}
       </div>
 
-      {section === "overview" && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-            <Kpi label={t("trends.passRate")} value={`${summary.passRate}%`} hint={`${summary.completedRuns} ✓`} />
-            <Kpi label={t("trends.failRate")} value={`${100 - summary.passRate}%`} />
-            <Kpi
-              label={t("trends.avgDuration")}
-              value={summary.avgDurationSec != null ? formatDuration(summary.avgDurationSec) : "—"}
-            />
-            <Kpi
-              label={t("trends.medianDuration")}
-              value={summary.medianDurationSec != null ? formatDuration(summary.medianDurationSec) : "—"}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <ChartCard title={t("trends.durationChart")}>
-              <DurationChart runs={runs} />
-            </ChartCard>
-            <ChartCard title={t("trends.passRateChart")}>
-              <PassRateChart runs={runs} />
-            </ChartCard>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <ChartCard title={t("trends.runMix")}>
-              <MixBar
-                items={typeMix.map((m) => ({
-                  label: t(TYPE_LABEL_KEYS[m.type]),
-                  count: m.count,
-                  color: TYPE_COLORS[m.type],
-                }))}
-              />
-            </ChartCard>
-            <ChartCard title={t("trends.triggerMix")}>
-              <MixBar
-                items={triggerMix.map((m) => ({
-                  label: m.source === "ci-cd" ? t("table.triggerCi") : t("table.triggerManual"),
-                  count: m.count,
-                  color: SOURCE_COLORS[m.source],
-                }))}
-              />
-            </ChartCard>
-          </div>
-
-          <div>
-            <h3 className="mb-3 text-lg font-medium text-white">{t("trends.bySuite")}</h3>
-            <SuiteTable runs={runs} />
-          </div>
-        </div>
-      )}
-
-      {section === "frontend" && <TypeSection runs={frontendRuns} type="frontend" />}
-      {section === "api" && <TypeSection runs={apiRuns} type="api" />}
-      {section === "load" && <TypeSection runs={loadRuns} type="load" />}
+      {section === "overview" && <StatsSection runs={runs} />}
+      {section === "frontend" && <StatsSection runs={frontendRuns} type="frontend" />}
+      {section === "api" && <StatsSection runs={apiRuns} type="api" />}
+      {section === "load" && <StatsSection runs={loadRuns} type="load" />}
     </div>
   );
 }

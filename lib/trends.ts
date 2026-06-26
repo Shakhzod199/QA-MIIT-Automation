@@ -18,6 +18,8 @@ export interface SuiteTrend {
   passRate: number; // 0..100
   avgDurationSec: number | null;
   lastRunAt: string | null;
+  /** Newest-first, capped at 12 — for a GitHub-style recent-results strip. */
+  recent: { id: number; status: string; conclusion: string | null }[];
 }
 
 export interface TrendSummary {
@@ -126,9 +128,126 @@ export function suiteBreakdown(runs: RunSummary[]): SuiteTrend[] {
       passRate: completed.length ? Math.round((passed / completed.length) * 100) : 0,
       avgDurationSec: avg,
       lastRunAt: list[0]?.createdAt ?? null,
+      // Newest-first, capped — just enough for a GitHub-style result strip.
+      recent: list.slice(0, 12).map((r) => ({ id: r.id, status: r.status, conclusion: r.conclusion })),
     });
   }
   return out.sort((a, b) => b.total - a.total);
+}
+
+export interface StatusCount {
+  bucket: "passed" | "failed" | "cancelled" | "other";
+  count: number;
+}
+
+/** Outcome breakdown across every run in the window (not just completed ones). */
+export function statusBreakdown(runs: RunSummary[]): StatusCount[] {
+  const counts: Record<StatusCount["bucket"], number> = { passed: 0, failed: 0, cancelled: 0, other: 0 };
+  for (const run of runs) {
+    if (run.status === "completed" && run.conclusion === "success") counts.passed += 1;
+    else if (run.status === "completed" && run.conclusion === "failure") counts.failed += 1;
+    else if (run.status === "completed" && run.conclusion === "cancelled") counts.cancelled += 1;
+    else counts.other += 1;
+  }
+  return (["passed", "failed", "cancelled", "other"] as const).map((bucket) => ({ bucket, count: counts[bucket] }));
+}
+
+export interface DurationBucket {
+  label: string;
+  count: number;
+}
+
+/** Buckets completed runs' durations into 5 equal-width bins for a histogram. */
+export function durationHistogram(runs: RunSummary[], bins = 5): DurationBucket[] {
+  const durations = runs
+    .filter((r) => r.status === "completed" && r.durationSec != null && r.durationSec > 0)
+    .map((r) => r.durationSec as number);
+  if (durations.length === 0) return [];
+
+  const max = Math.max(...durations);
+  const width = max / bins || 1;
+  const counts = new Array(bins).fill(0);
+  for (const d of durations) {
+    const idx = Math.min(bins - 1, Math.floor(d / width));
+    counts[idx] += 1;
+  }
+
+  return counts.map((count, i) => {
+    const lo = Math.round(i * width);
+    const hi = Math.round((i + 1) * width);
+    return { label: `${formatShort(lo)}–${formatShort(hi)}`, count };
+  });
+}
+
+function formatShort(sec: number): string {
+  if (sec < 60) return `${sec}s`;
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return s > 0 ? `${m}m${s}s` : `${m}m`;
+}
+
+export interface SlowRun {
+  id: number;
+  name: string;
+  runNumber: number;
+  durationSec: number;
+  conclusion: string | null;
+  createdAt: string;
+}
+
+/** The N longest-running completed runs, slowest first — useful for spotting perf regressions. */
+export function slowestRuns(runs: RunSummary[], limit = 5): SlowRun[] {
+  return runs
+    .filter((r) => r.status === "completed" && r.durationSec != null)
+    .map((r) => ({
+      id: r.id,
+      name: r.name,
+      runNumber: r.runNumber,
+      durationSec: r.durationSec as number,
+      conclusion: r.conclusion,
+      createdAt: r.createdAt,
+    }))
+    .sort((a, b) => b.durationSec - a.durationSec)
+    .slice(0, limit);
+}
+
+export interface TriggerComparison {
+  source: RunSummary["triggerSource"];
+  count: number;
+  passRate: number;
+  avgDurationSec: number | null;
+}
+
+/** Pass rate + avg duration split by who started the run — are CI/CD runs as reliable as manual ones? */
+export function triggerSourceComparison(runs: RunSummary[]): TriggerComparison[] {
+  return (["manual", "ci-cd"] as const).map((source) => {
+    const subset = runs.filter((r) => r.triggerSource === source);
+    const s = trendSummary(subset);
+    return { source, count: subset.length, passRate: s.passRate, avgDurationSec: s.avgDurationSec };
+  });
+}
+
+export interface DailyActivity {
+  date: string; // YYYY-MM-DD
+  total: number;
+  passed: number;
+  failed: number;
+  other: number;
+}
+
+/** Run volume per calendar day (oldest → newest) — how active is this suite/window. */
+export function runsPerDay(runs: RunSummary[]): DailyActivity[] {
+  const groups = new Map<string, DailyActivity>();
+  for (const run of runs) {
+    const date = run.createdAt.slice(0, 10);
+    if (!groups.has(date)) groups.set(date, { date, total: 0, passed: 0, failed: 0, other: 0 });
+    const g = groups.get(date)!;
+    g.total += 1;
+    if (run.status === "completed" && run.conclusion === "success") g.passed += 1;
+    else if (run.status === "completed" && run.conclusion === "failure") g.failed += 1;
+    else g.other += 1;
+  }
+  return Array.from(groups.values()).sort((a, b) => a.date.localeCompare(b.date));
 }
 
 export interface RunTypeCount {
