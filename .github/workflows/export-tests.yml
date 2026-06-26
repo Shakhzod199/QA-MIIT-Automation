@@ -147,6 +147,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
       - uses: grafana/setup-k6-action@v1
 
       - name: Run k6 load test
@@ -168,7 +172,10 @@ jobs:
           mkdir -p k6-report
           [ -f load-report.html ] && mv load-report.html k6-report/ || echo "load-report.html missing (load test crashed before producing a summary)"
           [ -f stress-report.html ] && mv stress-report.html k6-report/ || echo "stress-report.html missing (stress test crashed before producing a summary)"
-          cp report-index.html k6-report/index.html
+          # Combined index.html is built by Node from the raw JSON summaries
+          # (one flat page, no iframes) rather than copying a static
+          # template — see build-report-index.mjs.
+          node build-report-index.mjs
 
       - uses: actions/upload-artifact@v4
         if: always()
