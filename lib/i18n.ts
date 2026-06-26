@@ -91,6 +91,19 @@ const en: Dict = {
   "status.passed": "Passed",
   "status.failed": "Failed",
   "status.cancelled": "Cancelled",
+  "status.skipped": "Skipped",
+
+  "table.viewResults": "View results",
+
+  "resultsSummary.backToDetails": "Technical details",
+  "resultsSummary.allPassed": "Everything passed",
+  "resultsSummary.someFailed": "Some checks failed",
+  "resultsSummary.inProgress": "Still running — check back soon",
+  "resultsSummary.noData": "No results available yet",
+  "resultsSummary.total": "Total checks",
+  "resultsSummary.passedAfterRetry": "passed after a retry",
+  "resultsSummary.whatWentWrong": "What went wrong (technical)",
+  "resultsSummary.empty": "No test results found for this run.",
 
   "trends.title": "Trends",
   "trends.subtitle": "Pass rate, duration, and per-suite health over your recent runs.",
@@ -227,6 +240,19 @@ const uz: Dict = {
   "status.passed": "O‘tdi",
   "status.failed": "Muvaffaqiyatsiz",
   "status.cancelled": "Bekor qilindi",
+  "status.skipped": "O‘tkazib yuborildi",
+
+  "table.viewResults": "Natijalarni ko‘rish",
+
+  "resultsSummary.backToDetails": "Texnik tafsilotlar",
+  "resultsSummary.allPassed": "Barchasi muvaffaqiyatli o‘tdi",
+  "resultsSummary.someFailed": "Ba'zi tekshiruvlar muvaffaqiyatsiz",
+  "resultsSummary.inProgress": "Hali ishlamoqda — birozdan keyin qayta tekshiring",
+  "resultsSummary.noData": "Hozircha natijalar mavjud emas",
+  "resultsSummary.total": "Jami tekshiruvlar",
+  "resultsSummary.passedAfterRetry": "qayta urinishdan keyin o‘tdi",
+  "resultsSummary.whatWentWrong": "Nima xato bo‘ldi (texnik)",
+  "resultsSummary.empty": "Bu ishga tushirish uchun test natijalari topilmadi.",
 
   "trends.title": "Tendensiyalar",
   "trends.subtitle": "So‘nggi ishga tushirishlar bo‘yicha muvaffaqiyat darajasi, davomiyligi va to‘plamlar holati.",
@@ -363,6 +389,19 @@ const ru: Dict = {
   "status.passed": "Пройден",
   "status.failed": "Провален",
   "status.cancelled": "Отменён",
+  "status.skipped": "Пропущен",
+
+  "table.viewResults": "Смотреть результаты",
+
+  "resultsSummary.backToDetails": "Технические детали",
+  "resultsSummary.allPassed": "Все проверки пройдены",
+  "resultsSummary.someFailed": "Некоторые проверки не пройдены",
+  "resultsSummary.inProgress": "Ещё выполняется — проверьте позже",
+  "resultsSummary.noData": "Результаты пока недоступны",
+  "resultsSummary.total": "Всего проверок",
+  "resultsSummary.passedAfterRetry": "пройден после повтора",
+  "resultsSummary.whatWentWrong": "Что пошло не так (технически)",
+  "resultsSummary.empty": "Результаты тестов для этого запуска не найдены.",
 
   "trends.title": "Тренды",
   "trends.subtitle": "Доля прохождений, длительность и состояние наборов за последние запуски.",

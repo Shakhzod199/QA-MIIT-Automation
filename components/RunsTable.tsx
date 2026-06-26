@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { formatDuration, formatRelativeTime } from "@/lib/format";
 import { useI18n } from "@/components/I18nProvider";
-import { FlaskIcon } from "@/components/icons";
+import { ClipboardCheckIcon, FlaskIcon } from "@/components/icons";
 import type { RunSummary } from "@/lib/types";
 
 // Re-render every second while a run is active so the progress bar animates smoothly
@@ -350,6 +350,15 @@ export function RunsTable({
                 <div className="flex items-center justify-end gap-2">
                   {onCancel && run.status !== "completed" && (
                     <CancelButton runId={run.id} onCancel={onCancel} />
+                  )}
+                  {run.status === "completed" && run.runType !== "load" && (
+                    <Link
+                      href={`/reports/${run.id}/summary`}
+                      title={t("table.viewResults")}
+                      className="inline-flex items-center justify-center rounded-md p-1.5 text-gray-500 transition hover:bg-surface-hover hover:text-gray-200"
+                    >
+                      <ClipboardCheckIcon className="h-4 w-4" />
+                    </Link>
                   )}
                   <a
                   href={run.htmlUrl}

@@ -3,7 +3,7 @@
 import { use } from "react";
 import Link from "next/link";
 import useSWR from "swr";
-import { ExternalLinkIcon, FlaskIcon } from "@/components/icons";
+import { ClipboardCheckIcon, ExternalLinkIcon, FlaskIcon } from "@/components/icons";
 import { TestResults } from "@/components/TestResults";
 import { formatDateTime, formatDuration, formatRelativeTime, getStatusBadge } from "@/lib/format";
 import type { RunDetailResponse, TestReportResponse } from "@/lib/types";
@@ -140,6 +140,29 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
           </span>
         )}
       </div>
+
+      {testsData?.available && testsData.tests.length > 0 && (
+        <div className="flex flex-col gap-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500/20">
+              <ClipboardCheckIcon className="h-4 w-4 text-emerald-400" />
+            </div>
+            <div>
+              <h3 className="font-medium text-white">Plain-Language Results</h3>
+              <p className="mt-0.5 text-sm text-gray-400">
+                A non-technical, test-by-test summary — easier to share with stakeholders.
+              </p>
+            </div>
+          </div>
+          <Link
+            href={`/reports/${run.id}/summary`}
+            className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500 active:scale-95"
+          >
+            <ClipboardCheckIcon className="h-4 w-4" />
+            View Results
+          </Link>
+        </div>
+      )}
 
       {testsData?.available && testsData.tests.length > 0 && (
         <div>
