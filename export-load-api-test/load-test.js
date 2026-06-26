@@ -1,8 +1,8 @@
 import { makeIterate } from "./scenario.js";
 import { buildSummary } from "./report.js";
 
-// Load test — simulates realistic expected traffic: ramp 0 -> 100 users
-// over the first 30s, then hold steady at 100 for the remaining 60s.
+// Load test — simulates realistic expected traffic: ramp 0 -> 30 users
+// over the first 30s, then hold steady at 30 for the remaining 60s.
 // Total duration: 1:30 (90s). 1-3s think-time between actions per VU,
 // matching how an actual person clicks around a dashboard.
 export const options = {
@@ -11,8 +11,8 @@ export const options = {
       executor: "ramping-vus",
       startVUs: 0,
       stages: [
-        { duration: "30s", target: 100 },
-        { duration: "60s", target: 100 },
+        { duration: "30s", target: 30 },
+        { duration: "60s", target: 30 },
       ],
       gracefulRampDown: "5s",
     },

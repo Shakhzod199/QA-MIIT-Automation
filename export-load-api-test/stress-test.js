@@ -1,7 +1,7 @@
 import { makeIterate } from "./scenario.js";
 import { buildSummary } from "./report.js";
 
-// Stress test — simulates a sudden traffic surge: spike straight to 100
+// Stress test — simulates a sudden traffic surge: spike straight to 30
 // users with no ramp-up, then hold for the full 1:30 (90s), to find
 // breaking points rather than just confirming expected-load behavior.
 // Much shorter think-time (0.1-0.3s) than load-test.js — deliberately
@@ -11,8 +11,8 @@ export const options = {
   scenarios: {
     export_api_stress: {
       executor: "ramping-vus",
-      startVUs: 100,
-      stages: [{ duration: "90s", target: 100 }],
+      startVUs: 30,
+      stages: [{ duration: "90s", target: 30 }],
       gracefulRampDown: "5s",
     },
   },

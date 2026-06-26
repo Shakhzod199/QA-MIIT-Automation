@@ -4,10 +4,10 @@ Two k6 scripts against the real `export.miit.uz` API (same one the Playwright
 `export-api` suite covers), exercising the 12 GET endpoints from the
 Companies/Header/Map groups plus `/auth/login` and `/auth/logout`.
 
-- **load-test.js** — ramps 0 → 100 virtual users over 30s, holds 100 for the
+- **load-test.js** — ramps 0 → 30 virtual users over 30s, holds 30 for the
   remaining 60s (90s total). 1-3s think-time between actions per VU —
   simulates realistic expected traffic.
-- **stress-test.js** — spikes straight to 100 VUs with no ramp-up, holds for
+- **stress-test.js** — spikes straight to 30 VUs with no ramp-up, holds for
   the full 90s. 0.1-0.3s think-time — deliberately aggressive, to probe
   past comfortable capacity rather than just confirm normal-load behavior.
 
