@@ -21,16 +21,20 @@ export function makeIterate(minSleepS, maxSleepS) {
       token = login();
     }
 
-    // ~10% of iterations: log out and back in instead of a data GET, so
-    // /auth/login and /auth/logout both receive continuous, realistic load
-    // throughout the run (proportional to how many VUs are active), rather
-    // than only once per VU at startup.
-    if (Math.random() < 0.1) {
-      logout(token);
-      token = login();
-    } else {
-      getRandomEndpoint(token);
-    }
+    // The dev team confirmed /auth/login and /auth/logout specifically have
+    // a much lower rate limit than the GET data endpoints. Repeatedly
+    // re-authenticating here was tripping THAT limit, not the GET endpoints'
+    // — masking what the GET endpoints can actually handle on their own.
+    // Disabled for now so this run isolates GET-endpoint capacity; each VU
+    // logs in once and reuses that token for every iteration.
+    //
+    // if (Math.random() < 0.1) {
+    //   logout(token);
+    //   token = login();
+    // } else {
+    //   getRandomEndpoint(token);
+    // }
+    getRandomEndpoint(token);
 
     sleep(minSleepS + Math.random() * (maxSleepS - minSleepS));
   };
