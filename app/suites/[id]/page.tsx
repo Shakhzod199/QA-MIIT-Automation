@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import useSWR from "swr";
 import { useI18n } from "@/components/I18nProvider";
-import { StatsCards } from "@/components/StatsCards";
+import { StatCard, StatsCards } from "@/components/StatsCards";
 import { SuiteCard } from "@/components/SuiteCard";
 import { RunsTable } from "@/components/RunsTable";
 import { TypeTabs } from "@/components/TypeTabs";
@@ -85,11 +85,12 @@ function SuiteTestsPageInner({ params }: { params: Promise<{ id: string }> }) {
     return runs.find(
       (r) =>
         r.workflowId === workflowId &&
+        r.runType === type &&
         r.status === "completed" &&
         (r.conclusion === "success" || r.conclusion === "failure") &&
         !r.testFilter
     )?.id;
-  }, [runsData, workflowId]);
+  }, [runsData, workflowId, type]);
 
   const { data: testsData, isLoading } = useSWR<TestReportResponse>(
     latestRunId ? `/api/runs/${latestRunId}/tests` : null,
@@ -186,6 +187,13 @@ function SuiteTestsPageInner({ params }: { params: Promise<{ id: string }> }) {
   };
 
   if (type !== "frontend") {
+    // API tests have a real per-test catalog (the report's test list), so
+    // show counts of how many API tests exist/passed/failed instead of the
+    // run-level stats below. K6 (load) has no such catalog — it only ever
+    // produces threshold pass/fail, already shown per-run in the table — so
+    // it keeps the original run-based cards.
+    const apiSummary = testsData?.summary;
+
     return (
       <div className="space-y-6">
         <div>
@@ -199,39 +207,69 @@ function SuiteTestsPageInner({ params }: { params: Promise<{ id: string }> }) {
 
         <TypeTabs workflowId={workflowId} active={type} />
 
-        <StatsCards stats={scopedStats} />
-
-        {workflow && (
-          <SuiteCard workflow={workflow} showRunButton={false} showRunSeparately={false} />
+        {type === "api" ? (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <StatCard label={t("suiteTests.totalApis")} value={String(apiSummary?.total ?? 0)} />
+            <StatCard
+              label={t("suiteTests.apisPassed")}
+              value={String(apiSummary?.passed ?? 0)}
+              sub={apiSummary?.total ? `${Math.round((apiSummary.passed / apiSummary.total) * 100)}%` : undefined}
+            />
+            <StatCard
+              label={t("suiteTests.apisFailed")}
+              value={String(apiSummary?.failed ?? 0)}
+              sub={apiSummary?.total ? `${Math.round((apiSummary.failed / apiSummary.total) * 100)}%` : undefined}
+            />
+          </div>
+        ) : (
+          <StatsCards stats={scopedStats} />
         )}
+
+        <div className="rounded-lg border border-surface-border bg-surface-panel p-4">
+          <div>
+            <h3 className="font-medium text-white">{workflow?.name ?? `Suite #${workflowId}`}</h3>
+            {workflow && workflow.state !== "active" && (
+              <p className="mt-1 text-xs text-amber-500">workflow is {workflow.state}</p>
+            )}
+            {disabledReason && <p className="mt-1 text-xs text-amber-500">{disabledReason}</p>}
+          </div>
+          <div className="mt-4 flex items-center justify-between">
+            {workflow ? (
+              <a
+                href={workflow.htmlUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs text-gray-500 hover:text-gray-300"
+              >
+                {t("suite.viewOnGithub")}
+              </a>
+            ) : (
+              <span />
+            )}
+            <button
+              onClick={handleRunType}
+              disabled={typeRunState === "pending" || !!disabledReason}
+              className={[
+                "inline-flex shrink-0 items-center gap-1.5 rounded-md px-4 py-1.5 text-sm font-medium text-white transition disabled:cursor-not-allowed disabled:opacity-60",
+                typeRunState === "triggered" ? "bg-emerald-600" : "bg-indigo-600 hover:bg-indigo-500",
+              ].join(" ")}
+            >
+              {typeRunState === "pending" && (
+                <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              )}
+              {typeRunState === "triggered" ? t("suiteTests.triggered") : t("suiteTests.run")}
+            </button>
+          </div>
+          {typeRunError && <p className="mt-2 text-xs text-red-400">{typeRunError}</p>}
+        </div>
 
         <div>
           <h3 className="mb-3 text-lg font-medium text-white">{t("dashboard.recentRuns")}</h3>
           <RunsTable runs={scopedRuns} hideProject pageSize={5} onCancel={handleCancel} />
         </div>
-
-        <div className="flex items-center justify-between gap-4 rounded-lg border border-surface-border bg-surface-panel px-4 py-3">
-          <span className="text-sm font-medium text-white">{t(TYPE_LABEL_KEY[type])}</span>
-          <button
-            onClick={handleRunType}
-            disabled={typeRunState === "pending" || !!disabledReason}
-            className={[
-              "inline-flex shrink-0 items-center gap-1.5 rounded-md px-4 py-1.5 text-sm font-medium text-white transition disabled:cursor-not-allowed disabled:opacity-60",
-              typeRunState === "triggered" ? "bg-emerald-600" : "bg-indigo-600 hover:bg-indigo-500",
-            ].join(" ")}
-          >
-            {typeRunState === "pending" && (
-              <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
-            )}
-            {typeRunState === "triggered" ? t("suiteTests.triggered") : t("suiteTests.run")}
-          </button>
-        </div>
-
-        {typeRunError && <p className="text-xs text-red-400">{typeRunError}</p>}
-        {disabledReason && <p className="text-xs text-amber-500">{disabledReason}</p>}
       </div>
     );
   }

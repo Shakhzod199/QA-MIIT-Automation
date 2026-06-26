@@ -50,6 +50,9 @@ const en: Dict = {
   "suiteTests.empty": "No tests found yet. Run the whole suite once so its tests can be listed here.",
   "suiteTests.testCases": "Test cases",
   "suiteTests.selected": "selected",
+  "suiteTests.totalApis": "Total APIs",
+  "suiteTests.apisPassed": "Passed",
+  "suiteTests.apisFailed": "Failed",
 
   "runModal.title": "Run a test",
   "runModal.allTests": "All test cases",
@@ -165,6 +168,9 @@ const uz: Dict = {
   "suiteTests.empty": "Testlar topilmadi. Avval butun to‘plamni bir marta ishga tushiring, shunda testlar bu yerda ko‘rinadi.",
   "suiteTests.testCases": "Test holatlari",
   "suiteTests.selected": "tanlandi",
+  "suiteTests.totalApis": "Jami APIlar",
+  "suiteTests.apisPassed": "Muvaffaqiyatli",
+  "suiteTests.apisFailed": "Muvaffaqiyatsiz",
 
   "runModal.title": "Testni ishga tushirish",
   "runModal.allTests": "Barcha test holatlari",
@@ -280,6 +286,9 @@ const ru: Dict = {
   "suiteTests.empty": "Тесты пока не найдены. Запустите весь набор один раз, чтобы его тесты появились здесь.",
   "suiteTests.testCases": "Тест-кейсы",
   "suiteTests.selected": "выбрано",
+  "suiteTests.totalApis": "Всего API",
+  "suiteTests.apisPassed": "Успешно",
+  "suiteTests.apisFailed": "Неудачно",
 
   "runModal.title": "Запустить тест",
   "runModal.allTests": "Все тест-кейсы",
