@@ -142,13 +142,13 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"], baseURL: process.env.PMT_BASE_URL ?? "http://localhost:3000" },
     },
 
-    // ── pmi backend (api smoke tests) ───────────────────────────────────────
+    // ── pmi backend (api tests against the real Swagger-documented API) ────
     // No browser — uses Playwright's `request` fixture. Selected via the
     // "api" workflow_dispatch type.
     {
       name: "pmi-api",
       testDir: "./tests/pmi-api",
-      use: { baseURL: process.env.PMI_BASE_URL ?? "http://localhost:3000" },
+      use: { baseURL: process.env.PMI_API_BASE_URL ?? "https://apiproject.miit.uz" },
     },
 
     // ── export backend (api tests against the real Swagger-documented API) ──

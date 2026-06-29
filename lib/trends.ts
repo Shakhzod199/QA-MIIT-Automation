@@ -152,40 +152,6 @@ export function statusBreakdown(runs: RunSummary[]): StatusCount[] {
   return (["passed", "failed", "cancelled", "other"] as const).map((bucket) => ({ bucket, count: counts[bucket] }));
 }
 
-export interface DurationBucket {
-  label: string;
-  count: number;
-}
-
-/** Buckets completed runs' durations into 5 equal-width bins for a histogram. */
-export function durationHistogram(runs: RunSummary[], bins = 5): DurationBucket[] {
-  const durations = runs
-    .filter((r) => r.status === "completed" && r.durationSec != null && r.durationSec > 0)
-    .map((r) => r.durationSec as number);
-  if (durations.length === 0) return [];
-
-  const max = Math.max(...durations);
-  const width = max / bins || 1;
-  const counts = new Array(bins).fill(0);
-  for (const d of durations) {
-    const idx = Math.min(bins - 1, Math.floor(d / width));
-    counts[idx] += 1;
-  }
-
-  return counts.map((count, i) => {
-    const lo = Math.round(i * width);
-    const hi = Math.round((i + 1) * width);
-    return { label: `${formatShort(lo)}–${formatShort(hi)}`, count };
-  });
-}
-
-function formatShort(sec: number): string {
-  if (sec < 60) return `${sec}s`;
-  const m = Math.floor(sec / 60);
-  const s = sec % 60;
-  return s > 0 ? `${m}m${s}s` : `${m}m`;
-}
-
 export interface SlowRun {
   id: number;
   name: string;
@@ -227,29 +193,6 @@ export function triggerSourceComparison(runs: RunSummary[]): TriggerComparison[]
   });
 }
 
-export interface DailyActivity {
-  date: string; // YYYY-MM-DD
-  total: number;
-  passed: number;
-  failed: number;
-  other: number;
-}
-
-/** Run volume per calendar day (oldest → newest) — how active is this suite/window. */
-export function runsPerDay(runs: RunSummary[]): DailyActivity[] {
-  const groups = new Map<string, DailyActivity>();
-  for (const run of runs) {
-    const date = run.createdAt.slice(0, 10);
-    if (!groups.has(date)) groups.set(date, { date, total: 0, passed: 0, failed: 0, other: 0 });
-    const g = groups.get(date)!;
-    g.total += 1;
-    if (run.status === "completed" && run.conclusion === "success") g.passed += 1;
-    else if (run.status === "completed" && run.conclusion === "failure") g.failed += 1;
-    else g.other += 1;
-  }
-  return Array.from(groups.values()).sort((a, b) => a.date.localeCompare(b.date));
-}
-
 export interface RunTypeCount {
   type: RunSummary["runType"];
   count: number;
@@ -260,18 +203,6 @@ export function runTypeBreakdown(runs: RunSummary[]): RunTypeCount[] {
   const counts: Record<RunSummary["runType"], number> = { frontend: 0, api: 0, load: 0 };
   for (const run of runs) counts[run.runType] += 1;
   return (["frontend", "api", "load"] as const).map((type) => ({ type, count: counts[type] }));
-}
-
-export interface TriggerSourceCount {
-  source: RunSummary["triggerSource"];
-  count: number;
-}
-
-/** How many runs were started manually (dashboard) vs by an automated caller (CI/CD). */
-export function triggerSourceBreakdown(runs: RunSummary[]): TriggerSourceCount[] {
-  const counts: Record<RunSummary["triggerSource"], number> = { manual: 0, "ci-cd": 0 };
-  for (const run of runs) counts[run.triggerSource] += 1;
-  return (["manual", "ci-cd"] as const).map((source) => ({ source, count: counts[source] }));
 }
 
 export function trendSummary(runs: RunSummary[]): TrendSummary {

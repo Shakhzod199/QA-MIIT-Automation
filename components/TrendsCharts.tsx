@@ -5,16 +5,13 @@ import Link from "next/link";
 import { useI18n } from "@/components/I18nProvider";
 import { formatDuration, formatRelativeTime } from "@/lib/format";
 import {
-  durationHistogram,
   durationSeries,
   passRateByProject,
   runTypeBreakdown,
-  runsPerDay,
   slowestRuns,
   statusBreakdown,
   suiteBreakdown,
   trendSummary,
-  triggerSourceBreakdown,
   triggerSourceComparison,
 } from "@/lib/trends";
 import type { RunSummary } from "@/lib/types";
@@ -103,64 +100,6 @@ function MixBar({ items }: { items: { label: string; count: number; color: strin
             value={`${i.count} (${Math.round((i.count / total) * 100)}%)`}
           />
         ))}
-      </div>
-    </div>
-  );
-}
-
-/** Simple categorical bar chart for a fixed set of labeled buckets (e.g. duration histogram). */
-function HistogramChart({ buckets }: { buckets: { label: string; count: number }[] }) {
-  if (buckets.length === 0 || buckets.every((b) => b.count === 0)) {
-    return <p className="text-sm text-gray-500">No completed runs to chart yet.</p>;
-  }
-  const max = Math.max(1, ...buckets.map((b) => b.count));
-  return (
-    <div className="flex h-40 items-end gap-2">
-      {buckets.map((b) => (
-        <div key={b.label} className="flex flex-1 flex-col items-center gap-1.5" title={`${b.label}: ${b.count}`}>
-          <span className="text-[11px] tabular-nums text-gray-400">{b.count}</span>
-          <div className="flex h-28 w-full items-end">
-            <div
-              className="w-full rounded-t-sm bg-indigo-500/70 transition-all hover:bg-indigo-400"
-              style={{ height: `${Math.max(2, (b.count / max) * 100)}%` }}
-            />
-          </div>
-          <span className="text-[10px] text-gray-600">{b.label}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-/** Stacked daily bars: total run volume, colored by outcome — shows how active a suite/window is. */
-function ActivityChart({ days }: { days: { date: string; total: number; passed: number; failed: number; other: number }[] }) {
-  const { t } = useI18n();
-  if (days.length === 0) {
-    return <p className="text-sm text-gray-500">No runs to chart yet.</p>;
-  }
-  const max = Math.max(1, ...days.map((d) => d.total));
-  return (
-    <div>
-      <div className="flex h-32 items-end gap-1">
-        {days.map((d) => (
-          <div
-            key={d.date}
-            className="group flex flex-1 flex-col items-stretch justify-end gap-px"
-            style={{ height: "100%" }}
-            title={`${d.date} · ${d.total} runs (${d.passed} passed, ${d.failed} failed)`}
-          >
-            <div className="flex flex-1 flex-col items-stretch justify-end" style={{ height: `${(d.total / max) * 100}%`, minHeight: 2 }}>
-              {d.other > 0 && <div className="w-full flex-1 bg-gray-600/80 transition group-hover:brightness-125" />}
-              {d.failed > 0 && <div className="w-full flex-1 bg-red-500/80 transition group-hover:brightness-125" />}
-              {d.passed > 0 && <div className="w-full flex-1 rounded-t-sm bg-emerald-500/80 transition group-hover:brightness-125" />}
-            </div>
-          </div>
-        ))}
-      </div>
-      <div className="mt-2 flex items-center justify-between text-[11px] text-gray-500">
-        <span>{days[0].date}</span>
-        <span>{days.reduce((s, d) => s + d.total, 0)} {t("trends.runs")}</span>
-        <span>{days[days.length - 1].date}</span>
       </div>
     </div>
   );
@@ -491,12 +430,9 @@ function StatsSection({ runs, type }: { runs: RunSummary[]; type?: RunSummary["r
   const { t } = useI18n();
   const summary = useMemo(() => trendSummary(runs), [runs]);
   const statusCounts = useMemo(() => statusBreakdown(runs), [runs]);
-  const histogram = useMemo(() => durationHistogram(runs), [runs]);
   const slowest = useMemo(() => slowestRuns(runs, 5), [runs]);
   const triggerComparison = useMemo(() => triggerSourceComparison(runs), [runs]);
-  const daily = useMemo(() => runsPerDay(runs), [runs]);
   const typeMix = useMemo(() => runTypeBreakdown(runs), [runs]);
-  const triggerMix = useMemo(() => triggerSourceBreakdown(runs), [runs]);
 
   if (runs.length === 0) {
     return (
@@ -533,66 +469,46 @@ function StatsSection({ runs, type }: { runs: RunSummary[]; type?: RunSummary["r
         </ChartCard>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <ChartCard title={t("trends.statusBreakdown")}>
-          <MixBar
-            items={statusCounts
-              .filter((s) => s.bucket !== "other" || s.count > 0)
-              .map((s) => ({
-                label: t(
-                  s.bucket === "passed"
-                    ? "status.passed"
-                    : s.bucket === "failed"
-                      ? "status.failed"
-                      : s.bucket === "cancelled"
-                        ? "status.cancelled"
-                        : "trends.other"
-                ),
-                count: s.count,
-                color: STATUS_COLORS[s.bucket],
-              }))}
-          />
-        </ChartCard>
-        <ChartCard title={t("trends.durationHistogram")}>
-          <HistogramChart buckets={histogram} />
-        </ChartCard>
-      </div>
-
-      <ChartCard title={t("trends.dailyActivity")}>
-        <ActivityChart days={daily} />
+      <ChartCard title={t("trends.statusBreakdown")}>
+        <MixBar
+          items={statusCounts
+            .filter((s) => s.bucket !== "other" || s.count > 0)
+            .map((s) => ({
+              label: t(
+                s.bucket === "passed"
+                  ? "status.passed"
+                  : s.bucket === "failed"
+                    ? "status.failed"
+                    : s.bucket === "cancelled"
+                      ? "status.cancelled"
+                      : "trends.other"
+              ),
+              count: s.count,
+              color: STATUS_COLORS[s.bucket],
+            }))}
+        />
       </ChartCard>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <ChartCard title={t("trends.triggerComparison")}>
           <TriggerComparisonCards items={triggerComparison} />
+          {!type && (
+            <div className="mt-4">
+              <h4 className="mb-3 text-sm font-medium text-gray-300">{t("trends.runMix")}</h4>
+              <MixBar
+                items={typeMix.map((m) => ({
+                  label: t(TYPE_LABEL_KEYS[m.type]),
+                  count: m.count,
+                  color: TYPE_COLORS[m.type],
+                }))}
+              />
+            </div>
+          )}
         </ChartCard>
         <ChartCard title={t("trends.slowestRuns")}>
           <SlowestRunsList items={slowest} />
         </ChartCard>
       </div>
-
-      {!type && (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <ChartCard title={t("trends.runMix")}>
-            <MixBar
-              items={typeMix.map((m) => ({
-                label: t(TYPE_LABEL_KEYS[m.type]),
-                count: m.count,
-                color: TYPE_COLORS[m.type],
-              }))}
-            />
-          </ChartCard>
-          <ChartCard title={t("trends.triggerMix")}>
-            <MixBar
-              items={triggerMix.map((m) => ({
-                label: m.source === "ci-cd" ? t("table.triggerCi") : t("table.triggerManual"),
-                count: m.count,
-                color: SOURCE_COLORS[m.source],
-              }))}
-            />
-          </ChartCard>
-        </div>
-      )}
 
       <div>
         <h3 className="mb-3 text-lg font-medium text-white">{t("trends.bySuite")}</h3>

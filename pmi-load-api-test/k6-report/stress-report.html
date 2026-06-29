@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PMI API — Stress Test Report</title>
+<style>
+
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; }
+  .subtitle { color: #6b7280; font-size: 13px; margin: 0 0 20px; }
+  .summary {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin-bottom: 24px;
+  }
+  .summary.ok { border: 1px solid rgba(16,185,129,0.3); background: rgba(16,185,129,0.08); }
+  .summary.fail { border: 1px solid rgba(239,68,68,0.3); background: rgba(239,68,68,0.08); }
+  .summary .icon { width: 20px; height: 20px; flex-shrink: 0; }
+  .summary.ok .icon { color: #34d399; }
+  .summary.fail .icon { color: #f87171; }
+  .summary .text { font-size: 14px; }
+  .summary .text strong { color: #fff; }
+  section { margin-bottom: 28px; border: 1px solid #27272a; border-radius: 10px; background: #111114; overflow: hidden; }
+  section h2 {
+    margin: 0; padding: 12px 16px; font-size: 13px; font-weight: 600;
+    letter-spacing: 0.03em; text-transform: uppercase; color: #a5b4fc;
+    border-bottom: 1px solid #27272a; background: #15151a;
+  }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 9px 16px; font-size: 13px; }
+  td { border-top: 1px solid #1f1f23; }
+  th { color: #6b7280; font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; }
+  td.num { font-variant-numeric: tabular-nums; color: #d1d5db; }
+  .muted { color: #6b7280; font-size: 12px; }
+  .badge {
+    display: inline-flex; align-items: center; border-radius: 9999px;
+    padding: 2px 10px; font-size: 12px; font-weight: 600;
+  }
+  .badge.pass { background: rgba(16,185,129,0.15); color: #34d399; }
+  .badge.fail { background: rgba(239,68,68,0.15); color: #f87171; }
+  code { background: #1f1f23; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+  .empty { padding: 14px 16px; color: #6b7280; font-size: 13px; }
+
+  body {
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: #0b0b0f;
+    color: #e5e7eb;
+    margin: 0;
+    padding: 28px;
+    line-height: 1.4;
+  }
+</style>
+</head>
+<body>
+  <h1>PMI API — Stress Test Report</h1>
+  <p class="subtitle">k6 load test summary — thresholds, checks, and HTTP timings.</p>
+
+  <div class="summary ok">
+    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+    </svg>
+    <span class="text">
+      <strong>1/1</strong> thresholds passed
+    </span>
+  </div>
+
+  <section>
+    <h2>Thresholds</h2>
+    <table><tr><th>Metric</th><th>Expression</th><th>Result</th></tr><tr><td>http_req_failed</td><td><code>rate&lt;0.05</code></td><td><span class="badge pass">PASS</span></td></tr></table>
+  </section>
+
+  <section>
+    <h2>Checks</h2>
+    <table><tr><th>Name</th><th colspan="5">Result</th></tr><tr><td>checks</td><td colspan="5"><span class="badge fail">99.52%</span></td></tr></table>
+  </section>
+
+  <section>
+    <h2>HTTP metrics</h2>
+    <table><tr><th>Metric</th><th>avg</th><th>min</th><th>med</th><th>max</th><th>p95</th></tr><tr><td>http_req_duration</td><td class="num">277.56</td><td class="num">6.26</td><td class="num">178.28</td><td class="num">9037.02</td><td class="num">645.78</td></tr><tr><td>http_req_duration{expected_response:true}</td><td class="num">278.77</td><td class="num">6.6</td><td class="num">179.48</td><td class="num">9037.02</td><td class="num">646.45</td></tr><tr><td>http_req_connecting</td><td class="num">0.2</td><td class="num">0</td><td class="num">0</td><td class="num">42.28</td><td class="num">0</td></tr><tr><td>http_req_failed</td><td colspan="5"><span class="badge fail">0.48%</span></td></tr><tr><td>http_req_waiting</td><td class="num">222.07</td><td class="num">6.14</td><td class="num">169.29</td><td class="num">2177.49</td><td class="num">527.66</td></tr><tr><td>http_req_tls_handshaking</td><td class="num">3.98</td><td class="num">0</td><td class="num">0</td><td class="num">1639.58</td><td class="num">0</td></tr><tr><td>http_req_sending</td><td class="num">0.12</td><td class="num">0.01</td><td class="num">0.09</td><td class="num">6.14</td><td class="num">0.23</td></tr><tr><td>http_req_blocked</td><td class="num">4.2</td><td class="num">0</td><td class="num">0</td><td class="num">1675</td><td class="num">0</td></tr><tr><td>http_req_receiving</td><td class="num">55.37</td><td class="num">0.01</td><td class="num">0.08</td><td class="num">8809.18</td><td class="num">239.98</td></tr><tr><td>http_reqs</td><td colspan="5">11257 <span class="muted">(124.06/s)</span></td></tr></table>
+  </section>
+
+  <section>
+    <h2>Other metrics</h2>
+    <table><tr><th>Metric</th><th>avg</th><th>min</th><th>med</th><th>max</th><th>p95</th></tr><tr><td>vus_max</td><td class="num">—</td><td class="num">60</td><td class="num">—</td><td class="num">60</td><td class="num">—</td></tr><tr><td>vus</td><td class="num">—</td><td class="num">60</td><td class="num">—</td><td class="num">60</td><td class="num">—</td></tr><tr><td>data_sent</td><td colspan="5">1852735 <span class="muted">(20418.11/s)</span></td></tr><tr><td>iteration_duration</td><td class="num">484.76</td><td class="num">110.21</td><td class="num">409.06</td><td class="num">9180.33</td><td class="num">911.99</td></tr><tr><td>data_received</td><td colspan="5">410397684 <span class="muted">(4522796.33/s)</span></td></tr><tr><td>iterations</td><td colspan="5">11170 <span class="muted">(123.1/s)</span></td></tr></table>
+  </section></body>
+</html>

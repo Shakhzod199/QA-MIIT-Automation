@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PMI API — Load Test Report</title>
+<style>
+
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; }
+  .subtitle { color: #6b7280; font-size: 13px; margin: 0 0 20px; }
+  .summary {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin-bottom: 24px;
+  }
+  .summary.ok { border: 1px solid rgba(16,185,129,0.3); background: rgba(16,185,129,0.08); }
+  .summary.fail { border: 1px solid rgba(239,68,68,0.3); background: rgba(239,68,68,0.08); }
+  .summary .icon { width: 20px; height: 20px; flex-shrink: 0; }
+  .summary.ok .icon { color: #34d399; }
+  .summary.fail .icon { color: #f87171; }
+  .summary .text { font-size: 14px; }
+  .summary .text strong { color: #fff; }
+  section { margin-bottom: 28px; border: 1px solid #27272a; border-radius: 10px; background: #111114; overflow: hidden; }
+  section h2 {
+    margin: 0; padding: 12px 16px; font-size: 13px; font-weight: 600;
+    letter-spacing: 0.03em; text-transform: uppercase; color: #a5b4fc;
+    border-bottom: 1px solid #27272a; background: #15151a;
+  }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 9px 16px; font-size: 13px; }
+  td { border-top: 1px solid #1f1f23; }
+  th { color: #6b7280; font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; }
+  td.num { font-variant-numeric: tabular-nums; color: #d1d5db; }
+  .muted { color: #6b7280; font-size: 12px; }
+  .badge {
+    display: inline-flex; align-items: center; border-radius: 9999px;
+    padding: 2px 10px; font-size: 12px; font-weight: 600;
+  }
+  .badge.pass { background: rgba(16,185,129,0.15); color: #34d399; }
+  .badge.fail { background: rgba(239,68,68,0.15); color: #f87171; }
+  code { background: #1f1f23; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+  .empty { padding: 14px 16px; color: #6b7280; font-size: 13px; }
+
+  body {
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: #0b0b0f;
+    color: #e5e7eb;
+    margin: 0;
+    padding: 28px;
+    line-height: 1.4;
+  }
+</style>
+</head>
+<body>
+  <h1>PMI API — Load Test Report</h1>
+  <p class="subtitle">k6 load test summary — thresholds, checks, and HTTP timings.</p>
+
+  <div class="summary ok">
+    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+    </svg>
+    <span class="text">
+      <strong>2/2</strong> thresholds passed
+    </span>
+  </div>
+
+  <section>
+    <h2>Thresholds</h2>
+    <table><tr><th>Metric</th><th>Expression</th><th>Result</th></tr><tr><td>http_req_duration</td><td><code>p(95)&lt;2000</code></td><td><span class="badge pass">PASS</span></td></tr><tr><td>http_req_failed</td><td><code>rate&lt;0.01</code></td><td><span class="badge pass">PASS</span></td></tr></table>
+  </section>
+
+  <section>
+    <h2>Checks</h2>
+    <table><tr><th>Name</th><th colspan="5">Result</th></tr><tr><td>checks</td><td colspan="5"><span class="badge fail">99.9%</span></td></tr></table>
+  </section>
+
+  <section>
+    <h2>HTTP metrics</h2>
+    <table><tr><th>Metric</th><th>avg</th><th>min</th><th>med</th><th>max</th><th>p95</th></tr><tr><td>http_req_receiving</td><td class="num">106.12</td><td class="num">0.01</td><td class="num">0.09</td><td class="num">15861.24</td><td class="num">385.86</td></tr><tr><td>http_req_tls_handshaking</td><td class="num">18.33</td><td class="num">0</td><td class="num">0</td><td class="num">750.67</td><td class="num">0</td></tr><tr><td>http_req_sending</td><td class="num">0.15</td><td class="num">0.02</td><td class="num">0.12</td><td class="num">11.94</td><td class="num">0.3</td></tr><tr><td>http_req_duration</td><td class="num">586.59</td><td class="num">5.9</td><td class="num">203.82</td><td class="num">30778.54</td><td class="num">1839.64</td></tr><tr><td>http_req_failed</td><td colspan="5"><span class="badge fail">0.1%</span></td></tr><tr><td>http_req_blocked</td><td class="num">19.79</td><td class="num">0</td><td class="num">0</td><td class="num">1624.11</td><td class="num">0</td></tr><tr><td>http_reqs</td><td colspan="5">5994 <span class="muted">(64.29/s)</span></td></tr><tr><td>http_req_duration{expected_response:true}</td><td class="num">587.17</td><td class="num">6.3</td><td class="num">204.66</td><td class="num">30778.54</td><td class="num">1841.36</td></tr><tr><td>http_req_connecting</td><td class="num">1.42</td><td class="num">0</td><td class="num">0</td><td class="num">1008.96</td><td class="num">0</td></tr><tr><td>http_req_waiting</td><td class="num">480.33</td><td class="num">5.78</td><td class="num">178.26</td><td class="num">30778.25</td><td class="num">667.3</td></tr></table>
+  </section>
+
+  <section>
+    <h2>Other metrics</h2>
+    <table><tr><th>Metric</th><th>avg</th><th>min</th><th>med</th><th>max</th><th>p95</th></tr><tr><td>data_sent</td><td colspan="5">1430859 <span class="muted">(15347.04/s)</span></td></tr><tr><td>iterations</td><td colspan="5">5791 <span class="muted">(62.11/s)</span></td></tr><tr><td>data_received</td><td colspan="5">209679728 <span class="muted">(2248972.74/s)</span></td></tr><tr><td>vus</td><td class="num">—</td><td class="num">2</td><td class="num">—</td><td class="num">200</td><td class="num">—</td></tr><tr><td>vus_max</td><td class="num">—</td><td class="num">200</td><td class="num">—</td><td class="num">200</td><td class="num">—</td></tr><tr><td>iteration_duration</td><td class="num">2630.07</td><td class="num">1012.18</td><td class="num">2342.77</td><td class="num">34678.11</td><td class="num">4056.27</td></tr></table>
+  </section></body>
+</html>
