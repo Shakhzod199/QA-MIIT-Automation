@@ -7,11 +7,13 @@ name: PMT Tests
 run-name: PMT Tests${{ (inputs.type != '' && inputs.type != 'frontend') && format(' [{0}]', inputs.type) || '' }}${{ inputs.triggered_by == 'gitlab-deploy' && ' (CI/CD)' || '' }}${{ inputs.test_filter && format(' — {0}', inputs.test_filter) || '' }}
 
 on:
-  # PMT is disabled (server-side login is broken on testpmt.miit.uz — see
-  # lib/disabledSuites.ts) — the daily cron schedule is removed so it stops
-  # firing on its own. The dashboard "Run" button is also disabled for this
-  # suite. workflow_dispatch is kept dispatchable (GitHub requires at least
-  # one trigger) but the job below exits immediately regardless of inputs.
+  # Daily full-suite run. GitHub cron is in UTC; 05:00 UTC = 10:00 Asia/Tashkent
+  # (UTC+5, no DST). Scheduled runs only fire from the default branch (main) and
+  # pass no test_filter, so the whole suite runs.
+  schedule:
+    - cron: "0 5 * * *"
+  # Manual — runs are also triggered from the dashboard "Run" button
+  # (workflow_dispatch).
   workflow_dispatch:
     inputs:
       type:
@@ -49,28 +51,17 @@ jobs:
       run:
         working-directory: playwright-tests
     steps:
-      - name: PMT disabled — server-side login is broken
-        run: |
-          echo "PMT testing is disabled until testpmt.miit.uz's login is fixed server-side." >&2
-          echo "Re-enable in .github/workflows/pmt-tests.yml and lib/disabledSuites.ts once resolved." >&2
-          exit 1
-
       - uses: actions/checkout@v4
-        if: false
 
       - uses: actions/setup-node@v4
-        if: false
         with:
           node-version: 20
 
       - run: npm ci
-        if: false
 
       - run: npx playwright install --with-deps chromium
-        if: false
 
       - name: Run PMT tests
-        if: false
         env:
           PMT_USERNAME: ${{ secrets.PMT_USERNAME }}
           PMT_PASSWORD: ${{ secrets.PMT_PASSWORD }}
