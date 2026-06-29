@@ -78,7 +78,16 @@ function RunProgressBar({ run, estimateSec }: { run: RunSummary; estimateSec: nu
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div
+      className="flex items-center gap-2"
+      title={
+        run.status === "in_progress"
+          ? `In progress — ~${Math.round(pct)}% through an estimated ${formatDuration(estimateSec)}`
+          : run.status === "queued"
+            ? "Queued — not started yet"
+            : `Completed — ${run.conclusion ?? "unknown outcome"}`
+      }
+    >
       <div className="h-2 w-28 overflow-hidden rounded-full bg-surface-border ring-1 ring-inset ring-surface-border">
         <div
           className={`h-full rounded-full ${fill} transition-[width] duration-1000 ease-linear ${animate ? "motion-safe:animate-pulse" : ""}`}

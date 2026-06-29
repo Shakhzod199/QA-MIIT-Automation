@@ -30,7 +30,7 @@ function HistoryStrip({ test }: { test: FlakyTest }) {
 function FlakeRateBar({ rate }: { rate: number }) {
   const pct = Math.round(rate * 100);
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2" title={`Flake rate: ${pct}% of runs for this test were flaky`}>
       <div className="h-2 w-16 overflow-hidden rounded-full bg-surface-border">
         <div className="h-full rounded-full bg-amber-500" style={{ width: `${Math.max(6, pct)}%` }} />
       </div>
@@ -56,10 +56,16 @@ function FlakyRow({ test }: { test: FlakyTest }) {
       </div>
 
       <div className="flex shrink-0 items-center gap-1.5 text-xs tabular-nums">
-        <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-emerald-300">{test.passed}P</span>
-        <span className="rounded bg-red-500/15 px-1.5 py-0.5 text-red-300">{test.failed}F</span>
+        <span title={`${test.passed} passed`} className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-emerald-300">
+          {test.passed}P
+        </span>
+        <span title={`${test.failed} failed`} className="rounded bg-red-500/15 px-1.5 py-0.5 text-red-300">
+          {test.failed}F
+        </span>
         {test.flaky > 0 && (
-          <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-amber-300">{test.flaky}~</span>
+          <span title={`${test.flaky} flaky`} className="rounded bg-amber-500/15 px-1.5 py-0.5 text-amber-300">
+            {test.flaky}~
+          </span>
         )}
       </div>
 

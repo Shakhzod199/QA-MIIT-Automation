@@ -23,7 +23,7 @@ function friendlyGroupName(file: string): string {
 
 function StatBlock({ label, value, tone }: { label: string; value: number; tone?: "good" | "bad" }) {
   return (
-    <div className="rounded-lg border border-surface-border bg-surface-panel p-4 text-center">
+    <div className="rounded-lg border border-surface-border bg-surface-panel p-4 text-center" title={`${label}: ${value}`}>
       <p
         className={`text-3xl font-semibold tabular-nums ${
           tone === "good" ? "text-emerald-400" : tone === "bad" ? "text-red-400" : "text-white"

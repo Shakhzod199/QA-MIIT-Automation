@@ -117,21 +117,28 @@ function TriggerComparisonCards({
   }
   return (
     <div className="grid grid-cols-2 gap-3">
-      {items.map((i) => (
-        <div key={i.source} className="rounded-md border border-surface-border bg-surface-hover/30 p-3">
-          <div className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: SOURCE_COLORS[i.source] }} />
-            <span className="text-xs font-medium text-gray-300">
-              {i.source === "ci-cd" ? t("table.triggerCi") : t("table.triggerManual")}
-            </span>
+      {items.map((i) => {
+        const label = i.source === "ci-cd" ? t("table.triggerCi") : t("table.triggerManual");
+        const title =
+          i.count > 0
+            ? `${label}: ${i.passRate}% pass rate over ${i.count} ${t("trends.runs")}${
+                i.avgDurationSec != null ? `, avg ${formatDuration(i.avgDurationSec)}` : ""
+              }`
+            : `${label}: no runs yet`;
+        return (
+          <div key={i.source} title={title} className="rounded-md border border-surface-border bg-surface-hover/30 p-3">
+            <div className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: SOURCE_COLORS[i.source] }} />
+              <span className="text-xs font-medium text-gray-300">{label}</span>
+            </div>
+            <p className="mt-2 text-xl font-semibold text-white">{i.count > 0 ? `${i.passRate}%` : "—"}</p>
+            <p className="text-[11px] text-gray-500">
+              {i.count} {t("trends.runs")}
+              {i.avgDurationSec != null ? ` · ${formatDuration(i.avgDurationSec)} ${t("trends.avgAbbrev")}` : ""}
+            </p>
           </div>
-          <p className="mt-2 text-xl font-semibold text-white">{i.count > 0 ? `${i.passRate}%` : "—"}</p>
-          <p className="text-[11px] text-gray-500">
-            {i.count} {t("trends.runs")}
-            {i.avgDurationSec != null ? ` · ${formatDuration(i.avgDurationSec)} ${t("trends.avgAbbrev")}` : ""}
-          </p>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -151,6 +158,7 @@ function SlowestRunsList({
         <li key={run.id}>
           <Link
             href={`/reports/${run.id}`}
+            title={`#${run.runNumber} · ${run.name} · ${run.conclusion ?? "?"} · ${formatDuration(run.durationSec)} · ${formatRelativeTime(run.createdAt)}`}
             className="flex items-center gap-3 rounded-md px-2 py-1.5 transition hover:bg-surface-hover"
           >
             <span className="w-4 shrink-0 text-xs tabular-nums text-gray-500">#{i + 1}</span>
@@ -388,7 +396,10 @@ function SuiteTable({ runs }: { runs: RunSummary[] }) {
               </td>
               <td className="px-4 py-3 tabular-nums text-gray-300">{s.total}</td>
               <td className="px-4 py-3">
-                <div className="flex items-center gap-2">
+                <div
+                  className="flex items-center gap-2"
+                  title={`${s.passRate}% pass rate — ${s.passed} passed, ${s.failed} failed of ${s.completed} completed`}
+                >
                   <div className="h-1.5 w-16 overflow-hidden rounded-full bg-surface-border">
                     <div
                       className={`h-full rounded-full ${s.passRate >= 80 ? "bg-emerald-500" : s.passRate >= 50 ? "bg-amber-500" : "bg-red-500"}`}
