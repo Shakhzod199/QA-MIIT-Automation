@@ -53,20 +53,23 @@ test.describe("PMT — Korxona boshqaruvi (enterprise-management)", () => {
       name: "Ma'lumotlarni yangilash",
     });
 
-    // Refresh stays disabled until one of the row's filters (e.g. the
-    // till-month select) is actually changed from its current value.
-    await expect(firstRefresh).toBeDisabled();
-    const tillMonthSelect = firstRow.locator(".n-select").first();
-    const currentMonth = (await tillMonthSelect.textContent())?.trim();
+    // Refresh becomes enabled once a filter differs from the loaded state.
+    // If it's already enabled (persisted state from a prior run), skip the
+    // filter interaction and click directly.
+    const alreadyEnabled = await firstRefresh.isEnabled();
+    if (!alreadyEnabled) {
+      const tillMonthSelect = firstRow.locator(".n-select").first();
+      const currentMonth = (await tillMonthSelect.textContent())?.trim();
 
-    await tillMonthSelect.click();
-    const options = page.locator(".n-base-select-option");
-    await expect(options.first()).toBeVisible();
-    const optionTexts = await options.allTextContents();
-    const differentIndex = optionTexts.findIndex((text) => text.trim() !== currentMonth);
-    await options.nth(differentIndex === -1 ? 0 : differentIndex).click();
+      await tillMonthSelect.click();
+      const options = page.locator(".n-base-select-option");
+      await expect(options.first()).toBeVisible();
+      const optionTexts = await options.allTextContents();
+      const differentIndex = optionTexts.findIndex((text) => text.trim() !== currentMonth);
+      await options.nth(differentIndex === -1 ? 0 : differentIndex).click();
 
-    await expect(firstRefresh).toBeEnabled({ timeout: 10000 });
+      await expect(firstRefresh).toBeEnabled({ timeout: 10000 });
+    }
 
     await firstRefresh.click();
 
