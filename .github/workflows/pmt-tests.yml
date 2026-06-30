@@ -65,24 +65,23 @@ jobs:
         env:
           PMT_USERNAME: ${{ secrets.PMT_USERNAME }}
           PMT_PASSWORD: ${{ secrets.PMT_PASSWORD }}
+          PMT_API_BASE_URL: https://testpmt.miit.uz/api
           TYPE: ${{ inputs.type }}
           TEST_FILTER: ${{ inputs.test_filter }}
         run: |
-          # Branch on the test type. frontend is the default and keeps the
-          # current behaviour; api/load are placeholders until those suites
-          # exist (they fail loudly so a premature dispatch is obvious).
           case "${TYPE:-frontend}" in
             load)
               echo "Load (K6) tests are not configured yet for PMT." >&2
               exit 1 ;;
             api)
-              echo "API smoke tests are not configured yet for PMT." >&2
-              exit 1 ;;
+              if [ -n "$TEST_FILTER" ]; then
+                echo "Running selected API tests: $TEST_FILTER"
+                npx playwright test --project=pmt-api $TEST_FILTER
+              else
+                npx playwright test --project=pmt-api
+              fi ;;
             *)
               if [ -n "$TEST_FILTER" ]; then
-                # TEST_FILTER may hold several space-separated filters (multi-
-                # select in the dashboard). Leave it unquoted so each becomes its
-                # own positional arg; Playwright runs any test matching any.
                 echo "Running selected tests: $TEST_FILTER"
                 npx playwright test --project=pmt $TEST_FILTER
               else

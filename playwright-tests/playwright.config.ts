@@ -151,6 +151,16 @@ export default defineConfig({
       use: { baseURL: process.env.PMI_API_BASE_URL ?? "https://apiproject.miit.uz" },
     },
 
+    // ── PMT backend (api tests driven from the Postman collection) ───────────
+    // No browser — uses Playwright's `request` fixture. Cookie-based auth:
+    // POST /auth/login sets the accessToken httpOnly cookie, which the context
+    // carries automatically for all subsequent calls.
+    {
+      name: "pmt-api",
+      testDir: "./tests/pmt-api",
+      use: { baseURL: process.env.PMT_API_BASE_URL ?? "https://testpmt.miit.uz/api" },
+    },
+
     // ── export backend (api tests against the real Swagger-documented API) ──
     // No browser — uses Playwright's `request` fixture. Selected via the
     // "api" workflow_dispatch type.
