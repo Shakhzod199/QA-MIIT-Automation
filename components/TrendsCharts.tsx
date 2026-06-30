@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useI18n } from "@/components/I18nProvider";
 import { formatDuration, formatRelativeTime } from "@/lib/format";
 import {
-  durationSeries,
   passRateByProject,
   runTypeBreakdown,
   slowestRuns,
@@ -200,165 +199,124 @@ function ResultStrip({ recent }: { recent: { id: number; status: string; conclus
   );
 }
 
-function DurationChart({ runs }: { runs: RunSummary[] }) {
-  const { t } = useI18n();
-  const series = useMemo(() => durationSeries(runs), [runs]);
-  const max = Math.max(1, ...series.map((p) => p.durationSec));
-  const avg = series.length
-    ? Math.round(series.reduce((s, p) => s + p.durationSec, 0) / series.length)
-    : 0;
+/** Shared SVG line chart — renders per-project polylines with grid lines and axis labels. */
+function LineChart({
+  title,
+  series,
+  yMaxLabel,
+  yMinLabel,
+}: {
+  title: string;
+  series: { name: string; color: string; points: number[] }[];
+  yMaxLabel: string;
+  yMinLabel: string;
+}) {
+  const allVals = series.flatMap((s) => s.points);
+  const maxVal = Math.max(1, ...allVals);
 
-  if (series.length === 0) {
-    return <p className="text-sm text-gray-500">No completed runs to chart yet.</p>;
-  }
+  const toPoints = (values: number[]) => {
+    const n = values.length;
+    if (n < 2) return "";
+    return values
+      .map((v, i) => {
+        const x = ((i / (n - 1)) * 556 + 2).toFixed(1);
+        const y = (14 + (1 - v / maxVal) * 142).toFixed(1);
+        return `${x},${y}`;
+      })
+      .join(" ");
+  };
 
   return (
-    <div>
-      <div className="relative h-44">
-        {/* duration gridlines + axis labels */}
-        {[0, 50, 100].map((g) => (
-          <div key={g} className="absolute inset-x-0 border-t border-surface-border/50" style={{ top: `${g}%` }}>
-            <span className="absolute -top-2 left-0 text-[10px] tabular-nums text-gray-600">
-              {formatDuration(Math.round((max * (100 - g)) / 100))}
-            </span>
-          </div>
-        ))}
-
-        {/* average reference line */}
-        {avg > 0 && (
-          <div
-            className="absolute inset-x-0 z-10 border-t border-dashed border-q-green/50"
-            style={{ top: `${(1 - avg / max) * 100}%` }}
-          >
-            <span className="absolute -top-2 right-0 rounded bg-surface-panel/80 px-1 font-mono text-[10px] font-medium text-q-green">
-              avg {formatDuration(avg)}
-            </span>
-          </div>
-        )}
-
-        {/* bars */}
-        <div className="absolute inset-0 flex items-end gap-px pl-10">
-          {series.map((p) => (
-            <Link
-              key={p.id}
-              href={`/reports/${p.id}`}
-              title={`#${p.runNumber} · ${p.name} · ${p.conclusion ?? "?"} · ${formatDuration(p.durationSec)} · ${formatRelativeTime(p.createdAt)}`}
-              className="group flex flex-1 items-end"
-              style={{ minWidth: 3 }}
-            >
-              <div
-                className={`w-full rounded-t-sm transition-all group-hover:brightness-125 ${barColor(p.conclusion)}`}
-                style={{ height: `${Math.max(2, (p.durationSec / max) * 100)}%` }}
-              />
-            </Link>
+    <div className="rounded-[12px] border border-surface-border bg-surface-panel p-[18px]">
+      <div className="flex items-center justify-between gap-4">
+        <div className="text-[13px] font-semibold text-q-text">{title}</div>
+        <div className="flex flex-wrap items-center gap-3 font-mono text-[10.5px]">
+          {series.map((s) => (
+            <span key={s.name} style={{ color: s.color }}>● {s.name}</span>
           ))}
         </div>
       </div>
-
-      {/* outcome legend */}
-      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
-        <LegendDot className="bg-q-green/80" label={t("status.passed")} />
-        <LegendDot className="bg-q-red/80" label={t("status.failed")} />
-        <LegendDot className="bg-q-amber/70" label={t("status.cancelled")} />
-      </div>
-
-      <div className="mt-2 flex items-center justify-between text-[11px] text-gray-500">
-        <span>{formatRelativeTime(series[0].createdAt)}</span>
-        <span>{series.length} runs · max {formatDuration(max)}</span>
-        <span>{formatRelativeTime(series[series.length - 1].createdAt)}</span>
+      <svg viewBox="0 0 560 170" className="mt-2.5 block h-[160px] w-full" preserveAspectRatio="none">
+        {[15, 62, 109, 156].map((y) => (
+          <line key={y} x1="0" y1={y} x2="560" y2={y} stroke="rgba(255,255,255,0.05)" />
+        ))}
+        {series.map((s) => (
+          <polyline
+            key={s.name}
+            points={toPoints(s.points)}
+            fill="none"
+            stroke={s.color}
+            strokeWidth="2.5"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+            vectorEffect="non-scaling-stroke"
+          />
+        ))}
+      </svg>
+      <div className="mt-0.5 flex items-center justify-between font-mono text-[10px] text-q-dim">
+        <span>{yMaxLabel}</span>
+        <span>run index →</span>
+        <span>{yMinLabel}</span>
       </div>
     </div>
   );
 }
 
-function PassRateChart({ runs }: { runs: RunSummary[] }) {
-  const { series, minT, maxT } = useMemo(() => passRateByProject(runs, 5), [runs]);
+function DurationLineChart({ runs }: { runs: RunSummary[] }) {
+  const { t } = useI18n();
+  const chartSeries = useMemo(() => {
+    const completed = runs.filter((r) => r.status === "completed" && r.durationSec != null);
+    const byName = new Map<string, number[]>();
+    for (const r of [...completed].sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    )) {
+      if (!byName.has(r.name)) byName.set(r.name, []);
+      byName.get(r.name)!.push(r.durationSec as number);
+    }
+    return Array.from(byName.entries())
+      .map(([name, points], idx) => ({ name, color: colorFor(idx), points: points.slice(-10) }))
+      .filter((s) => s.points.length >= 2);
+  }, [runs]);
 
-  const totalPoints = series.reduce((sum, s) => sum + s.points.length, 0);
-  if (totalPoints === 0) {
-    return <p className="text-sm text-gray-500">No completed runs to chart yet.</p>;
+  if (chartSeries.length === 0) {
+    return (
+      <div className="rounded-[12px] border border-surface-border bg-surface-panel p-[18px]">
+        <p className="text-[13px] font-semibold text-q-text">{t("trends.durationChart")}</p>
+        <p className="mt-8 text-center text-[13px] text-q-muted">No completed runs yet.</p>
+      </div>
+    );
   }
 
-  // X-axis is per-project run recency (newest run pinned to the right edge),
-  // NOT wall-clock time. This way every project renders as its own full line
-  // that overlays the others for comparison, instead of being strung
-  // end-to-end on a shared timeline (which made them look like one line).
-  const maxLen = Math.max(...series.map((s) => s.points.length));
-  const step = maxLen > 1 ? 96 / (maxLen - 1) : 0;
-  // i = point index within its series (0 = oldest), len = that series' length.
-  const xFor = (i: number, len: number) => 98 - (len - 1 - i) * step;
-  // Pad the vertical range so 0% / 100% lines aren't clipped against the edges.
-  const PAD = 10;
-  const yFor = (rate: number) => PAD + (1 - rate) * (100 - 2 * PAD);
-
+  const maxDur = Math.max(...chartSeries.flatMap((s) => s.points));
   return (
-    <div>
-      <div className="relative h-44 w-full overflow-hidden rounded-[8px] bg-surface-hover/30">
-        {/* gridlines at 100 / 50 / 0% */}
-        {[100, 50, 0].map((pct) => (
-          <div
-            key={pct}
-            className="absolute inset-x-0 border-t border-surface-border/60"
-            style={{ top: `${yFor(pct / 100)}%` }}
-          >
-            <span className="absolute -top-2 left-1 text-[10px] text-gray-600">{pct}%</span>
-          </div>
-        ))}
-
-        {/* one line per project */}
-        <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-          {series.map((s, idx) => {
-            if (s.points.length < 2) return null;
-            const line = s.points
-              .map((p, i) => `${xFor(i, s.points.length).toFixed(2)},${yFor(p.rate).toFixed(2)}`)
-              .join(" ");
-            return (
-              <polyline
-                key={s.name}
-                points={line}
-                fill="none"
-                stroke={colorFor(idx)}
-                strokeWidth={2}
-                vectorEffect="non-scaling-stroke"
-                strokeLinejoin="round"
-                strokeLinecap="round"
-              />
-            );
-          })}
-        </svg>
-
-        {/* round data-point markers (HTML so they aren't distorted by the stretched svg) */}
-        {series.map((s, idx) =>
-          s.points.map((p, i) => (
-            <span
-              key={`${s.name}-${p.runNumber}-${p.t}`}
-              title={`${s.name} · #${p.runNumber} · ${Math.round(p.rate * 100)}% · ${formatRelativeTime(p.createdAt)}`}
-              className="absolute h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-surface-panel"
-              style={{ left: `${xFor(i, s.points.length)}%`, top: `${yFor(p.rate)}%`, backgroundColor: colorFor(idx) }}
-            />
-          ))
-        )}
-      </div>
-
-      {/* per-project legend with latest pass rate */}
-      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
-        {series.map((s, idx) => (
-          <LegendDot
-            key={s.name}
-            color={colorFor(idx)}
-            label={s.name}
-            value={`${Math.round(s.points[s.points.length - 1].rate * 100)}%`}
-          />
-        ))}
-      </div>
-
-      <div className="mt-2 flex items-center justify-between text-[11px] text-gray-500">
-        <span>{formatRelativeTime(new Date(minT).toISOString())}</span>
-        <span>5-run trailing pass rate</span>
-        <span>{formatRelativeTime(new Date(maxT).toISOString())}</span>
-      </div>
-    </div>
+    <LineChart
+      title={t("trends.durationChart")}
+      series={chartSeries}
+      yMaxLabel={formatDuration(Math.round(maxDur))}
+      yMinLabel="0s"
+    />
   );
+}
+
+function PassRateLineChart({ runs, title }: { runs: RunSummary[]; title: string }) {
+  const { series } = useMemo(() => passRateByProject(runs, 10), [runs]);
+  const chartSeries = series
+    .filter((s) => s.points.length >= 2)
+    .map((s, idx) => ({
+      name: s.name,
+      color: colorFor(idx),
+      points: s.points.map((p) => p.rate * 100),
+    }));
+
+  if (chartSeries.length === 0) {
+    return (
+      <div className="rounded-[12px] border border-surface-border bg-surface-panel p-[18px]">
+        <p className="text-[13px] font-semibold text-q-text">{title}</p>
+        <p className="mt-8 text-center text-[13px] text-q-muted">No completed runs yet.</p>
+      </div>
+    );
+  }
+  return <LineChart title={title} series={chartSeries} yMaxLabel="100%" yMinLabel="0%" />;
 }
 
 function SuiteTable({ runs }: { runs: RunSummary[] }) {
@@ -471,13 +429,9 @@ function StatsSection({ runs, type }: { runs: RunSummary[]; type?: RunSummary["r
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <ChartCard title={t("trends.durationChart")}>
-          <DurationChart runs={runs} />
-        </ChartCard>
-        <ChartCard title={passRateChartTitle}>
-          <PassRateChart runs={runs} />
-        </ChartCard>
+      <div className="grid grid-cols-1 gap-[14px] lg:grid-cols-2">
+        <PassRateLineChart runs={runs} title={passRateChartTitle} />
+        <DurationLineChart runs={runs} />
       </div>
 
       <ChartCard title={t("trends.statusBreakdown")}>
