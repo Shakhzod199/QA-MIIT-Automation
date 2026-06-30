@@ -39,11 +39,11 @@ test.describe("PMT — Monitoring", () => {
   }) => {
     const dailyRow = page.locator(".n-data-table-tbody .n-data-table-tr").first();
     await expect(dailyRow).toBeVisible({ timeout: 20000 });
-    // The user cell renders as "<Name><JSHSHIR>" via separate sibling spans
-    // with no separator in the DOM text, so isolate the name (leading
-    // non-digit run) to match against the drill-in header afterwards.
-    const userCellText = (await dailyRow.locator("td").nth(1).textContent())?.trim() ?? "";
-    const userName = userCellText.match(/^\D+/)?.[0]?.trim();
+    // The user cell renders name and role/JSHSHIR in separate sibling spans;
+    // read only the first span to avoid the role suffix being captured.
+    const userName = (
+      await dailyRow.locator("td").nth(1).locator("span").first().textContent()
+    )?.trim();
 
     await dailyRow.click();
 

@@ -103,7 +103,6 @@ test.describe("PMT — Korxonalar (organizations) filter", () => {
   test("Drawer — applies every filter field and clearing resets them", async ({
     page,
   }) => {
-    test.setTimeout(120000);
     await waitForOrganizationsTable(page);
 
     // Open the right-hand filter drawer.

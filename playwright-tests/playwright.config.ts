@@ -136,9 +136,12 @@ export default defineConfig({
     },
 
     // ── pmt frontend ─────────────────────────────────────────────────────────
+    // testpmt.miit.uz can't handle many concurrent logins — run with
+    // --workers=2 to avoid parallel login failures. 60s timeout matches pmi.
     {
       name: "pmt",
       testDir: "./tests/pmt",
+      timeout: 60000,
       use: { ...devices["Desktop Chrome"], baseURL: process.env.PMT_BASE_URL ?? "http://localhost:3000" },
     },
 
