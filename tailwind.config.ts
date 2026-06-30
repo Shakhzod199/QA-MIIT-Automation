@@ -10,11 +10,11 @@ const config: Config = {
       },
       colors: {
         surface: {
-          DEFAULT: "#0d0f13",
-          sidebar: "#0a0c10",
-          panel: "#14171c",
-          border: "rgba(255,255,255,0.06)",
-          hover: "#1e2229",
+          DEFAULT: "#161920",
+          sidebar: "#111419",
+          panel: "#1d2028",
+          border: "rgba(255,255,255,0.08)",
+          hover: "#252931",
         },
         q: {
           green: "#3ddc97",

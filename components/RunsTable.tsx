@@ -311,7 +311,7 @@ export function RunsTable({
               key={run.id}
               className="border-b border-surface-border last:border-0 transition-colors"
               style={{ borderColor: "rgba(255,255,255,0.04)" }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = "#1e2229")}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "#252931")}
               onMouseLeave={(e) => (e.currentTarget.style.background = "")}
             >
               <td className="px-4 py-3">

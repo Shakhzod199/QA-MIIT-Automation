@@ -32,7 +32,7 @@ export default function FlakyPage() {
                 key={w}
                 onClick={() => setWindowSize(w)}
                 className="rounded-[6px] px-2.5 py-1 font-mono text-[11px] font-medium transition"
-                style={windowSize === w ? { background: "#1e2229", color: "#e8ecf1" } : { color: "#8a93a0" }}
+                style={windowSize === w ? { background: "#252931", color: "#e8ecf1" } : { color: "#8a93a0" }}
               >
                 {w}
               </button>

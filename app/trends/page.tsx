@@ -27,13 +27,13 @@ export default function TrendsPage() {
         </div>
         <div className="flex items-center gap-2">
           <span className="text-[12px] font-medium text-q-dim">{t("trends.last")}</span>
-          <div className="flex items-center gap-0 rounded-[9px] border border-surface-border p-[3px]" style={{ background: "#16191f" }}>
+          <div className="flex items-center gap-0 rounded-[9px] border border-surface-border p-[3px]" style={{ background: "#1c2028" }}>
             {WINDOWS.map((w) => (
               <button
                 key={w}
                 onClick={() => setCount(w)}
                 className={`rounded-[6px] px-3 py-[5px] font-mono text-[12px] transition ${
-                  count === w ? "bg-[#272d36] font-semibold text-q-text" : "font-medium text-q-muted hover:text-q-sub"
+                  count === w ? "bg-[#2a2f3a] font-semibold text-q-text" : "font-medium text-q-muted hover:text-q-sub"
                 }`}
               >
                 {w}
