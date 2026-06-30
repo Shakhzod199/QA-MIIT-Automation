@@ -23,27 +23,28 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      <div className="w-full max-w-sm rounded-xl border border-surface-border bg-surface-panel p-8">
+    <div className="flex min-h-screen items-center justify-center bg-surface">
+      <div className="w-full max-w-sm rounded-[14px] border border-surface-border bg-surface-panel p-8">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-indigo-600/20">
-            <svg className="h-6 w-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-            </svg>
+          <div
+            className="mx-auto mb-4 flex h-11 w-11 items-center justify-center rounded-[10px] text-[20px] font-bold text-[#06140d]"
+            style={{ background: "linear-gradient(135deg,#3ddc97,#1f9d6b)" }}
+          >
+            Q
           </div>
-          <h1 className="text-xl font-semibold text-white">QA Dashboard</h1>
-          <p className="mt-1 text-sm text-gray-500">Sign in to continue</p>
+          <h1 className="text-[18px] font-semibold tracking-[-0.3px] text-q-text">QA Dashboard</h1>
+          <p className="mt-1 text-[12.5px] text-q-muted">Sign in to continue</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-400">Username</label>
+            <label className="mb-1.5 block text-[12px] font-medium text-q-muted">Username</label>
             <input
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full rounded-md border border-surface-border bg-surface-hover px-3 py-2 text-sm text-gray-200 placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full rounded-[9px] border border-surface-border bg-surface-hover px-3 py-2 text-[13px] text-q-text placeholder:text-q-dim focus:outline-none"
+              style={{ caretColor: "#3ddc97" }}
               placeholder="Enter username"
               autoComplete="username"
               required
@@ -51,12 +52,13 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-400">Password</label>
+            <label className="mb-1.5 block text-[12px] font-medium text-q-muted">Password</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-md border border-surface-border bg-surface-hover px-3 py-2 text-sm text-gray-200 placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full rounded-[9px] border border-surface-border bg-surface-hover px-3 py-2 text-[13px] text-q-text placeholder:text-q-dim focus:outline-none"
+              style={{ caretColor: "#3ddc97" }}
               placeholder="Enter password"
               autoComplete="current-password"
               required
@@ -64,7 +66,10 @@ export default function LoginPage() {
           </div>
 
           {error && (
-            <p className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-400">
+            <p
+              className="rounded-[8px] border px-3 py-2 text-[12.5px]"
+              style={{ borderColor: "rgba(255,93,93,0.3)", background: "rgba(255,93,93,0.08)", color: "#ff5d5d" }}
+            >
               {error}
             </p>
           )}
@@ -72,7 +77,8 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={isPending}
-            className="w-full rounded-md bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-[9px] px-4 py-2.5 text-[13px] font-bold transition disabled:cursor-not-allowed disabled:opacity-60"
+            style={{ background: "#3ddc97", color: "#06140d" }}
           >
             {isPending ? "Signing in…" : "Sign in"}
           </button>

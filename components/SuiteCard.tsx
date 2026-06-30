@@ -61,20 +61,20 @@ export function SuiteCard({
   };
 
   return (
-    <div className="flex flex-col justify-between rounded-lg border border-surface-border bg-surface-panel p-4">
+    <div className="flex flex-col justify-between rounded-[12px] border border-surface-border bg-surface-panel p-4 transition hover:border-[rgba(61,220,151,0.2)]">
       <div>
-        <h3 className="font-medium text-white">{workflow.name}</h3>
+        <h3 className="text-[13px] font-semibold text-q-text">{workflow.name}</h3>
         {workflow.state !== "active" && (
-          <p className="mt-1 text-xs text-amber-500">workflow is {workflow.state}</p>
+          <p className="mt-1 text-[11px] text-q-amber">workflow is {workflow.state}</p>
         )}
-        {disabledReason && <p className="mt-1 text-xs text-amber-500">{disabledReason}</p>}
+        {disabledReason && <p className="mt-1 text-[11px] text-q-amber">{disabledReason}</p>}
       </div>
       <div className="mt-4 flex items-center justify-between">
         <a
           href={workflow.htmlUrl}
           target="_blank"
           rel="noreferrer"
-          className="text-xs text-gray-500 hover:text-gray-300"
+          className="text-[12px] text-q-dim transition hover:text-q-muted"
         >
           {t("suite.viewOnGithub")}
         </a>
@@ -82,7 +82,7 @@ export function SuiteCard({
           {showRunSeparately && (
             <Link
               href={`/suites/${workflow.id}`}
-              className="inline-flex items-center rounded-md border border-surface-border px-3 py-1.5 text-sm font-medium text-gray-300 transition hover:border-gray-500 hover:text-white"
+              className="inline-flex items-center rounded-[8px] border border-surface-border px-3 py-1.5 text-[12px] font-medium text-q-sub transition hover:border-[rgba(255,255,255,0.15)] hover:text-q-text"
             >
               {t("suite.runSeparately")}
             </Link>
@@ -91,18 +91,11 @@ export function SuiteCard({
             <button
               onClick={handleRun}
               disabled={busy}
-              className={[
-                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-white transition disabled:cursor-not-allowed",
-                "bg-indigo-600 hover:bg-indigo-500 disabled:opacity-70",
-              ].join(" ")}
+              className="inline-flex items-center gap-1.5 rounded-[8px] px-3 py-1.5 text-[12px] font-bold transition disabled:cursor-not-allowed disabled:opacity-60"
+              style={{ background: "#3ddc97", color: "#06140d" }}
             >
               {busy && (
-                <svg
-                  className="h-3.5 w-3.5 animate-spin"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
+                <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
@@ -112,7 +105,7 @@ export function SuiteCard({
           )}
         </div>
       </div>
-      {error && <p className="mt-2 text-xs text-red-400">{error}</p>}
+      {error && <p className="mt-2 text-[11px] text-q-red">{error}</p>}
     </div>
   );
 }

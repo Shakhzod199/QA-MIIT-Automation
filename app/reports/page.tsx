@@ -63,11 +63,11 @@ export default function ReportsPage() {
   }, [runs, search, statusFilter, projectFilter, sortOrder]);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-6">
+      <div className="flex items-center justify-between border-b border-surface-border pb-5">
         <div>
-          <h2 className="text-2xl font-semibold text-white">{t("reports.title")}</h2>
-          <p className="text-sm text-gray-500">{t("reports.subtitle")}</p>
+          <h2 className="text-[19px] font-semibold tracking-[-0.4px] text-q-text">{t("reports.title")}</h2>
+          <p className="mt-[3px] text-[12.5px] text-q-muted">{t("reports.subtitle")}</p>
         </div>
         <RefreshButton onRefresh={() => mutate()} />
       </div>
@@ -78,19 +78,21 @@ export default function ReportsPage() {
           placeholder={t("reports.search")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full rounded-md border border-surface-border bg-surface-panel px-3 py-2 text-sm text-gray-200 placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:max-w-sm"
+          className="w-full rounded-[9px] border border-surface-border bg-surface-panel px-3 py-2 text-[13px] text-q-text placeholder:text-q-dim focus:outline-none sm:max-w-sm"
+          style={{ caretColor: "#3ddc97" }}
         />
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1 rounded-md border border-surface-border bg-surface-panel p-1">
+          <div className="flex items-center gap-1 rounded-[9px] border border-surface-border bg-surface-panel p-1">
             {STATUS_FILTERS.map((filter) => (
               <button
                 key={filter.value}
                 onClick={() => setStatusFilter(filter.value)}
-                className={`rounded px-3 py-1 text-sm font-medium transition ${
+                className="rounded-[6px] px-3 py-1 text-[12px] font-medium transition"
+                style={
                   statusFilter === filter.value
-                    ? "bg-indigo-600 text-white"
-                    : "text-gray-400 hover:text-white"
-                }`}
+                    ? { background: "rgba(61,220,151,0.14)", color: "#3ddc97" }
+                    : { color: "#8a93a0" }
+                }
               >
                 {t(filter.key)}
               </button>
@@ -99,7 +101,7 @@ export default function ReportsPage() {
           <select
             value={projectFilter}
             onChange={(e) => setProjectFilter(e.target.value)}
-            className="rounded-md border border-surface-border bg-surface-panel px-3 py-2 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="rounded-[9px] border border-surface-border bg-surface-panel px-3 py-2 text-[12px] text-q-text focus:outline-none"
           >
             <option value="all">{t("reports.allProjects")}</option>
             {projectNames.map((name) => (
@@ -109,7 +111,7 @@ export default function ReportsPage() {
           <select
             value={sortOrder}
             onChange={(e) => setSortOrder(e.target.value as SortOrder)}
-            className="rounded-md border border-surface-border bg-surface-panel px-3 py-2 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="rounded-[9px] border border-surface-border bg-surface-panel px-3 py-2 text-[12px] text-q-text focus:outline-none"
           >
             <option value="newest">{t("reports.newest")}</option>
             <option value="oldest">{t("reports.oldest")}</option>
@@ -117,10 +119,10 @@ export default function ReportsPage() {
         </div>
       </div>
 
-      <p className="text-sm text-gray-500">{filteredRuns.length} {t("reports.shown")}</p>
+      <p className="font-mono text-[11px] text-q-dim">{filteredRuns.length} {t("reports.shown")}</p>
 
       {filteredRuns.length === 0 ? (
-        <div className="rounded-lg border border-surface-border bg-surface-panel p-8 text-center text-sm text-gray-500">
+        <div className="rounded-[12px] border border-surface-border bg-surface-panel p-8 text-center text-[13px] text-q-muted">
           {t("reports.noMatch")}
         </div>
       ) : (

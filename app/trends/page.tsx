@@ -22,25 +22,25 @@ export default function TrendsPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-semibold text-white">{t("trends.title")}</h2>
-          <p className="mt-1 max-w-2xl text-sm text-gray-500">{t("trends.subtitle")}</p>
+          <h2 className="text-[21px] font-semibold tracking-[-0.5px] text-q-text">{t("trends.title")}</h2>
+          <p className="mt-1 max-w-2xl text-[12.5px] text-q-muted">{t("trends.subtitle")}</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-500">{t("trends.last")}</span>
-          <div className="flex items-center gap-1 rounded-lg border border-surface-border bg-surface-panel p-1">
+          <span className="text-[12px] font-medium text-q-dim">{t("trends.last")}</span>
+          <div className="flex items-center gap-0 rounded-[9px] border border-surface-border p-[3px]" style={{ background: "#16191f" }}>
             {WINDOWS.map((w) => (
               <button
                 key={w}
                 onClick={() => setCount(w)}
-                className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
-                  count === w ? "bg-surface-hover text-white" : "text-gray-400 hover:text-white"
+                className={`rounded-[6px] px-3 py-[5px] font-mono text-[12px] transition ${
+                  count === w ? "bg-[#272d36] font-semibold text-q-text" : "font-medium text-q-muted hover:text-q-sub"
                 }`}
               >
                 {w}
               </button>
             ))}
           </div>
-          <span className="text-xs text-gray-500">{t("trends.runs")}</span>
+          <span className="text-[12px] font-medium text-q-dim">{t("trends.runs")}</span>
         </div>
       </div>
 

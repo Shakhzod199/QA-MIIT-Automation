@@ -34,12 +34,12 @@ export function TypeTabs({ workflowId, active }: { workflowId: number; active: S
             key={tab.type}
             type="button"
             onClick={() => go(tab.type)}
-            className={[
-              "px-4 py-2 text-sm font-medium transition",
+            className="px-4 py-2 text-[13px] font-medium transition"
+            style={
               isActive
-                ? "border-b-2 border-indigo-500 text-white"
-                : "border-b-2 border-transparent text-gray-500 hover:text-gray-300",
-            ].join(" ")}
+                ? { borderBottom: "2px solid #3ddc97", color: "#3ddc97", marginBottom: -1 }
+                : { borderBottom: "2px solid transparent", color: "#8a93a0", marginBottom: -1 }
+            }
           >
             {t(tab.key)}
           </button>

@@ -19,9 +19,9 @@ import type { RunSummary } from "@/lib/types";
 // Matches RunTypeBadge (components/RunsTable.tsx) so a type means the same
 // color everywhere on the dashboard.
 const TYPE_COLORS: Record<RunSummary["runType"], string> = {
-  frontend: "#a78bfa",
-  api: "#0ea5e9",
-  load: "#f59e0b",
+  frontend: "#8b5cf6",
+  api: "#2dd4bf",
+  load: "#ff5fa2",
 };
 const TYPE_LABEL_KEYS: Record<RunSummary["runType"], string> = {
   frontend: "suite.frontend",
@@ -30,44 +30,44 @@ const TYPE_LABEL_KEYS: Record<RunSummary["runType"], string> = {
 };
 // Matches TriggerSourceBadge.
 const SOURCE_COLORS: Record<RunSummary["triggerSource"], string> = {
-  manual: "#9ca3af",
-  "ci-cd": "#a855f7",
+  manual: "#5b636e",
+  "ci-cd": "#8b5cf6",
 };
 // Matches StatusBadge (components/RunsTable.tsx).
 const STATUS_COLORS = {
-  passed: "#10b981",
-  failed: "#ef4444",
-  cancelled: "#f59e0b",
-  other: "#6b7280",
+  passed: "#3ddc97",
+  failed: "#ff5d5d",
+  cancelled: "#f5b544",
+  other: "#5b636e",
 } as const;
 
 function barColor(conclusion: string | null): string {
-  if (conclusion === "success") return "bg-emerald-500/80 hover:bg-emerald-400";
-  if (conclusion === "failure") return "bg-red-500/80 hover:bg-red-400";
-  if (conclusion === "cancelled") return "bg-amber-500/70 hover:bg-amber-400";
-  return "bg-gray-600 hover:bg-gray-500";
+  if (conclusion === "success") return "bg-q-green/80 hover:bg-q-green";
+  if (conclusion === "failure") return "bg-q-red/80 hover:bg-q-red";
+  if (conclusion === "cancelled") return "bg-q-amber/70 hover:bg-q-amber";
+  return "bg-[#5b636e] hover:bg-[#8a93a0]";
 }
 
 // Stable per-project line colors (cycles if there are more projects than colors).
-const PROJECT_COLORS = ["#6366f1", "#10b981", "#f59e0b", "#0ea5e9", "#ec4899", "#a78bfa", "#f43f5e", "#22d3ee"];
+const PROJECT_COLORS = ["#3ddc97", "#8b5cf6", "#5b9dff", "#f5b544", "#ff5fa2", "#2dd4bf", "#ff5d5d", "#e8ecf1"];
 const colorFor = (index: number) => PROJECT_COLORS[index % PROJECT_COLORS.length];
 
 function LegendDot({ color, className, label, value }: { color?: string; className?: string; label: string; value?: string }) {
   return (
     <span className="flex items-center gap-1.5 text-xs">
       <span className={`h-2.5 w-2.5 rounded-sm ${className ?? ""}`} style={color ? { backgroundColor: color } : undefined} />
-      <span className="text-gray-300">{label}</span>
-      {value && <span className="tabular-nums text-gray-500">{value}</span>}
+      <span className="text-q-sub">{label}</span>
+      {value && <span className="font-mono tabular-nums text-q-dim">{value}</span>}
     </span>
   );
 }
 
 function Kpi({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
-    <div className="rounded-lg border border-surface-border bg-surface-panel p-4">
-      <p className="text-xs uppercase tracking-wide text-gray-500">{label}</p>
-      <p className="mt-2 text-2xl font-semibold text-white">{value}</p>
-      {hint && <p className="mt-0.5 text-xs text-gray-500">{hint}</p>}
+    <div className="rounded-[12px] border border-surface-border bg-surface-panel p-4">
+      <p className="text-[12px] font-medium text-q-muted">{label}</p>
+      <p className="mt-2 text-[30px] font-bold leading-none tracking-[-1px] text-q-text">{value}</p>
+      {hint && <p className="mt-1 text-[11px] text-q-dim">{hint}</p>}
     </div>
   );
 }
@@ -185,14 +185,14 @@ function ResultStrip({ recent }: { recent: { id: number; status: string; conclus
           title={r.conclusion ?? r.status}
           className={`h-2.5 w-1.5 rounded-sm ${
             r.status !== "completed"
-              ? "bg-blue-500/70"
+              ? "bg-[#5b9dff]/70"
               : r.conclusion === "success"
-                ? "bg-emerald-500"
+                ? "bg-q-green"
                 : r.conclusion === "failure"
-                  ? "bg-red-500"
+                  ? "bg-q-red"
                   : r.conclusion === "cancelled"
-                    ? "bg-amber-500/70"
-                    : "bg-gray-600"
+                    ? "bg-q-amber/70"
+                    : "bg-[#5b636e]"
           }`}
         />
       ))}
@@ -227,10 +227,10 @@ function DurationChart({ runs }: { runs: RunSummary[] }) {
         {/* average reference line */}
         {avg > 0 && (
           <div
-            className="absolute inset-x-0 z-10 border-t border-dashed border-indigo-400/70"
+            className="absolute inset-x-0 z-10 border-t border-dashed border-q-green/50"
             style={{ top: `${(1 - avg / max) * 100}%` }}
           >
-            <span className="absolute -top-2 right-0 rounded bg-surface-panel/80 px-1 text-[10px] font-medium text-indigo-300">
+            <span className="absolute -top-2 right-0 rounded bg-surface-panel/80 px-1 font-mono text-[10px] font-medium text-q-green">
               avg {formatDuration(avg)}
             </span>
           </div>
@@ -257,9 +257,9 @@ function DurationChart({ runs }: { runs: RunSummary[] }) {
 
       {/* outcome legend */}
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
-        <LegendDot className="bg-emerald-500/80" label={t("status.passed")} />
-        <LegendDot className="bg-red-500/80" label={t("status.failed")} />
-        <LegendDot className="bg-amber-500/70" label={t("status.cancelled")} />
+        <LegendDot className="bg-q-green/80" label={t("status.passed")} />
+        <LegendDot className="bg-q-red/80" label={t("status.failed")} />
+        <LegendDot className="bg-q-amber/70" label={t("status.cancelled")} />
       </div>
 
       <div className="mt-2 flex items-center justify-between text-[11px] text-gray-500">
@@ -293,7 +293,7 @@ function PassRateChart({ runs }: { runs: RunSummary[] }) {
 
   return (
     <div>
-      <div className="relative h-44 w-full overflow-hidden rounded-md bg-surface-hover/30">
+      <div className="relative h-44 w-full overflow-hidden rounded-[8px] bg-surface-hover/30">
         {/* gridlines at 100 / 50 / 0% */}
         {[100, 50, 0].map((pct) => (
           <div
@@ -390,7 +390,7 @@ function SuiteTable({ runs }: { runs: RunSummary[] }) {
           {suites.map((s) => (
             <tr key={s.name} className="border-b border-surface-border last:border-0">
               <td className="px-4 py-3">
-                <span className="rounded bg-indigo-500/20 px-2 py-0.5 font-mono text-xs text-indigo-300">
+                <span className="rounded-[6px] px-2 py-0.5 font-mono text-xs text-q-green" style={{ background: "rgba(61,220,151,0.1)" }}>
                   {s.name}
                 </span>
               </td>
@@ -402,7 +402,7 @@ function SuiteTable({ runs }: { runs: RunSummary[] }) {
                 >
                   <div className="h-1.5 w-16 overflow-hidden rounded-full bg-surface-border">
                     <div
-                      className={`h-full rounded-full ${s.passRate >= 80 ? "bg-emerald-500" : s.passRate >= 50 ? "bg-amber-500" : "bg-red-500"}`}
+                      className={`h-full rounded-full ${s.passRate >= 80 ? "bg-q-green" : s.passRate >= 50 ? "bg-q-amber" : "bg-q-red"}`}
                       style={{ width: `${s.passRate}%` }}
                     />
                   </div>
@@ -426,8 +426,8 @@ function SuiteTable({ runs }: { runs: RunSummary[] }) {
 
 function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-lg border border-surface-border bg-surface-panel p-5">
-      <h3 className="mb-4 text-sm font-medium text-gray-300">{title}</h3>
+    <div className="rounded-[12px] border border-surface-border bg-surface-panel p-[18px]">
+      <h3 className="mb-4 text-[13px] font-semibold text-q-text">{title}</h3>
       {children}
     </div>
   );
@@ -564,8 +564,8 @@ export function TrendsView({ runs }: { runs: RunSummary[] }) {
             className={[
               "px-4 py-2 text-sm font-medium transition",
               section === tab.key
-                ? "border-b-2 border-indigo-500 text-white"
-                : "border-b-2 border-transparent text-gray-500 hover:text-gray-300",
+                ? "border-b-2 border-[#3ddc97] text-q-text"
+                : "border-b-2 border-transparent text-q-muted hover:text-q-sub",
             ].join(" ")}
           >
             {t(tab.labelKey)}

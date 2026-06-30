@@ -18,51 +18,50 @@ export default function FlakyPage() {
   });
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-surface-border pb-5">
         <div>
-          <h2 className="text-2xl font-semibold text-white">{t("flaky.title")}</h2>
-          <p className="mt-1 max-w-2xl text-sm text-gray-500">{t("flaky.subtitle")}</p>
+          <h2 className="text-[19px] font-semibold tracking-[-0.4px] text-q-text">{t("flaky.title")}</h2>
+          <p className="mt-[3px] max-w-2xl text-[12.5px] text-q-muted">{t("flaky.subtitle")}</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-500">{t("flaky.analyzeLast")}</span>
-          <div className="flex items-center gap-1 rounded-lg border border-surface-border bg-surface-panel p-1">
+          <span className="font-mono text-[11px] text-q-dim">{t("flaky.analyzeLast")}</span>
+          <div className="flex items-center gap-1 rounded-[9px] border border-surface-border bg-surface-panel p-1">
             {WINDOWS.map((w) => (
               <button
                 key={w}
                 onClick={() => setWindowSize(w)}
-                className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
-                  windowSize === w ? "bg-surface-hover text-white" : "text-gray-400 hover:text-white"
-                }`}
+                className="rounded-[6px] px-2.5 py-1 font-mono text-[11px] font-medium transition"
+                style={windowSize === w ? { background: "#1e2229", color: "#e8ecf1" } : { color: "#8a93a0" }}
               >
                 {w}
               </button>
             ))}
           </div>
-          <span className="text-xs text-gray-500">{t("flaky.runs")}</span>
+          <span className="font-mono text-[11px] text-q-dim">{t("flaky.runs")}</span>
         </div>
       </div>
 
       {data && !data.configured && (
-        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-300">
+        <div className="rounded-[10px] border p-4 text-[13px]" style={{ borderColor: "rgba(245,181,68,0.3)", background: "rgba(245,181,68,0.08)", color: "#f5b544" }}>
           GitHub is not configured yet.
         </div>
       )}
 
       {data?.error && (
-        <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300">
+        <div className="rounded-[10px] border p-4 text-[13px]" style={{ borderColor: "rgba(255,93,93,0.3)", background: "rgba(255,93,93,0.08)", color: "#ff5d5d" }}>
           {data.error}
         </div>
       )}
 
       {data && data.configured && (
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-[11px] text-q-dim">
           <span>
-            Analyzed <span className="font-medium text-gray-300">{data.runsAnalyzed}</span> of{" "}
+            Analyzed <span className="font-medium text-q-sub">{data.runsAnalyzed}</span> of{" "}
             {data.windowRequested} requested runs
           </span>
           <span>
-            <span className="font-medium text-amber-300">{data.tests.length}</span> flaky test
+            <span className="font-medium text-[#f5b544]">{data.tests.length}</span> flaky test
             {data.tests.length !== 1 ? "s" : ""} found
           </span>
           <span>Updated {formatRelativeTime(data.generatedAt)}</span>
@@ -70,7 +69,7 @@ export default function FlakyPage() {
       )}
 
       {isLoading && !data ? (
-        <div className="rounded-lg border border-surface-border bg-surface-panel p-8 text-center text-sm text-gray-500">
+        <div className="rounded-[12px] border border-surface-border bg-surface-panel p-8 text-center text-[13px] text-q-muted">
           Downloading and parsing recent report artifacts…
         </div>
       ) : data?.configured ? (
