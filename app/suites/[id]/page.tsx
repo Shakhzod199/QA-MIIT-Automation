@@ -121,6 +121,9 @@ function SuiteTestsPageInner({ params }: { params: Promise<{ id: string }> }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [state, setState] = useState<"idle" | "pending" | "triggered">("idle");
   const [error, setError] = useState<string | null>(null);
+  // Tracks which individual "Run test" row button is in-flight / just-triggered.
+  const [pendingFilter, setPendingFilter] = useState<string | null>(null);
+  const [triggeredFilter, setTriggeredFilter] = useState<string | null>(null);
 
   const allSelected = allFilters.length > 0 && selected.size === allFilters.length;
 
@@ -164,8 +167,8 @@ function SuiteTestsPageInner({ params }: { params: Promise<{ id: string }> }) {
   };
 
   const handleRunSingleTest = async (filter: string) => {
-    if (state === "pending" || disabledReason) return;
-    setState("pending");
+    if (pendingFilter || disabledReason) return;
+    setPendingFilter(filter);
     setError(null);
     const res = await fetch("/api/runs/trigger", {
       method: "POST",
@@ -173,11 +176,11 @@ function SuiteTestsPageInner({ params }: { params: Promise<{ id: string }> }) {
       body: JSON.stringify({ workflowId, inputs: { test_filter: filter } }),
     });
     const result: TriggerResponse = await res.json();
+    setPendingFilter(null);
     if (result.ok) {
-      setState("triggered");
-      setTimeout(() => setState("idle"), 4000);
+      setTriggeredFilter(filter);
+      setTimeout(() => setTriggeredFilter(null), 3000);
     } else {
-      setState("idle");
       setError(result.error ?? "Failed to trigger run");
     }
   };
@@ -556,15 +559,42 @@ function SuiteTestsPageInner({ params }: { params: Promise<{ id: string }> }) {
                     {test.retries}
                   </span>
                   <span className="flex w-[104px] flex-none justify-end">
-                    <button
-                      type="button"
-                      className="rounded-[7px] border px-[10px] py-[5px] font-semibold text-[11px] opacity-0 transition group-hover:opacity-100 disabled:cursor-not-allowed"
-                      style={{ background: "transparent", color: "#3ddc97", borderColor: "rgba(61,220,151,0.4)" }}
-                      disabled={state === "pending" || !!disabledReason}
-                      onClick={(e) => { e.preventDefault(); handleRunSingleTest(filter); }}
-                    >
-                      ▶ Run test
-                    </button>
+                    {(() => {
+                      const isThisPending = pendingFilter === filter;
+                      const isThisTriggered = triggeredFilter === filter;
+                      const isAnyPending = !!pendingFilter;
+                      return (
+                        <button
+                          type="button"
+                          className={`inline-flex items-center gap-1.5 rounded-[7px] border px-[10px] py-[5px] font-semibold text-[11px] transition disabled:cursor-not-allowed ${
+                            isThisPending || isThisTriggered
+                              ? "opacity-100"
+                              : "opacity-0 group-hover:opacity-100"
+                          }`}
+                          style={
+                            isThisTriggered
+                              ? { background: "rgba(61,220,151,0.15)", color: "#3ddc97", borderColor: "rgba(61,220,151,0.4)" }
+                              : { background: "transparent", color: "#3ddc97", borderColor: "rgba(61,220,151,0.4)" }
+                          }
+                          disabled={isAnyPending || !!disabledReason}
+                          onClick={(e) => { e.preventDefault(); handleRunSingleTest(filter); }}
+                        >
+                          {isThisPending ? (
+                            <>
+                              <svg className="h-3 w-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                              </svg>
+                              Running…
+                            </>
+                          ) : isThisTriggered ? (
+                            "✓ Queued"
+                          ) : (
+                            "▶ Run test"
+                          )}
+                        </button>
+                      );
+                    })()}
                   </span>
                 </label>
               );
