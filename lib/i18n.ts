@@ -33,6 +33,8 @@ const en: Dict = {
     "GitHub is not configured yet. Set GITHUB_TOKEN, GITHUB_OWNER and GITHUB_REPO in .env.local, then restart the dev server.",
   "dashboard.runs": "runs",
   "dashboard.run": "run",
+  "dashboard.testCasesBySuite": "Test cases by suite",
+  "dashboard.viewFullSuite": "View full suite",
 
   "suite.run": "Run",
   "suite.running": "Running…",
@@ -208,6 +210,8 @@ const uz: Dict = {
     "GitHub hali sozlanmagan. .env.local faylida GITHUB_TOKEN, GITHUB_OWNER va GITHUB_REPO ni kiriting va serverni qayta ishga tushiring.",
   "dashboard.runs": "ta ishga tushirish",
   "dashboard.run": "ta ishga tushirish",
+  "dashboard.testCasesBySuite": "To‘plamlar bo‘yicha test holatlari",
+  "dashboard.viewFullSuite": "To‘liq to‘plamni ko‘rish",
 
   "suite.run": "Ishga tushirish",
   "suite.running": "Ishlamoqda…",
@@ -383,6 +387,8 @@ const ru: Dict = {
     "GitHub ещё не настроен. Укажите GITHUB_TOKEN, GITHUB_OWNER и GITHUB_REPO в .env.local и перезапустите сервер.",
   "dashboard.runs": "запусков",
   "dashboard.run": "запуск",
+  "dashboard.testCasesBySuite": "Тест-кейсы по наборам",
+  "dashboard.viewFullSuite": "Открыть весь набор",
 
   "suite.run": "Запустить",
   "suite.running": "Выполняется…",

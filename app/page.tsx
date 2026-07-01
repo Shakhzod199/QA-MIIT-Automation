@@ -5,10 +5,12 @@ import Link from "next/link";
 import useSWR from "swr";
 import { StatsCards } from "@/components/StatsCards";
 import { RefreshButton } from "@/components/RefreshButton";
+import { SuiteTestCasesSection } from "@/components/SuiteTestCasesSection";
 import { useCurrentUser } from "@/components/UserProvider";
+import { useI18n } from "@/components/I18nProvider";
 import { hasRole } from "@/lib/permissions";
 import { formatDuration, formatRelativeTime } from "@/lib/format";
-import type { RunsResponse, RunSummary, TriggerResponse, WorkflowsResponse } from "@/lib/types";
+import type { RunsResponse, RunSummary, WorkflowsResponse } from "@/lib/types";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -206,13 +208,16 @@ function RecentRunRow({ run }: { run: RunSummary }) {
 }
 
 export default function DashboardPage() {
+  const { t } = useI18n();
   const { data: workflowsData, mutate: mutateWorkflows } = useSWR<WorkflowsResponse>(
     "/api/workflows",
     fetcher,
     { refreshInterval: 15000 }
   );
+  // per_page=50 matches /suites/[id] and lib/trends.ts's suiteBreakdown usage
+  // elsewhere, so SuiteTestCasesSection below has enough history per suite.
   const { data: runsData, mutate: mutateRuns } = useSWR<RunsResponse>(
-    "/api/runs?per_page=20",
+    "/api/runs?per_page=50",
     fetcher,
     { refreshInterval: 15000 }
   );
@@ -308,6 +313,12 @@ export default function DashboardPage() {
             ))}
           </div>
         )}
+      </div>
+
+      {/* Test cases by suite */}
+      <div>
+        <h3 className="mb-3 text-[13px] font-semibold text-q-text">{t("dashboard.testCasesBySuite")}</h3>
+        <SuiteTestCasesSection runs={runs} />
       </div>
 
       <style>{`
