@@ -17,6 +17,13 @@ function empty(extra?: Partial<FlakyResponse>): FlakyResponse {
   };
 }
 
+// This endpoint downloads + unzips a report artifact per analyzed run — real
+// work, ~1-2s per run even with lib/report-artifact.ts's per-artifact cache.
+// It's also fetched on every page load (sidebar flaky-count badge), so cache
+// the whole aggregated response per `limit` for a few minutes.
+const resultCache = new Map<number, { data: FlakyResponse; at: number }>();
+const RESULT_TTL_MS = 3 * 60 * 1000;
+
 export async function GET(request: Request) {
   const config = getGithubConfig();
   if (!config.configured) {
@@ -27,6 +34,11 @@ export async function GET(request: Request) {
   // How many recent completed runs to analyze. Bounded to keep artifact
   // downloads in check until persistence (#3) removes the need to re-fetch.
   const limit = Math.min(20, Math.max(2, Number(searchParams.get("limit") ?? "10")));
+
+  const cached = resultCache.get(limit);
+  if (cached && Date.now() - cached.at < RESULT_TTL_MS) {
+    return NextResponse.json<FlakyResponse>(cached.data);
+  }
 
   const runsRes = await githubFetch(
     `/repos/${config.owner}/${config.repo}/actions/runs?per_page=40`
@@ -65,11 +77,14 @@ export async function GET(request: Request) {
 
   const valid = parsed.filter((r): r is RunTests => r !== null);
 
-  return NextResponse.json<FlakyResponse>({
+  const result: FlakyResponse = {
     configured: true,
     runsAnalyzed: valid.length,
     windowRequested: limit,
     generatedAt: new Date().toISOString(),
     tests: aggregateFlaky(valid),
-  });
+  };
+  resultCache.set(limit, { data: result, at: Date.now() });
+
+  return NextResponse.json<FlakyResponse>(result);
 }

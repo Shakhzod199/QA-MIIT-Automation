@@ -2,41 +2,11 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { SESSION_COOKIE, getSessionUser } from "@/lib/auth";
 import { hasRole } from "@/lib/permissions";
+import { verifySessionToken } from "@/lib/session-token";
 import type { UserRecord, UserRole } from "@/lib/types";
 
-// Session lookups are a Supabase (fetch-based) call — works on either
-// runtime, kept on Node.js for parity with the rest of the app's server code.
+// Runs on Node.js so the sensitive-route path below can call Supabase.
 export const runtime = "nodejs";
-
-// A Supabase round-trip on every single request (every page load, every
-// poll) adds ~400-600ms to everything. Cache the resolved session per token
-// for a short window so a burst of navigation/polling from one browser
-// reuses the same lookup instead of re-querying Supabase each time.
-// Tradeoff: a session revoked via logout/delete can still pass here for up
-// to CACHE_TTL_MS afterward if the request lands on the same warm instance
-// that cached it — acceptable for an internal dashboard, not for anything
-// handling sensitive data.
-const CACHE_TTL_MS = 20_000;
-const sessionCache = new Map<string, { user: UserRecord | null; cachedAt: number }>();
-
-function getCachedSessionUser(token: string): UserRecord | null | undefined {
-  const entry = sessionCache.get(token);
-  if (!entry) return undefined;
-  if (Date.now() - entry.cachedAt > CACHE_TTL_MS) {
-    sessionCache.delete(token);
-    return undefined;
-  }
-  return entry.user;
-}
-
-function setCachedSessionUser(token: string, user: UserRecord | null) {
-  if (sessionCache.size > 1000) {
-    for (const [key, entry] of sessionCache) {
-      if (Date.now() - entry.cachedAt > CACHE_TTL_MS) sessionCache.delete(key);
-    }
-  }
-  sessionCache.set(token, { user, cachedAt: Date.now() });
-}
 
 // /api/notify self-authorizes (session cookie OR NOTIFY_SECRET) so external
 // cron can reach it, so it is exempt from the session redirect here.
@@ -53,6 +23,9 @@ const PUBLIC = [
 
 // Path-based authorization on top of "any valid session" — admin owns user
 // management, editor+ can trigger/cancel runs, everyone else is read-only.
+// This same list also marks which routes are worth a real Supabase
+// revocation check (see middleware() below) — they're the only ones where a
+// stale signed cookie (already-deleted user, changed role) actually matters.
 function requiredRoleFor(pathname: string): UserRole | null {
   if (pathname.startsWith("/users") || pathname.startsWith("/api/users")) return "admin";
   if (pathname === "/api/runs/trigger") return "editor";
@@ -68,14 +41,9 @@ export async function middleware(request: NextRequest) {
   }
 
   const token = request.cookies.get(SESSION_COOKIE)?.value;
-  let user: UserRecord | null = null;
-  if (token) {
-    const cached = getCachedSessionUser(token);
-    user = cached !== undefined ? cached : await getSessionUser(token);
-    if (cached === undefined) setCachedSessionUser(token, user);
-  }
+  const claims = verifySessionToken(token);
 
-  if (!user) {
+  if (!claims) {
     if (pathname.startsWith("/api/")) {
       return NextResponse.json({ ok: false, error: "Not authenticated." }, { status: 401 });
     }
@@ -83,11 +51,35 @@ export async function middleware(request: NextRequest) {
   }
 
   const requiredRole = requiredRoleFor(pathname);
-  if (requiredRole && !hasRole(user.role, requiredRole)) {
-    if (pathname.startsWith("/api/")) {
-      return NextResponse.json({ ok: false, error: "Forbidden." }, { status: 403 });
+
+  // Ordinary routes trust the signed cookie (pure crypto check above, zero
+  // I/O) — this is what makes middleware fast on serverless, where an
+  // in-memory cache can't be relied on across instances. Sensitive routes
+  // (admin/user-management, trigger, cancel) pay one real Supabase lookup so
+  // a deleted user or revoked session can't act on them, even though their
+  // still-unexpired cookie would otherwise pass the signature check.
+  let user: UserRecord | null = {
+    id: claims.id,
+    username: claims.username,
+    name: claims.name,
+    role: claims.role,
+    createdAt: "",
+  };
+
+  if (requiredRole) {
+    user = await getSessionUser(claims.sid);
+    if (!user) {
+      if (pathname.startsWith("/api/")) {
+        return NextResponse.json({ ok: false, error: "Not authenticated." }, { status: 401 });
+      }
+      return NextResponse.redirect(new URL("/login", request.url));
     }
-    return NextResponse.redirect(new URL("/", request.url));
+    if (!hasRole(user.role, requiredRole)) {
+      if (pathname.startsWith("/api/")) {
+        return NextResponse.json({ ok: false, error: "Forbidden." }, { status: 403 });
+      }
+      return NextResponse.redirect(new URL("/", request.url));
+    }
   }
 
   // Forward the resolved identity so pages/route handlers don't need a

@@ -1,4 +1,5 @@
-import { SESSION_COOKIE, getSessionUser } from "@/lib/auth";
+import { SESSION_COOKIE } from "@/lib/auth";
+import { verifySessionToken } from "@/lib/session-token";
 
 /**
  * Authorizes notify endpoints. These are exempt from the session middleware so
@@ -6,7 +7,7 @@ import { SESSION_COOKIE, getSessionUser } from "@/lib/auth";
  *  - a NOTIFY_SECRET (query `?secret=` or `x-notify-secret` header) for cron, or
  *  - a valid dashboard session cookie for in-app (browser) calls.
  */
-export async function isAuthorized(request: Request): Promise<boolean> {
+export function isAuthorized(request: Request): boolean {
   const url = new URL(request.url);
   const provided =
     url.searchParams.get("secret") ?? request.headers.get("x-notify-secret") ?? undefined;
@@ -15,5 +16,5 @@ export async function isAuthorized(request: Request): Promise<boolean> {
   const cookie = request.headers.get("cookie") ?? "";
   const match = cookie.match(new RegExp(`(?:^|;\\s*)${SESSION_COOKIE}=([^;]+)`));
   if (!match) return false;
-  return Boolean(await getSessionUser(decodeURIComponent(match[1])));
+  return Boolean(verifySessionToken(decodeURIComponent(match[1])));
 }

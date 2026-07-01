@@ -2,6 +2,7 @@
 
 import { cookies } from "next/headers";
 import { SESSION_COOKIE, createSession } from "@/lib/auth";
+import { signSessionToken } from "@/lib/session-token";
 import { authenticateUser } from "@/lib/users";
 import { recordLogin } from "@/lib/visits";
 
@@ -15,8 +16,16 @@ export async function loginAction(
   // Independent writes — creating the session doesn't depend on the visit
   // log or vice versa, so run them concurrently instead of back-to-back.
   const [{ token, expiresAt }] = await Promise.all([createSession(user.id), recordLogin(user.id)]);
+  const signed = signSessionToken({
+    sid: token,
+    id: user.id,
+    username: user.username,
+    name: user.name,
+    role: user.role,
+    exp: expiresAt.getTime(),
+  });
   const cookieStore = await cookies();
-  cookieStore.set(SESSION_COOKIE, token, {
+  cookieStore.set(SESSION_COOKIE, signed, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",

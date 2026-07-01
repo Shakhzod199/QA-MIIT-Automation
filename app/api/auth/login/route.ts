@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { SESSION_COOKIE, createSession } from "@/lib/auth";
+import { signSessionToken } from "@/lib/session-token";
 import { authenticateUser } from "@/lib/users";
 import { recordLogin } from "@/lib/visits";
 
@@ -12,8 +13,16 @@ export async function POST(request: Request) {
   }
 
   const [{ token, expiresAt }] = await Promise.all([createSession(user.id), recordLogin(user.id)]);
+  const signed = signSessionToken({
+    sid: token,
+    id: user.id,
+    username: user.username,
+    name: user.name,
+    role: user.role,
+    exp: expiresAt.getTime(),
+  });
   const res = NextResponse.json({ ok: true });
-  res.cookies.set(SESSION_COOKIE, token, {
+  res.cookies.set(SESSION_COOKIE, signed, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
