@@ -2,10 +2,19 @@
 
 import { useState } from "react";
 
-export function RefreshButton({ onRefresh }: { onRefresh: () => Promise<unknown> }) {
+export function RefreshButton({
+  onRefresh,
+  disabled = false,
+  title,
+}: {
+  onRefresh: () => Promise<unknown>;
+  disabled?: boolean;
+  title?: string;
+}) {
   const [refreshing, setRefreshing] = useState(false);
 
   const handleClick = async () => {
+    if (disabled) return;
     setRefreshing(true);
     try {
       await onRefresh();
@@ -17,7 +26,8 @@ export function RefreshButton({ onRefresh }: { onRefresh: () => Promise<unknown>
   return (
     <button
       onClick={handleClick}
-      disabled={refreshing}
+      disabled={refreshing || disabled}
+      title={title}
       className="flex items-center gap-2 rounded-[9px] px-4 py-[9px] text-[13px] font-bold transition disabled:cursor-not-allowed disabled:opacity-60"
       style={{ background: "#3ddc97", color: "#06140d" }}
     >

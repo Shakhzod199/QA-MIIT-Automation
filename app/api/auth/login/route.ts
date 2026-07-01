@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { SESSION_COOKIE, createSession } from "@/lib/auth";
 import { authenticateUser } from "@/lib/users";
+import { recordLogin } from "@/lib/visits";
 
 export async function POST(request: Request) {
   const { username, password } = await request.json();
@@ -11,6 +12,7 @@ export async function POST(request: Request) {
   }
 
   const { token, expiresAt } = await createSession(user.id);
+  await recordLogin(user.id);
   const res = NextResponse.json({ ok: true });
   res.cookies.set(SESSION_COOKIE, token, {
     httpOnly: true,

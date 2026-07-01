@@ -3,6 +3,7 @@
 import { cookies } from "next/headers";
 import { SESSION_COOKIE, createSession } from "@/lib/auth";
 import { authenticateUser } from "@/lib/users";
+import { recordLogin } from "@/lib/visits";
 
 export async function loginAction(
   username: string,
@@ -12,6 +13,7 @@ export async function loginAction(
   if (!user) return { error: "Invalid username or password" };
 
   const { token, expiresAt } = await createSession(user.id);
+  await recordLogin(user.id);
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE, token, {
     httpOnly: true,

@@ -5,6 +5,8 @@ import Link from "next/link";
 import useSWR from "swr";
 import { StatsCards } from "@/components/StatsCards";
 import { RefreshButton } from "@/components/RefreshButton";
+import { useCurrentUser } from "@/components/UserProvider";
+import { hasRole } from "@/lib/permissions";
 import { formatDuration, formatRelativeTime } from "@/lib/format";
 import type { RunsResponse, RunSummary, TriggerResponse, WorkflowsResponse } from "@/lib/types";
 
@@ -219,6 +221,9 @@ export default function DashboardPage() {
     await Promise.all([mutateWorkflows(), mutateRuns()]);
   };
 
+  const currentUser = useCurrentUser();
+  const canTrigger = !currentUser || hasRole(currentUser.role, "editor");
+
   const configured = workflowsData?.configured ?? runsData?.configured ?? true;
   const runs = runsData?.runs ?? [];
   const stats = runsData?.stats ?? EMPTY_STATS;
@@ -238,7 +243,11 @@ export default function DashboardPage() {
             miit.web · production · last sync just now
           </p>
         </div>
-        <RefreshButton onRefresh={handleRefresh} />
+        <RefreshButton
+          onRefresh={handleRefresh}
+          disabled={!canTrigger}
+          title={canTrigger ? undefined : "You have read-only access and can't run tests."}
+        />
       </div>
 
       {!configured && (

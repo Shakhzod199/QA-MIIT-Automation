@@ -199,3 +199,15 @@ export interface UpdateUserRequest {
   /** Omit to leave the password unchanged. */
   password?: string;
 }
+
+export interface DailyVisits {
+  /** YYYY-MM-DD, local calendar day. */
+  date: string;
+  count: number;
+}
+
+export interface VisitsResponse {
+  ok: boolean;
+  days: DailyVisits[];
+  error?: string;
+}

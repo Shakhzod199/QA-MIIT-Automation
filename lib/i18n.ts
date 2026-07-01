@@ -180,6 +180,9 @@ const en: Dict = {
   "users.roleEditor": "Editor",
   "users.roleViewer": "Viewer",
   "users.empty": "No users yet.",
+  "users.dailyVisits": "Daily visits",
+  "users.dailyVisitsSubtitle": "Successful logins per day, last 14 days",
+  "users.noVisits": "No visits recorded yet.",
 };
 
 const uz: Dict = {
@@ -352,6 +355,9 @@ const uz: Dict = {
   "users.roleEditor": "Muharrir",
   "users.roleViewer": "Kuzatuvchi",
   "users.empty": "Hozircha foydalanuvchilar yo‘q.",
+  "users.dailyVisits": "Kunlik tashriflar",
+  "users.dailyVisitsSubtitle": "Oxirgi 14 kundagi muvaffaqiyatli kirishlar",
+  "users.noVisits": "Hozircha tashriflar qayd etilmagan.",
 };
 
 const ru: Dict = {
@@ -524,6 +530,9 @@ const ru: Dict = {
   "users.roleEditor": "Редактор",
   "users.roleViewer": "Наблюдатель",
   "users.empty": "Пользователей пока нет.",
+  "users.dailyVisits": "Посещения по дням",
+  "users.dailyVisitsSubtitle": "Успешные входы в систему за последние 14 дней",
+  "users.noVisits": "Посещений пока не зафиксировано.",
 };
 
 export const TRANSLATIONS: Record<Locale, Dict> = { en, uz, ru };

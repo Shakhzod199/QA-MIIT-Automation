@@ -18,6 +18,16 @@ create table if not exists sessions (
 
 create index if not exists sessions_user_id_idx on sessions(user_id);
 
+-- One row per successful login — powers the daily visits chart on /users.
+create table if not exists login_events (
+  id bigint generated always as identity primary key,
+  user_id bigint not null references users(id) on delete cascade,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists login_events_created_at_idx on login_events(created_at);
+create index if not exists login_events_user_id_idx on login_events(user_id);
+
 -- Row Level Security -------------------------------------------------------
 -- The app never queries these tables from the browser: all reads/writes go
 -- through Next.js Route Handlers using the SUPABASE_SERVICE_ROLE_KEY, which
@@ -32,6 +42,8 @@ create index if not exists sessions_user_id_idx on sessions(user_id);
 -- role (which ignores RLS) can touch these tables.
 alter table users enable row level security;
 alter table sessions enable row level security;
+alter table login_events enable row level security;
 
 revoke all on users from anon, authenticated;
 revoke all on sessions from anon, authenticated;
+revoke all on login_events from anon, authenticated;
