@@ -7,7 +7,7 @@ import { formatRunMessage, isTelegramConfigured, sendTelegram } from "@/lib/tele
 import type { RunSummary } from "@/lib/types";
 
 async function handle(request: Request) {
-  if (!isAuthorized(request)) {
+  if (!(await isAuthorized(request))) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 

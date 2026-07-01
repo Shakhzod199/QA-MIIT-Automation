@@ -3,7 +3,7 @@ import { isAuthorized } from "@/lib/notify-auth";
 import { isTelegramConfigured, sendTelegram } from "@/lib/telegram";
 
 export async function POST(request: Request) {
-  if (!isAuthorized(request)) {
+  if (!(await isAuthorized(request))) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
   if (!isTelegramConfigured()) {

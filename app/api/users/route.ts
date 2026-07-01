@@ -3,7 +3,7 @@ import { createUser, listUsers } from "@/lib/users";
 import type { CreateUserRequest, UserResponse, UsersResponse } from "@/lib/types";
 
 export async function GET() {
-  return NextResponse.json<UsersResponse>({ ok: true, users: listUsers() });
+  return NextResponse.json<UsersResponse>({ ok: true, users: await listUsers() });
 }
 
 export async function POST(request: Request) {
@@ -17,7 +17,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const user = createUser({
+    const user = await createUser({
       username: body.username.trim(),
       password: body.password,
       name: body.name?.trim() || undefined,

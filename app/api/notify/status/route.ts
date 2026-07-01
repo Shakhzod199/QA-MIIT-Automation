@@ -4,7 +4,7 @@ import { isAuthorized } from "@/lib/notify-auth";
 import { isTelegramConfigured, telegramChatHint } from "@/lib/telegram";
 
 export async function GET(request: Request) {
-  if (!isAuthorized(request)) {
+  if (!(await isAuthorized(request))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   return NextResponse.json({

@@ -1,5 +1,5 @@
 import { randomBytes } from "crypto";
-import { getDb } from "@/lib/db";
+import { getSupabaseAdmin } from "@/lib/supabase";
 import type { UserRecord, UserRole } from "@/lib/types";
 
 export const SESSION_COOKIE = "ds";
@@ -13,31 +13,34 @@ interface SessionUserRow {
   created_at: string;
 }
 
-export function createSession(userId: number): { token: string; expiresAt: Date } {
+export async function createSession(userId: number): Promise<{ token: string; expiresAt: Date }> {
   const token = randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
-  getDb()
-    .prepare("INSERT INTO sessions (token, user_id, expires_at) VALUES (?, ?, ?)")
-    .run(token, userId, expiresAt.toISOString());
+  const { error } = await getSupabaseAdmin()
+    .from("sessions")
+    .insert({ token, user_id: userId, expires_at: expiresAt.toISOString() });
+  if (error) throw new Error(error.message);
   return { token, expiresAt };
 }
 
-export function getSessionUser(token: string | undefined | null): UserRecord | null {
+export async function getSessionUser(token: string | undefined | null): Promise<UserRecord | null> {
   if (!token) return null;
-  const db = getDb();
-  const row = db
-    .prepare(
-      `SELECT u.id, u.username, u.name, u.role, u.created_at
-       FROM sessions s JOIN users u ON u.id = s.user_id
-       WHERE s.token = ? AND s.expires_at > ?`
-    )
-    .get(token, new Date().toISOString()) as SessionUserRow | undefined;
 
+  const { data, error } = await getSupabaseAdmin()
+    .from("sessions")
+    .select("expires_at, users(id, username, name, role, created_at)")
+    .eq("token", token)
+    .maybeSingle();
+  if (error || !data) return null;
+
+  if (new Date(data.expires_at as string).getTime() <= Date.now()) return null;
+
+  const row = (Array.isArray(data.users) ? data.users[0] : data.users) as SessionUserRow | null;
   if (!row) return null;
   return { id: row.id, username: row.username, name: row.name, role: row.role, createdAt: row.created_at };
 }
 
-export function deleteSession(token: string | undefined | null): void {
+export async function deleteSession(token: string | undefined | null): Promise<void> {
   if (!token) return;
-  getDb().prepare("DELETE FROM sessions WHERE token = ?").run(token);
+  await getSupabaseAdmin().from("sessions").delete().eq("token", token);
 }

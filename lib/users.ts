@@ -1,4 +1,4 @@
-import { getDb } from "@/lib/db";
+import { getSupabaseAdmin } from "@/lib/supabase";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import type { UserRecord, UserRole } from "@/lib/types";
 
@@ -15,89 +15,116 @@ function toUserRecord(row: UserRow): UserRecord {
   return { id: row.id, username: row.username, name: row.name, role: row.role, createdAt: row.created_at };
 }
 
-export function listUsers(): UserRecord[] {
-  const rows = getDb().prepare("SELECT * FROM users ORDER BY created_at ASC").all() as UserRow[];
-  return rows.map(toUserRecord);
+export async function listUsers(): Promise<UserRecord[]> {
+  const { data, error } = await getSupabaseAdmin()
+    .from("users")
+    .select("*")
+    .order("created_at", { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data as UserRow[]).map(toUserRecord);
 }
 
-export function getUserById(id: number): UserRecord | null {
-  const row = getDb().prepare("SELECT * FROM users WHERE id = ?").get(id) as UserRow | undefined;
-  return row ? toUserRecord(row) : null;
+export async function getUserById(id: number): Promise<UserRecord | null> {
+  const { data, error } = await getSupabaseAdmin().from("users").select("*").eq("id", id).maybeSingle();
+  if (error) throw new Error(error.message);
+  return data ? toUserRecord(data as UserRow) : null;
 }
 
-export function getUserByUsername(username: string): UserRecord | null {
-  const row = getDb().prepare("SELECT * FROM users WHERE username = ?").get(username) as UserRow | undefined;
-  return row ? toUserRecord(row) : null;
+export async function getUserByUsername(username: string): Promise<UserRecord | null> {
+  const { data, error } = await getSupabaseAdmin()
+    .from("users")
+    .select("*")
+    .eq("username", username)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data ? toUserRecord(data as UserRow) : null;
 }
 
-export function authenticateUser(username: string, password: string): UserRecord | null {
-  const row = getDb().prepare("SELECT * FROM users WHERE username = ?").get(username) as UserRow | undefined;
+export async function authenticateUser(username: string, password: string): Promise<UserRecord | null> {
+  const { data, error } = await getSupabaseAdmin()
+    .from("users")
+    .select("*")
+    .eq("username", username)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  const row = data as UserRow | null;
   if (!row || !verifyPassword(password, row.password_hash)) return null;
   return toUserRecord(row);
 }
 
-export function countAdmins(): number {
-  const row = getDb().prepare("SELECT COUNT(*) as n FROM users WHERE role = 'admin'").get() as { n: number };
-  return row.n;
+export async function countAdmins(): Promise<number> {
+  const { count, error } = await getSupabaseAdmin()
+    .from("users")
+    .select("id", { count: "exact", head: true })
+    .eq("role", "admin");
+  if (error) throw new Error(error.message);
+  return count ?? 0;
 }
 
-export function createUser(input: { username: string; password: string; name?: string; role: UserRole }): UserRecord {
-  const db = getDb();
-  const existing = db.prepare("SELECT id FROM users WHERE username = ?").get(input.username);
+export async function createUser(input: {
+  username: string;
+  password: string;
+  name?: string;
+  role: UserRole;
+}): Promise<UserRecord> {
+  const db = getSupabaseAdmin();
+  const { data: existing, error: lookupError } = await db
+    .from("users")
+    .select("id")
+    .eq("username", input.username)
+    .maybeSingle();
+  if (lookupError) throw new Error(lookupError.message);
   if (existing) throw new Error("Username is already taken.");
 
-  const createdAt = new Date().toISOString();
-  const result = db
-    .prepare("INSERT INTO users (username, name, password_hash, role, created_at) VALUES (?, ?, ?, ?, ?)")
-    .run(input.username, input.name ?? null, hashPassword(input.password), input.role, createdAt);
-
-  return {
-    id: Number(result.lastInsertRowid),
-    username: input.username,
-    name: input.name ?? null,
-    role: input.role,
-    createdAt,
-  };
+  const { data, error } = await db
+    .from("users")
+    .insert({
+      username: input.username,
+      name: input.name ?? null,
+      password_hash: hashPassword(input.password),
+      role: input.role,
+    })
+    .select("*")
+    .single();
+  if (error) throw new Error(error.message);
+  return toUserRecord(data as UserRow);
 }
 
-export function updateUser(
+export async function updateUser(
   id: number,
   input: { name?: string; role?: UserRole; password?: string }
-): UserRecord {
-  const db = getDb();
-  const current = getUserById(id);
+): Promise<UserRecord> {
+  const db = getSupabaseAdmin();
+  const current = await getUserById(id);
   if (!current) throw new Error("User not found.");
 
-  if (input.role && input.role !== "admin" && current.role === "admin" && countAdmins() <= 1) {
+  if (input.role && input.role !== "admin" && current.role === "admin" && (await countAdmins()) <= 1) {
     throw new Error("Cannot demote the last remaining admin.");
   }
 
-  const name = input.name !== undefined ? input.name : current.name;
-  const role = input.role ?? current.role;
+  const patch: Record<string, unknown> = {
+    name: input.name !== undefined ? input.name : current.name,
+    role: input.role ?? current.role,
+  };
+  if (input.password) patch.password_hash = hashPassword(input.password);
 
-  if (input.password) {
-    db.prepare("UPDATE users SET name = ?, role = ?, password_hash = ? WHERE id = ?").run(
-      name,
-      role,
-      hashPassword(input.password),
-      id
-    );
-  } else {
-    db.prepare("UPDATE users SET name = ?, role = ? WHERE id = ?").run(name, role, id);
-  }
-
-  return { id, username: current.username, name, role, createdAt: current.createdAt };
+  const { data, error } = await db.from("users").update(patch).eq("id", id).select("*").single();
+  if (error) throw new Error(error.message);
+  return toUserRecord(data as UserRow);
 }
 
-export function deleteUser(id: number): void {
-  const db = getDb();
-  const current = getUserById(id);
+export async function deleteUser(id: number): Promise<void> {
+  const db = getSupabaseAdmin();
+  const current = await getUserById(id);
   if (!current) throw new Error("User not found.");
 
-  if (current.role === "admin" && countAdmins() <= 1) {
+  if (current.role === "admin" && (await countAdmins()) <= 1) {
     throw new Error("Cannot delete the last remaining admin.");
   }
 
-  db.prepare("DELETE FROM sessions WHERE user_id = ?").run(id);
-  db.prepare("DELETE FROM users WHERE id = ?").run(id);
+  // No ON DELETE CASCADE surprises to worry about client-side, but sessions
+  // are removed explicitly first in case cascade isn't set up identically.
+  await db.from("sessions").delete().eq("user_id", id);
+  const { error } = await db.from("users").delete().eq("id", id);
+  if (error) throw new Error(error.message);
 }

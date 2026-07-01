@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE, deleteSession } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
-  deleteSession(request.cookies.get(SESSION_COOKIE)?.value);
+  await deleteSession(request.cookies.get(SESSION_COOKIE)?.value);
 
   const res = NextResponse.json({ ok: true });
   res.cookies.set(SESSION_COOKIE, "", {

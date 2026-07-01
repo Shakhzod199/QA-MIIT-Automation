@@ -4,8 +4,8 @@ import { SESSION_COOKIE, getSessionUser } from "@/lib/auth";
 import { hasRole } from "@/lib/permissions";
 import type { UserRole } from "@/lib/types";
 
-// Session lookups hit SQLite, which needs real Node.js (native bindings) —
-// not the default Edge middleware runtime.
+// Session lookups are a Supabase (fetch-based) call — works on either
+// runtime, kept on Node.js for parity with the rest of the app's server code.
 export const runtime = "nodejs";
 
 // /api/notify self-authorizes (session cookie OR NOTIFY_SECRET) so external
@@ -30,7 +30,7 @@ function requiredRoleFor(pathname: string): UserRole | null {
   return null;
 }
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (PUBLIC.some((p) => pathname.startsWith(p))) {
@@ -38,7 +38,7 @@ export function middleware(request: NextRequest) {
   }
 
   const token = request.cookies.get(SESSION_COOKIE)?.value;
-  const user = getSessionUser(token);
+  const user = await getSessionUser(token);
 
   if (!user) {
     if (pathname.startsWith("/api/")) {

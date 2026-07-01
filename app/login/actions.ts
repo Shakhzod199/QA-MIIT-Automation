@@ -8,10 +8,10 @@ export async function loginAction(
   username: string,
   password: string
 ): Promise<{ success: true } | { error: string }> {
-  const user = authenticateUser(username, password);
+  const user = await authenticateUser(username, password);
   if (!user) return { error: "Invalid username or password" };
 
-  const { token, expiresAt } = createSession(user.id);
+  const { token, expiresAt } = await createSession(user.id);
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE, token, {
     httpOnly: true,

@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "better-sqlite3": "^12.11.1",
+    "@supabase/supabase-js": "^2.110.0",
     "jszip": "^3.10.1",
     "next": "^16",
     "react": "^19",
@@ -20,7 +20,6 @@
     "node": ">=20.0.0"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

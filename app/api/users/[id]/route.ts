@@ -7,7 +7,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const body = (await request.json()) as UpdateUserRequest;
 
   try {
-    const user = updateUser(Number(id), {
+    const user = await updateUser(Number(id), {
       name: body.name?.trim(),
       role: body.role,
       password: body.password || undefined,
@@ -25,7 +25,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   const { id } = await params;
 
   try {
-    deleteUser(Number(id));
+    await deleteUser(Number(id));
     return NextResponse.json({ ok: true });
   } catch (err) {
     return NextResponse.json(
