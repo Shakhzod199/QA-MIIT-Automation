@@ -12,8 +12,9 @@ export async function loginAction(
   const user = await authenticateUser(username, password);
   if (!user) return { error: "Invalid username or password" };
 
-  const { token, expiresAt } = await createSession(user.id);
-  await recordLogin(user.id);
+  // Independent writes — creating the session doesn't depend on the visit
+  // log or vice versa, so run them concurrently instead of back-to-back.
+  const [{ token, expiresAt }] = await Promise.all([createSession(user.id), recordLogin(user.id)]);
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE, token, {
     httpOnly: true,

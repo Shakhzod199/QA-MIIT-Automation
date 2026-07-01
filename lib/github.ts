@@ -35,9 +35,16 @@ export async function githubFetch(path: string, init: RequestInit = {}): Promise
     headers.Authorization = `Bearer ${token}`;
   }
 
+  const method = (init.method ?? "GET").toUpperCase();
+  // Reads get a short revalidation window so a burst of page loads/polling
+  // doesn't each re-hit GitHub's API. Mutations (trigger/cancel) always
+  // bypass the cache — never allowed to serve a stale POST response.
+  const cacheInit: Pick<RequestInit, "cache" | "next"> =
+    method === "GET" ? { next: { revalidate: 10 } } : { cache: "no-store" };
+
   return fetch(`${GITHUB_API}${path}`, {
     ...init,
     headers,
-    cache: "no-store",
+    ...cacheInit,
   });
 }

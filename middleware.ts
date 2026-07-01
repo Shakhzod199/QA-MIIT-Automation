@@ -2,11 +2,41 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { SESSION_COOKIE, getSessionUser } from "@/lib/auth";
 import { hasRole } from "@/lib/permissions";
-import type { UserRole } from "@/lib/types";
+import type { UserRecord, UserRole } from "@/lib/types";
 
 // Session lookups are a Supabase (fetch-based) call — works on either
 // runtime, kept on Node.js for parity with the rest of the app's server code.
 export const runtime = "nodejs";
+
+// A Supabase round-trip on every single request (every page load, every
+// poll) adds ~400-600ms to everything. Cache the resolved session per token
+// for a short window so a burst of navigation/polling from one browser
+// reuses the same lookup instead of re-querying Supabase each time.
+// Tradeoff: a session revoked via logout/delete can still pass here for up
+// to CACHE_TTL_MS afterward if the request lands on the same warm instance
+// that cached it — acceptable for an internal dashboard, not for anything
+// handling sensitive data.
+const CACHE_TTL_MS = 20_000;
+const sessionCache = new Map<string, { user: UserRecord | null; cachedAt: number }>();
+
+function getCachedSessionUser(token: string): UserRecord | null | undefined {
+  const entry = sessionCache.get(token);
+  if (!entry) return undefined;
+  if (Date.now() - entry.cachedAt > CACHE_TTL_MS) {
+    sessionCache.delete(token);
+    return undefined;
+  }
+  return entry.user;
+}
+
+function setCachedSessionUser(token: string, user: UserRecord | null) {
+  if (sessionCache.size > 1000) {
+    for (const [key, entry] of sessionCache) {
+      if (Date.now() - entry.cachedAt > CACHE_TTL_MS) sessionCache.delete(key);
+    }
+  }
+  sessionCache.set(token, { user, cachedAt: Date.now() });
+}
 
 // /api/notify self-authorizes (session cookie OR NOTIFY_SECRET) so external
 // cron can reach it, so it is exempt from the session redirect here.
@@ -38,7 +68,12 @@ export async function middleware(request: NextRequest) {
   }
 
   const token = request.cookies.get(SESSION_COOKIE)?.value;
-  const user = await getSessionUser(token);
+  let user: UserRecord | null = null;
+  if (token) {
+    const cached = getCachedSessionUser(token);
+    user = cached !== undefined ? cached : await getSessionUser(token);
+    if (cached === undefined) setCachedSessionUser(token, user);
+  }
 
   if (!user) {
     if (pathname.startsWith("/api/")) {
