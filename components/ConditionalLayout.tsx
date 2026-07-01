@@ -5,10 +5,12 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { SidebarNav } from "@/components/SidebarNav";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { useCurrentUser } from "@/components/UserProvider";
 
 export function ConditionalLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const user = useCurrentUser();
 
   if (pathname === "/login" || pathname === "/m" || pathname.startsWith("/m/")) {
     return <>{children}</>;
@@ -52,7 +54,9 @@ export function ConditionalLayout({ children }: { children: React.ReactNode }) {
               style={{ background: "linear-gradient(135deg,#3a4150,#222831)" }}
             />
             <div className="min-w-0 flex-1">
-              <div className="text-[12px] font-semibold text-q-text">QA Team</div>
+              <div className="truncate text-[12px] font-semibold text-q-text">
+                {user?.name || user?.username || "QA Team"}
+              </div>
               <button
                 onClick={handleSignOut}
                 className="text-[11px] text-q-dim transition hover:text-q-muted"

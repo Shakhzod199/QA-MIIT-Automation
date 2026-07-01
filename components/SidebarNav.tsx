@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import useSWR from "swr";
 import { useI18n } from "@/components/I18nProvider";
+import { useCurrentUser } from "@/components/UserProvider";
 import type { FlakyResponse, WorkflowsResponse } from "@/lib/types";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -47,6 +48,7 @@ function NavItem({
 export function SidebarNav() {
   const pathname = usePathname();
   const { t } = useI18n();
+  const user = useCurrentUser();
   const { data: workflowsData } = useSWR<WorkflowsResponse>("/api/workflows", fetcher);
   const { data: flakyData } = useSWR<FlakyResponse>("/api/flaky?limit=10", fetcher, {
     revalidateOnFocus: false,
@@ -63,6 +65,7 @@ export function SidebarNav() {
   const isTestCases = pathname === "/" || pathname.startsWith("/suites");
   const isReports = pathname.startsWith("/reports");
   const isFlaky = pathname === "/flaky";
+  const isUsers = pathname.startsWith("/users");
 
   return (
     <nav className="flex flex-col gap-[2px] px-2">
@@ -136,6 +139,12 @@ export function SidebarNav() {
       >
         {t("nav.flaky")}
       </NavItem>
+
+      {user?.role === "admin" && (
+        <NavItem href="/users" active={isUsers}>
+          {t("nav.users")}
+        </NavItem>
+      )}
     </nav>
   );
 }

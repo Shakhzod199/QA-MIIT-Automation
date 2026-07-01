@@ -1,3 +1,5 @@
+import { SESSION_COOKIE, getSessionUser } from "@/lib/auth";
+
 /**
  * Authorizes notify endpoints. These are exempt from the session middleware so
  * an external cron can reach them, so they self-authorize via EITHER:
@@ -11,7 +13,6 @@ export function isAuthorized(request: Request): boolean {
   if (process.env.NOTIFY_SECRET && provided === process.env.NOTIFY_SECRET) return true;
 
   const cookie = request.headers.get("cookie") ?? "";
-  const match = cookie.match(/(?:^|;\s*)ds=([^;]+)/);
-  const expected = process.env.DASHBOARD_SECRET ?? "ds-session";
-  return Boolean(match && decodeURIComponent(match[1]) === expected);
+  const match = cookie.match(new RegExp(`(?:^|;\\s*)${SESSION_COOKIE}=([^;]+)`));
+  return Boolean(match && getSessionUser(decodeURIComponent(match[1])));
 }

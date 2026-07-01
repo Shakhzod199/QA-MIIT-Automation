@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import useSWR from "swr";
 import { useI18n } from "@/components/I18nProvider";
+import { useCurrentUser } from "@/components/UserProvider";
 import { StatCard, StatsCards } from "@/components/StatsCards";
 import { RunsTable } from "@/components/RunsTable";
 import { TypeTabs } from "@/components/TypeTabs";
@@ -12,6 +13,7 @@ import { TestInfoModal } from "@/components/TestInfoModal";
 import { InfoIcon } from "@/components/icons";
 import { computeStats } from "@/lib/stats";
 import { getSuiteDisabledReason } from "@/lib/disabledSuites";
+import { hasRole } from "@/lib/permissions";
 import { getTestDescription } from "@/lib/testDescriptions";
 import { formatDuration, getStatusBadge } from "@/lib/format";
 import type {
@@ -71,7 +73,9 @@ function SuiteTestsPageInner({ params }: { params: Promise<{ id: string }> }) {
   const { data: runsData, mutate: mutateRuns } = useSWR<RunsResponse>("/api/runs?per_page=50", fetcher);
 
   const workflow = workflowsData?.workflows.find((w) => w.id === workflowId);
-  const disabledReason = getSuiteDisabledReason(workflow?.name);
+  const currentUser = useCurrentUser();
+  const canTrigger = !currentUser || hasRole(currentUser.role, "editor");
+  const disabledReason = getSuiteDisabledReason(workflow?.name) ?? (canTrigger ? null : t("suite.viewerReadOnly"));
 
   // This page's runs, stats, and card are scoped to just this workflow + type
   // (unlike the home dashboard, which mixes every project/type together).
@@ -372,7 +376,7 @@ function SuiteTestsPageInner({ params }: { params: Promise<{ id: string }> }) {
 
         <div>
           <h3 className="mb-3 text-lg font-medium text-white">{t("dashboard.recentRuns")}</h3>
-          <RunsTable runs={scopedRuns} hideProject pageSize={5} onCancel={handleCancel} />
+          <RunsTable runs={scopedRuns} hideProject pageSize={5} onCancel={canTrigger ? handleCancel : undefined} />
         </div>
       </div>
     );
@@ -425,7 +429,7 @@ function SuiteTestsPageInner({ params }: { params: Promise<{ id: string }> }) {
 
       <div>
         <h3 className="mb-3 text-lg font-medium text-white">{t("dashboard.recentRuns")}</h3>
-        <RunsTable runs={scopedRuns} hideProject pageSize={5} onCancel={handleCancel} />
+        <RunsTable runs={scopedRuns} hideProject pageSize={5} onCancel={canTrigger ? handleCancel : undefined} />
       </div>
 
       <div>

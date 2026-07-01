@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import useSWR from "swr";
 import { useI18n } from "@/components/I18nProvider";
+import { useCurrentUser } from "@/components/UserProvider";
+import { hasRole } from "@/lib/permissions";
 import { formatRelativeTime } from "@/lib/format";
 import type {
   RunSummary,
@@ -48,6 +50,8 @@ export default function MobileDashboard() {
   );
 
   const [pending, setPending] = useState<Record<number, boolean>>({});
+  const currentUser = useCurrentUser();
+  const canTrigger = !currentUser || hasRole(currentUser.role, "editor");
 
   const workflows = workflowsData?.workflows ?? [];
   const runs = runsData?.runs ?? [];
@@ -60,6 +64,7 @@ export default function MobileDashboard() {
   }, [runs]);
 
   const runSuite = async (workflowId: number) => {
+    if (!canTrigger) return;
     setPending((p) => ({ ...p, [workflowId]: true }));
     const res = await fetch("/api/runs/trigger", {
       method: "POST",
@@ -101,13 +106,15 @@ export default function MobileDashboard() {
                   <p className="truncate font-medium text-white">{wf.name}</p>
                   <p className="truncate text-[11px] text-gray-500">{wf.path}</p>
                 </div>
-                <button
-                  onClick={() => runSuite(wf.id)}
-                  disabled={busy}
-                  className="shrink-0 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-500 disabled:opacity-60"
-                >
-                  {busy ? t("suite.running") : t("suite.run")}
-                </button>
+                {canTrigger && (
+                  <button
+                    onClick={() => runSuite(wf.id)}
+                    disabled={busy}
+                    className="shrink-0 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-500 disabled:opacity-60"
+                  >
+                    {busy ? t("suite.running") : t("suite.run")}
+                  </button>
+                )}
               </div>
             );
           })}

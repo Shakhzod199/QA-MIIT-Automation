@@ -21,6 +21,7 @@ const en: Dict = {
   "nav.trends": "Trends",
   "nav.flaky": "Flaky Tests",
   "nav.alerts": "Telegram Alerts",
+  "nav.users": "Users",
 
   "dashboard.title": "Dashboard",
   "dashboard.subtitle": "Playwright test suite runs",
@@ -41,6 +42,7 @@ const en: Dict = {
   "suite.frontend": "Frontend",
   "suite.api": "API tests",
   "suite.load": "Load/Stress (K6)",
+  "suite.viewerReadOnly": "You have read-only access and can't run or cancel tests.",
 
   "suiteTests.subtitle": "Select the test cases to run from the latest results of this suite.",
   "suiteTests.back": "Back to dashboard",
@@ -157,6 +159,27 @@ const en: Dict = {
 
   "testInfo.tooltip": "What does this test check?",
   "testInfo.title": "What this test checks",
+
+  "users.title": "User Management",
+  "users.subtitle": "Manage dashboard accounts and their roles.",
+  "users.addUser": "Add user",
+  "users.editUser": "Edit user",
+  "users.username": "Username",
+  "users.name": "Name",
+  "users.role": "Role",
+  "users.password": "Password",
+  "users.passwordHint": "Leave blank to keep the current password",
+  "users.created": "Created",
+  "users.actions": "Actions",
+  "users.edit": "Edit",
+  "users.delete": "Delete",
+  "users.confirmDelete": "Delete this user? This cannot be undone.",
+  "users.save": "Save",
+  "users.cancel": "Cancel",
+  "users.roleAdmin": "Admin",
+  "users.roleEditor": "Editor",
+  "users.roleViewer": "Viewer",
+  "users.empty": "No users yet.",
 };
 
 const uz: Dict = {
@@ -170,6 +193,7 @@ const uz: Dict = {
   "nav.trends": "Tendensiyalar",
   "nav.flaky": "Beqaror testlar",
   "nav.alerts": "Telegram bildirishnomalar",
+  "nav.users": "Foydalanuvchilar",
 
   "dashboard.title": "Boshqaruv paneli",
   "dashboard.subtitle": "Playwright test to‘plamlari ishga tushirilishi",
@@ -190,6 +214,7 @@ const uz: Dict = {
   "suite.frontend": "Frontend",
   "suite.api": "API testlar",
   "suite.load": "Yuklama/Stress (K6)",
+  "suite.viewerReadOnly": "Sizda faqat ko‘rish huquqi bor — testlarni ishga tushira yoki bekor qila olmaysiz.",
 
   "suiteTests.subtitle": "Ushbu to‘plamning so‘nggi natijalaridan ishga tushiriladigan testlarni tanlang.",
   "suiteTests.back": "Boshqaruv paneliga qaytish",
@@ -306,6 +331,27 @@ const uz: Dict = {
 
   "testInfo.tooltip": "Bu test nimani tekshiradi?",
   "testInfo.title": "Bu test nimani tekshiradi",
+
+  "users.title": "Foydalanuvchilarni boshqarish",
+  "users.subtitle": "Boshqaruv paneli hisoblari va ularning rollarini boshqaring.",
+  "users.addUser": "Foydalanuvchi qo‘shish",
+  "users.editUser": "Foydalanuvchini tahrirlash",
+  "users.username": "Login",
+  "users.name": "Ism",
+  "users.role": "Rol",
+  "users.password": "Parol",
+  "users.passwordHint": "Joriy parolni saqlash uchun bo‘sh qoldiring",
+  "users.created": "Yaratilgan",
+  "users.actions": "Amallar",
+  "users.edit": "Tahrirlash",
+  "users.delete": "O‘chirish",
+  "users.confirmDelete": "Ushbu foydalanuvchini o‘chirasizmi? Bu amalni bekor qilib bo‘lmaydi.",
+  "users.save": "Saqlash",
+  "users.cancel": "Bekor qilish",
+  "users.roleAdmin": "Admin",
+  "users.roleEditor": "Muharrir",
+  "users.roleViewer": "Kuzatuvchi",
+  "users.empty": "Hozircha foydalanuvchilar yo‘q.",
 };
 
 const ru: Dict = {
@@ -319,6 +365,7 @@ const ru: Dict = {
   "nav.trends": "Тренды",
   "nav.flaky": "Нестабильные тесты",
   "nav.alerts": "Telegram-оповещения",
+  "nav.users": "Пользователи",
 
   "dashboard.title": "Панель",
   "dashboard.subtitle": "Запуски наборов тестов Playwright",
@@ -339,6 +386,7 @@ const ru: Dict = {
   "suite.frontend": "Frontend",
   "suite.api": "API-тесты",
   "suite.load": "Нагрузка/Стресс (K6)",
+  "suite.viewerReadOnly": "У вас доступ только для просмотра — вы не можете запускать или отменять тесты.",
 
   "suiteTests.subtitle": "Выберите тест-кейсы для запуска из последних результатов этого набора.",
   "suiteTests.back": "Назад к панели",
@@ -455,6 +503,27 @@ const ru: Dict = {
 
   "testInfo.tooltip": "Что проверяет этот тест?",
   "testInfo.title": "Что проверяет этот тест",
+
+  "users.title": "Управление пользователями",
+  "users.subtitle": "Управляйте учётными записями и их ролями.",
+  "users.addUser": "Добавить пользователя",
+  "users.editUser": "Редактировать пользователя",
+  "users.username": "Логин",
+  "users.name": "Имя",
+  "users.role": "Роль",
+  "users.password": "Пароль",
+  "users.passwordHint": "Оставьте пустым, чтобы сохранить текущий пароль",
+  "users.created": "Создан",
+  "users.actions": "Действия",
+  "users.edit": "Редактировать",
+  "users.delete": "Удалить",
+  "users.confirmDelete": "Удалить этого пользователя? Это действие необратимо.",
+  "users.save": "Сохранить",
+  "users.cancel": "Отмена",
+  "users.roleAdmin": "Админ",
+  "users.roleEditor": "Редактор",
+  "users.roleViewer": "Наблюдатель",
+  "users.empty": "Пользователей пока нет.",
 };
 
 export const TRANSLATIONS: Record<Locale, Dict> = { en, uz, ru };

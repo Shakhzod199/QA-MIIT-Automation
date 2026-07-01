@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useI18n } from "@/components/I18nProvider";
-import { formatDuration, formatRelativeTime } from "@/lib/format";
+import { formatDateTime, formatDuration, formatRelativeTime, getStatusBadge } from "@/lib/format";
 import {
   passRateByProject,
   runTypeBreakdown,
@@ -174,14 +174,27 @@ function SlowestRunsList({
 }
 
 /** Newest-first run outcomes as a compact GitHub-Actions-style dot strip. */
-function ResultStrip({ recent }: { recent: { id: number; status: string; conclusion: string | null }[] }) {
+function ResultStrip({
+  recent,
+}: {
+  recent: {
+    id: number;
+    status: string;
+    conclusion: string | null;
+    runNumber: number;
+    createdAt: string;
+    testFilter: string | null;
+  }[];
+}) {
   const chrono = [...recent].reverse(); // oldest → newest, left to right
   return (
     <div className="flex items-center gap-0.5">
       {chrono.map((r) => (
         <span
           key={r.id}
-          title={r.conclusion ?? r.status}
+          title={`Run #${r.runNumber} · ${getStatusBadge(r.status, r.conclusion).label} · ${formatDateTime(r.createdAt)} · ${
+            r.testFilter ?? "Full suite"
+          }`}
           className={`h-2.5 w-1.5 rounded-sm ${
             r.status !== "completed"
               ? "bg-[#5b9dff]/70"

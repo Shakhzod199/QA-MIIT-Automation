@@ -162,3 +162,40 @@ export interface FlakyResponse {
   tests: FlakyTest[];
   error?: string;
 }
+
+export type UserRole = "admin" | "editor" | "viewer";
+
+/** Never includes the password hash — safe to send to the client. */
+export interface UserRecord {
+  id: number;
+  username: string;
+  name: string | null;
+  role: UserRole;
+  createdAt: string;
+}
+
+export interface UsersResponse {
+  ok: boolean;
+  users: UserRecord[];
+  error?: string;
+}
+
+export interface UserResponse {
+  ok: boolean;
+  user?: UserRecord;
+  error?: string;
+}
+
+export interface CreateUserRequest {
+  username: string;
+  password: string;
+  name?: string;
+  role: UserRole;
+}
+
+export interface UpdateUserRequest {
+  name?: string;
+  role?: UserRole;
+  /** Omit to leave the password unchanged. */
+  password?: string;
+}

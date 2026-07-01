@@ -20,7 +20,15 @@ export interface SuiteTrend {
   avgDurationSec: number | null;
   lastRunAt: string | null;
   /** Newest-first, capped at 12 — for a GitHub-style recent-results strip. */
-  recent: { id: number; status: string; conclusion: string | null }[];
+  recent: {
+    id: number;
+    status: string;
+    conclusion: string | null;
+    runNumber: number;
+    createdAt: string;
+    /** Playwright filter for a single-test run, else null = full suite. */
+    testFilter: string | null;
+  }[];
 }
 
 export interface TrendSummary {
@@ -131,7 +139,14 @@ export function suiteBreakdown(runs: RunSummary[]): SuiteTrend[] {
       avgDurationSec: avg,
       lastRunAt: list[0]?.createdAt ?? null,
       // Newest-first, capped — just enough for a GitHub-style result strip.
-      recent: list.slice(0, 12).map((r) => ({ id: r.id, status: r.status, conclusion: r.conclusion })),
+      recent: list.slice(0, 12).map((r) => ({
+        id: r.id,
+        status: r.status,
+        conclusion: r.conclusion,
+        runNumber: r.runNumber,
+        createdAt: r.createdAt,
+        testFilter: r.testFilter,
+      })),
     });
   }
   return out.sort((a, b) => b.total - a.total);
