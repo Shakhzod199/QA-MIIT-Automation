@@ -348,9 +348,13 @@ function SuiteTable({ runs }: { runs: RunSummary[] }) {
           {suites.map((s) => (
             <tr key={s.name} className="border-b border-surface-border last:border-0">
               <td className="px-4 py-3">
-                <span className="rounded-[6px] px-2 py-0.5 font-mono text-xs text-q-green" style={{ background: "rgba(61,220,151,0.1)" }}>
+                <Link
+                  href={`/suites/${s.workflowId}`}
+                  className="rounded-[6px] px-2 py-0.5 font-mono text-xs text-q-green transition-colors hover:bg-[rgba(61,220,151,0.18)]"
+                  style={{ background: "rgba(61,220,151,0.1)" }}
+                >
                   {s.name}
-                </span>
+                </Link>
               </td>
               <td className="px-4 py-3 tabular-nums text-gray-300">{s.total}</td>
               <td className="px-4 py-3">

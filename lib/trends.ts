@@ -11,6 +11,7 @@ export interface DurationPoint {
 
 export interface SuiteTrend {
   name: string;
+  workflowId: number;
   total: number;
   completed: number;
   passed: number;
@@ -121,6 +122,7 @@ export function suiteBreakdown(runs: RunSummary[]): SuiteTrend[] {
       : null;
     out.push({
       name,
+      workflowId: list[0].workflowId,
       total: list.length,
       completed: completed.length,
       passed,
