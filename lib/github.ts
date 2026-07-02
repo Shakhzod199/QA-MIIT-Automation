@@ -36,11 +36,14 @@ export async function githubFetch(path: string, init: RequestInit = {}): Promise
   }
 
   const method = (init.method ?? "GET").toUpperCase();
-  // Reads get a short revalidation window so a burst of page loads/polling
-  // doesn't each re-hit GitHub's API. Mutations (trigger/cancel) always
-  // bypass the cache — never allowed to serve a stale POST response.
+  // Reads get a revalidation window so a burst of page loads/polling doesn't
+  // each re-hit GitHub's API. 30s (> the clients' 15s poll) keeps the server
+  // cache warm between polls while staying fresh enough for a CI dashboard
+  // where runs take minutes — most client polls now hit warm cache instead of
+  // waiting on a GitHub round-trip. Mutations (trigger/cancel) always bypass
+  // the cache — never allowed to serve a stale POST response.
   const cacheInit: Pick<RequestInit, "cache" | "next"> =
-    method === "GET" ? { next: { revalidate: 10 } } : { cache: "no-store" };
+    method === "GET" ? { next: { revalidate: 30 } } : { cache: "no-store" };
 
   return fetch(`${GITHUB_API}${path}`, {
     ...init,

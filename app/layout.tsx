@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ConditionalLayout } from "@/components/ConditionalLayout";
 import { I18nProvider } from "@/components/I18nProvider";
 import { UserProvider } from "@/components/UserProvider";
+import { SWRProvider } from "@/components/SWRProvider";
 import { getCurrentUser } from "@/lib/session";
 import "./globals.css";
 
@@ -16,11 +17,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en">
       <body>
-        <UserProvider user={user}>
-          <I18nProvider>
-            <ConditionalLayout>{children}</ConditionalLayout>
-          </I18nProvider>
-        </UserProvider>
+        <SWRProvider>
+          <UserProvider user={user}>
+            <I18nProvider>
+              <ConditionalLayout>{children}</ConditionalLayout>
+            </I18nProvider>
+          </UserProvider>
+        </SWRProvider>
       </body>
     </html>
   );
