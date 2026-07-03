@@ -29,12 +29,12 @@ export function ConditionalLayout({ children }: { children: React.ReactNode }) {
           href="/trends"
           className="flex items-center gap-2.5 px-4 pb-5 pt-5 transition hover:opacity-80"
         >
-          <div
-            className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-[7px] text-[14px] font-bold text-[#06140d]"
-            style={{ background: "linear-gradient(135deg,#3ddc97,#1f9d6b)" }}
-          >
-            Q
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element -- small static asset, no optimization needed */}
+          <img
+            src="/icon-192-android.png"
+            alt="QAutomation logo"
+            className="h-[26px] w-[26px] shrink-0 rounded-[7px]"
+          />
           <span className="text-[14px] font-semibold tracking-[-0.2px] text-q-text">
             QA Dashboard
           </span>
@@ -50,9 +50,15 @@ export function ConditionalLayout({ children }: { children: React.ReactNode }) {
           </div>
           <div className="flex items-center gap-2.5 border-t border-surface-border px-3 py-3 mt-1">
             <div
-              className="h-7 w-7 shrink-0 rounded-full"
+              className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full"
               style={{ background: "linear-gradient(135deg,#3a4150,#222831)" }}
-            />
+            >
+              {/* Placeholder person silhouette (head + shoulders), clipped by the circle */}
+              <svg viewBox="0 0 24 24" className="mt-1.5 h-6 w-6" fill="#8a93a0" aria-hidden="true">
+                <circle cx="12" cy="8" r="4" />
+                <path d="M12 13.5c-4.4 0-8 2.9-8 6.5v4h16v-4c0-3.6-3.6-6.5-8-6.5z" />
+              </svg>
+            </div>
             <div className="min-w-0 flex-1">
               <div className="truncate text-[12px] font-semibold text-q-text">
                 {user?.name || user?.username || "QA Team"}

@@ -26,12 +26,12 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-surface">
       <div className="w-full max-w-sm rounded-[14px] border border-surface-border bg-surface-panel p-8">
         <div className="mb-8 text-center">
-          <div
-            className="mx-auto mb-4 flex h-11 w-11 items-center justify-center rounded-[10px] text-[20px] font-bold text-[#06140d]"
-            style={{ background: "linear-gradient(135deg,#3ddc97,#1f9d6b)" }}
-          >
-            Q
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element -- small static asset, no optimization needed */}
+          <img
+            src="/icon-192-android.png"
+            alt="QAutomation logo"
+            className="mx-auto mb-4 h-11 w-11 rounded-[10px]"
+          />
           <h1 className="text-[18px] font-semibold tracking-[-0.3px] text-q-text">QA Dashboard</h1>
           <p className="mt-1 text-[12.5px] text-q-muted">Sign in to continue</p>
         </div>
