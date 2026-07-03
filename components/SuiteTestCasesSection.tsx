@@ -2,11 +2,15 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useSWRConfig } from "swr";
 import { useI18n } from "@/components/I18nProvider";
+import { useCurrentUser } from "@/components/UserProvider";
 import { SuiteTestCaseList } from "@/components/SuiteTestCaseList";
+import { getSuiteDisabledReason } from "@/lib/disabledSuites";
+import { hasRole } from "@/lib/permissions";
 import { suiteBreakdown } from "@/lib/trends";
 import { formatRelativeTime } from "@/lib/format";
-import type { RunSummary } from "@/lib/types";
+import type { RunSummary, TriggerResponse } from "@/lib/types";
 
 function ChevronIcon({ open }: { open: boolean }) {
   return (
@@ -28,8 +32,15 @@ function ChevronIcon({ open }: { open: boolean }) {
  */
 export function SuiteTestCasesSection({ runs }: { runs: RunSummary[] }) {
   const { t } = useI18n();
+  const { mutate } = useSWRConfig();
   const suites = useMemo(() => suiteBreakdown(runs), [runs]);
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
+  // Per-suite trigger state for the header's "Run" button (runs the whole
+  // suite, no test filter — same as an empty selection on the expanded list).
+  const [runState, setRunState] = useState<Record<number, "idle" | "pending" | "triggered">>({});
+
+  const currentUser = useCurrentUser();
+  const canTrigger = !currentUser || hasRole(currentUser.role, "editor");
 
   const toggle = (workflowId: number) =>
     setExpanded((prev) => {
@@ -38,6 +49,26 @@ export function SuiteTestCasesSection({ runs }: { runs: RunSummary[] }) {
       else next.add(workflowId);
       return next;
     });
+
+  const handleRunSuite = async (workflowId: number, workflowName: string) => {
+    if (runState[workflowId] === "pending" || getSuiteDisabledReason(workflowName) || !canTrigger) return;
+    setRunState((prev) => ({ ...prev, [workflowId]: "pending" }));
+
+    const res = await fetch("/api/runs/trigger", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ workflowId }),
+    });
+    const result: TriggerResponse = await res.json();
+
+    if (result.ok) {
+      setRunState((prev) => ({ ...prev, [workflowId]: "triggered" }));
+      setTimeout(() => mutate("/api/runs?per_page=50"), 1500);
+      setTimeout(() => setRunState((prev) => ({ ...prev, [workflowId]: "idle" })), 4000);
+    } else {
+      setRunState((prev) => ({ ...prev, [workflowId]: "idle" }));
+    }
+  };
 
   if (suites.length === 0) {
     return (
@@ -51,6 +82,8 @@ export function SuiteTestCasesSection({ runs }: { runs: RunSummary[] }) {
     <div className="flex flex-col gap-3">
       {suites.map((s) => {
         const isOpen = expanded.has(s.workflowId);
+        const disabledReason = getSuiteDisabledReason(s.name) ?? (canTrigger ? null : t("suite.viewerReadOnly"));
+        const state = runState[s.workflowId] ?? "idle";
         return (
           <div key={s.workflowId} className="overflow-hidden rounded-[12px] border border-surface-border bg-surface-panel">
             <button
@@ -79,6 +112,29 @@ export function SuiteTestCasesSection({ runs }: { runs: RunSummary[] }) {
                   {s.total} {t("trends.runs")}
                 </span>
                 <span className="hidden text-[12px] text-q-dim md:inline">{formatRelativeTime(s.lastRunAt)}</span>
+                <button
+                  type="button"
+                  title={disabledReason ?? undefined}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRunSuite(s.workflowId, s.name);
+                  }}
+                  disabled={state === "pending" || !!disabledReason}
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-[7px] px-3 py-[5px] text-[12px] font-bold transition disabled:cursor-not-allowed disabled:opacity-60"
+                  style={
+                    state === "triggered"
+                      ? { background: "rgba(61,220,151,0.2)", color: "#3ddc97" }
+                      : { background: "#3ddc97", color: "#06140d" }
+                  }
+                >
+                  {state === "pending" && (
+                    <svg className="h-3 w-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                  )}
+                  {state === "triggered" ? t("suiteTests.triggered") : t("suiteTests.run")}
+                </button>
                 <Link
                   href={`/suites/${s.workflowId}`}
                   onClick={(e) => e.stopPropagation()}
