@@ -213,7 +213,7 @@ function RecentRunRow({ run }: { run: RunSummary }) {
         )}
         {run.commitMessage && (
           <div className="mt-0.5 truncate pl-4 text-[11px] text-q-dim" title={run.commitMessage}>
-            Commit: &ldquo;{run.commitMessage}&rdquo;
+            &ldquo;{run.commitMessage}&rdquo;
           </div>
         )}
       </div>
