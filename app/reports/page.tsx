@@ -5,6 +5,7 @@ import useSWR from "swr";
 import { ReportCard } from "@/components/ReportCard";
 import { RefreshButton } from "@/components/RefreshButton";
 import { useI18n } from "@/components/I18nProvider";
+import { runsRefreshInterval } from "@/lib/runsPolling";
 import type { RunsResponse } from "@/lib/types";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -23,7 +24,7 @@ type SortOrder = "newest" | "oldest";
 export default function ReportsPage() {
   const { t } = useI18n();
   const { data, mutate } = useSWR<RunsResponse>("/api/runs?per_page=50", fetcher, {
-    refreshInterval: 15000,
+    refreshInterval: runsRefreshInterval,
   });
 
   const [search, setSearch] = useState("");

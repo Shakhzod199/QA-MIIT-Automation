@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/components/I18nProvider";
+import { suiteHasSecurityTests } from "@/lib/securitySuites";
 
 const TABS = [
   { type: "frontend", key: "suite.frontend" },
@@ -17,7 +18,16 @@ type SuiteType = (typeof TABS)[number]["type"];
  * (components/SidebarNav.tsx TYPE_SUBLINKS) so switching test type doesn't
  * require going back to the sidebar.
  */
-export function TypeTabs({ workflowId, active }: { workflowId: number; active: SuiteType }) {
+export function TypeTabs({
+  workflowId,
+  active,
+  workflowName,
+}: {
+  workflowId: number;
+  active: SuiteType;
+  /** Used only to decide whether the Security tab applies to this suite. */
+  workflowName?: string;
+}) {
   const { t } = useI18n();
   const router = useRouter();
 
@@ -26,9 +36,11 @@ export function TypeTabs({ workflowId, active }: { workflowId: number; active: S
     router.push(type === "frontend" ? `/suites/${workflowId}` : `/suites/${workflowId}?type=${type}`);
   };
 
+  const tabs = TABS.filter((tab) => tab.type !== "security" || suiteHasSecurityTests(workflowName));
+
   return (
     <div className="flex gap-1 border-b border-surface-border">
-      {TABS.map((tab) => {
+      {tabs.map((tab) => {
         const isActive = tab.type === active;
         return (
           <button

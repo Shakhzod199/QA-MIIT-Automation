@@ -13,7 +13,10 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json());
 export default function RunDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { data } = useSWR<RunDetailResponse>(`/api/runs/${id}`, fetcher, {
-    refreshInterval: 15000,
+    // Poll fast while this specific run is still live, so "still running" on
+    // screen can't lag behind what GitHub/Telegram already reported for long.
+    refreshInterval: (latest) =>
+      latest?.run?.status === "in_progress" || latest?.run?.status === "queued" ? 5000 : 15000,
   });
   // Test-level results only exist once the run has finished and uploaded its
   // report artifact, so only fetch them for completed runs.

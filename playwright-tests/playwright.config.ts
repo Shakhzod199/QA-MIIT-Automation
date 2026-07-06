@@ -57,16 +57,18 @@ export default defineConfig({
     },
 
     // ── QA Dashboard security (auth/authz/session of THIS app) ────────────
+    // Disabled for now — not needed yet. The spec itself (tests/security/
+    // authz.spec.ts) is left in place; uncomment this block to reactivate.
     // No browser — pure API-level checks via the `request` fixture against a
     // running instance of the dashboard itself. Needs SECURITY_ADMIN_USER /
     // SECURITY_ADMIN_PASS (an existing admin) to provision role fixtures; the
     // spec self-skips if they're absent. Point SECURITY_BASE_URL at the
     // running app (defaults to the local prod server on :3417).
-    {
-      name: "security",
-      testDir: "./tests/security",
-      use: { baseURL: process.env.SECURITY_BASE_URL ?? "http://localhost:3417" },
-    },
+    // {
+    //   name: "security",
+    //   testDir: "./tests/security",
+    //   use: { baseURL: process.env.SECURITY_BASE_URL ?? "http://localhost:3417" },
+    // },
 
     // ── add new projects below this line ──────────────────────────────────
     // SEZ's account appears to be single-session: even just *reusing* one

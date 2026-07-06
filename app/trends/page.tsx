@@ -4,6 +4,7 @@ import { useState } from "react";
 import useSWR from "swr";
 import { TrendsView } from "@/components/TrendsCharts";
 import { useI18n } from "@/components/I18nProvider";
+import { runsRefreshInterval } from "@/lib/runsPolling";
 import type { RunsResponse } from "@/lib/types";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -13,7 +14,7 @@ export default function TrendsPage() {
   const { t } = useI18n();
   const [count, setCount] = useState(50);
   const { data, isLoading } = useSWR<RunsResponse>(`/api/runs?per_page=${count}`, fetcher, {
-    refreshInterval: 30000,
+    refreshInterval: runsRefreshInterval,
   });
 
   const runs = data?.runs ?? [];

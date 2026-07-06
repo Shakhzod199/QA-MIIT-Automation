@@ -13,6 +13,7 @@ import { SuiteTestCaseList } from "@/components/SuiteTestCaseList";
 import { computeStats } from "@/lib/stats";
 import { getSuiteDisabledReason } from "@/lib/disabledSuites";
 import { hasRole } from "@/lib/permissions";
+import { runsRefreshInterval } from "@/lib/runsPolling";
 import { formatDuration, getStatusBadge } from "@/lib/format";
 import type {
   RunsResponse,
@@ -39,7 +40,9 @@ function SuiteTestsPageInner({ params }: { params: Promise<{ id: string }> }) {
   const type = (searchParams.get("type") as "frontend" | "api" | "load" | "security" | null) ?? "frontend";
 
   const { data: workflowsData } = useSWR<WorkflowsResponse>("/api/workflows", fetcher);
-  const { data: runsData, mutate: mutateRuns } = useSWR<RunsResponse>("/api/runs?per_page=50", fetcher);
+  const { data: runsData, mutate: mutateRuns } = useSWR<RunsResponse>("/api/runs?per_page=50", fetcher, {
+    refreshInterval: runsRefreshInterval,
+  });
 
   const workflow = workflowsData?.workflows.find((w) => w.id === workflowId);
   const currentUser = useCurrentUser();
@@ -82,7 +85,14 @@ function SuiteTestsPageInner({ params }: { params: Promise<{ id: string }> }) {
 
   const { data: testsData } = useSWR<TestReportResponse>(
     latestRunId ? `/api/runs/${latestRunId}/tests` : null,
-    fetcher
+    fetcher,
+    // Override the app-wide keepPreviousData default: when there's no
+    // matching run for this workflow+type (e.g. a project/tab combo that has
+    // never had a completed run, like "Security" on a suite that doesn't run
+    // security tests), the key goes to null and this must show empty/loading
+    // — not silently keep displaying whatever OTHER run's data was last
+    // fetched under a previous key, mislabeled as belonging to this tab.
+    { keepPreviousData: false }
   );
 
   // ── Backend (api/load) ──────────────────────────────────────────────────
@@ -188,7 +198,7 @@ function SuiteTestsPageInner({ params }: { params: Promise<{ id: string }> }) {
           </div>
         </div>
 
-        <TypeTabs workflowId={workflowId} active={type} />
+        <TypeTabs workflowId={workflowId} active={type} workflowName={workflow?.name} />
 
         {type === "api" ? (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

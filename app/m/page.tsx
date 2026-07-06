@@ -5,6 +5,7 @@ import useSWR from "swr";
 import { useI18n } from "@/components/I18nProvider";
 import { useCurrentUser } from "@/components/UserProvider";
 import { hasRole } from "@/lib/permissions";
+import { runsRefreshInterval } from "@/lib/runsPolling";
 import { formatRelativeTime } from "@/lib/format";
 import type {
   RunSummary,
@@ -46,7 +47,7 @@ export default function MobileDashboard() {
   const { data: runsData, mutate: mutateRuns } = useSWR<RunsResponse>(
     "/api/runs?per_page=20",
     fetcher,
-    { refreshInterval: 15000 }
+    { refreshInterval: runsRefreshInterval }
   );
 
   const [pending, setPending] = useState<Record<number, boolean>>({});

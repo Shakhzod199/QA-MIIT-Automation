@@ -9,6 +9,7 @@ import { SuiteTestCasesSection } from "@/components/SuiteTestCasesSection";
 import { useCurrentUser } from "@/components/UserProvider";
 import { useI18n } from "@/components/I18nProvider";
 import { hasRole } from "@/lib/permissions";
+import { runsRefreshInterval } from "@/lib/runsPolling";
 import { formatDuration, formatRelativeTime } from "@/lib/format";
 import type { RunsResponse, RunSummary, WorkflowsResponse } from "@/lib/types";
 
@@ -220,7 +221,7 @@ export default function DashboardPage() {
   const { data: runsData, mutate: mutateRuns } = useSWR<RunsResponse>(
     "/api/runs?per_page=50",
     fetcher,
-    { refreshInterval: 15000 }
+    { refreshInterval: runsRefreshInterval }
   );
 
   const handleRefresh = async () => {

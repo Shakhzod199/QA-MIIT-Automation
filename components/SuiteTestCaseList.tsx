@@ -9,6 +9,7 @@ import { InfoIcon } from "@/components/icons";
 import { getSuiteDisabledReason } from "@/lib/disabledSuites";
 import { hasRole } from "@/lib/permissions";
 import { getTestDescription } from "@/lib/testDescriptions";
+import { runsRefreshInterval } from "@/lib/runsPolling";
 import type { RunSummary, RunsResponse, TestCaseResult, TestReportResponse, TriggerResponse } from "@/lib/types";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -58,7 +59,9 @@ export function SuiteTestCaseList({
   const { t, locale } = useI18n();
   const [infoTest, setInfoTest] = useState<TestCaseResult | null>(null);
 
-  const { data: runsData, mutate: mutateRuns } = useSWR<RunsResponse>("/api/runs?per_page=50", fetcher);
+  const { data: runsData, mutate: mutateRuns } = useSWR<RunsResponse>("/api/runs?per_page=50", fetcher, {
+    refreshInterval: runsRefreshInterval,
+  });
 
   const currentUser = useCurrentUser();
   const canTrigger = !currentUser || hasRole(currentUser.role, "editor");
@@ -81,7 +84,12 @@ export function SuiteTestCaseList({
 
   const { data: testsData, isLoading } = useSWR<TestReportResponse>(
     latestRunId ? `/api/runs/${latestRunId}/tests` : null,
-    fetcher
+    fetcher,
+    // See app/suites/[id]/page.tsx's identical override for why: without
+    // this, switching to a workflow+runType with no completed run yet (key
+    // goes to null) keeps showing whatever unrelated run's test list was
+    // last fetched, instead of the empty state.
+    { keepPreviousData: false }
   );
 
   const tests = testsData?.tests ?? [];
