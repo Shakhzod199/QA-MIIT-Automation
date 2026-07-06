@@ -208,18 +208,17 @@ function RecentRunRow({ run }: { run: RunSummary }) {
           />
           <span className="truncate text-[13px] font-semibold text-q-text">{run.name}</span>
         </div>
-        <div className="mt-0.5 truncate pl-4 font-mono text-[11px] text-q-dim">
+        <div
+          className="mt-0.5 truncate pl-4 font-mono text-[11px] text-q-dim"
+          title={run.commitMessage ?? undefined}
+        >
           Run #{run.runNumber}
           {run.branch ? ` · ${run.branch} branch` : ""}
+          {run.commitMessage ? ` · “${run.commitMessage}”` : ""}
         </div>
         {run.testFilter && (
           <div className="mt-0.5 truncate pl-4 font-mono text-[11px] text-q-dim" title={run.testFilter}>
             Single test: {run.testFilter}
-          </div>
-        )}
-        {run.commitMessage && (
-          <div className="mt-0.5 truncate pl-4 text-[11px] text-q-dim" title={run.commitMessage}>
-            &ldquo;{run.commitMessage}&rdquo;
           </div>
         )}
       </div>

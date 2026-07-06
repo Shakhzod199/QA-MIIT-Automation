@@ -41,11 +41,15 @@ function FlakeRateBar({ rate }: { rate: number }) {
   );
 }
 
+// Shared column template so the header labels align with the row cells.
+const FLAKY_GRID =
+  "sm:grid sm:grid-cols-[minmax(0,1fr)_120px_150px_110px] sm:items-center sm:gap-4";
+
 function FlakyRow({ test }: { test: FlakyTest }) {
   const title = test.titlePath.join(" › ");
   return (
-    <div className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:gap-4">
-      <div className="min-w-0 flex-1">
+    <div className={`flex flex-col gap-3 px-4 py-3 ${FLAKY_GRID}`}>
+      <div className="min-w-0">
         <p className="truncate text-[13px] font-medium text-q-text">{title}</p>
         <p className="mt-0.5 flex items-center gap-2 truncate font-mono text-[11px] text-q-dim">
           <span className="truncate">{test.file}</span>
@@ -57,7 +61,7 @@ function FlakyRow({ test }: { test: FlakyTest }) {
         </p>
       </div>
 
-      <div className="flex shrink-0 items-center gap-1.5 font-mono text-[11px] tabular-nums">
+      <div className="flex items-center gap-1.5 font-mono text-[11px] tabular-nums">
         <span title={`${test.passed} passed`} className="rounded px-1.5 py-0.5 text-[#3ddc97]" style={{ background: "rgba(61,220,151,0.12)" }}>
           {test.passed}P
         </span>
@@ -65,19 +69,15 @@ function FlakyRow({ test }: { test: FlakyTest }) {
           {test.failed}F
         </span>
         {test.flaky > 0 && (
-          <span title={`${test.flaky} flaky`} className="rounded px-1.5 py-0.5 text-[#f5b544]" style={{ background: "rgba(245,181,68,0.12)" }}>
+          <span title={`${test.flaky} flaky (passed on retry)`} className="rounded px-1.5 py-0.5 text-[#f5b544]" style={{ background: "rgba(245,181,68,0.12)" }}>
             {test.flaky}~
           </span>
         )}
       </div>
 
-      <div className="shrink-0">
-        <HistoryStrip test={test} />
-      </div>
+      <HistoryStrip test={test} />
 
-      <div className="shrink-0">
-        <FlakeRateBar rate={test.flakeRate} />
-      </div>
+      <FlakeRateBar rate={test.flakeRate} />
     </div>
   );
 }
@@ -96,8 +96,13 @@ export function FlakyTests({ tests }: { tests: FlakyTest[] }) {
 
   return (
     <div className="overflow-hidden rounded-[12px] border border-surface-border bg-surface-panel">
-      <div className="border-b border-surface-border px-4 py-2 font-mono text-[11px] uppercase tracking-wide text-q-dim">
-        Test · outcomes (P/F/~) · run history (old → new) · flake rate
+      <div
+        className={`hidden border-b border-surface-border px-4 py-2.5 font-mono text-[10px] font-semibold uppercase tracking-[0.7px] text-q-dim ${FLAKY_GRID}`}
+      >
+        <span>Test</span>
+        <span>Outcomes</span>
+        <span>History (old → new)</span>
+        <span>Flake rate</span>
       </div>
       <div className="divide-y divide-surface-border">
         {tests.map((test) => (

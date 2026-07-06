@@ -161,7 +161,9 @@ function TriggerBySuite({ runs }: { runs: RunSummary[] }) {
 
   return (
     <div>
-      <div className="space-y-2.5">
+      {/* Two columns: each row's content is short, so full-width rows left a
+          long empty stretch between the strip and the counts. */}
+      <div className="grid grid-cols-1 gap-x-10 gap-y-2.5 xl:grid-cols-2">
         {suites.map((s) => (
           <div key={s.workflowId} className="flex items-center gap-3">
             <Link
