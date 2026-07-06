@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { allowedWorkflowIds } from "@/lib/access";
 import { getGithubConfig, githubFetch } from "@/lib/github";
 import { mapRun } from "@/lib/mappers";
 import { computeStats, emptyStats } from "@/lib/stats";
@@ -35,7 +36,12 @@ export async function GET(request: Request) {
   }
 
   const data = await res.json();
-  const runs: RunSummary[] = (data.workflow_runs ?? []).map(mapRun);
+  const allRuns: RunSummary[] = (data.workflow_runs ?? []).map(mapRun);
+
+  // Same restriction as /api/workflows — hides runs from projects this user
+  // wasn't granted, so Recent Runs / Trends / Reports never leak them.
+  const allowed = await allowedWorkflowIds(request);
+  const runs = allowed === null ? allRuns : allRuns.filter((r) => allowed.has(r.workflowId));
 
   return NextResponse.json<RunsResponse>({
     configured: true,

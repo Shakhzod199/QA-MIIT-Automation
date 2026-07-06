@@ -165,13 +165,20 @@ export interface FlakyResponse {
 
 export type UserRole = "admin" | "editor" | "viewer";
 
-/** Never includes the password hash — safe to send to the client. */
+/**
+ * Never includes the password hash — safe to send to the client.
+ *
+ * `allowedWorkflows` is ignored for admins (they always have unrestricted
+ * access, enforced in app code). For editor/viewer, an empty array means no
+ * projects assigned yet — treated as "no access", not "all access".
+ */
 export interface UserRecord {
   id: number;
   username: string;
   name: string | null;
   role: UserRole;
   createdAt: string;
+  allowedWorkflows: number[];
 }
 
 export interface UsersResponse {
@@ -191,6 +198,8 @@ export interface CreateUserRequest {
   password: string;
   name?: string;
   role: UserRole;
+  /** Ignored server-side when role is "admin". Defaults to []. */
+  allowedWorkflows?: number[];
 }
 
 export interface UpdateUserRequest {
@@ -198,6 +207,8 @@ export interface UpdateUserRequest {
   role?: UserRole;
   /** Omit to leave the password unchanged. */
   password?: string;
+  /** Omit to leave the current assignment unchanged. Ignored when role is "admin". */
+  allowedWorkflows?: number[];
 }
 
 export interface DailyVisits {

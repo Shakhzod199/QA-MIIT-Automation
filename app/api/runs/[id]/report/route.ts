@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
+import { canAccessWorkflow, getRunWorkflowId } from "@/lib/access";
 import { getGithubConfig, githubFetch } from "@/lib/github";
 import { mapArtifact } from "@/lib/mappers";
 
-export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const config = getGithubConfig();
 
   if (!config.configured) {
@@ -10,6 +11,11 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   }
 
   const { id } = await params;
+
+  const workflowId = await getRunWorkflowId(id);
+  if (workflowId != null && !(await canAccessWorkflow(request, workflowId))) {
+    return NextResponse.json({ error: "You don't have access to this project." }, { status: 403 });
+  }
 
   const artifactsRes = await githubFetch(
     `/repos/${config.owner}/${config.repo}/actions/runs/${id}/artifacts`

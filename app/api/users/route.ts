@@ -22,6 +22,7 @@ export async function POST(request: Request) {
       password: body.password,
       name: body.name?.trim() || undefined,
       role: body.role,
+      allowedWorkflows: body.allowedWorkflows,
     });
     return NextResponse.json<UserResponse>({ ok: true, user }, { status: 201 });
   } catch (err) {

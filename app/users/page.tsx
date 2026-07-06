@@ -19,7 +19,13 @@ export default function UsersPage() {
   const users = data?.users ?? [];
   const visits = visitsData?.days ?? [];
 
-  const handleCreate = async (input: { username: string; password: string; name: string; role: UserRole }) => {
+  const handleCreate = async (input: {
+    username: string;
+    password: string;
+    name: string;
+    role: UserRole;
+    allowedWorkflows: number[];
+  }) => {
     const res = await fetch("/api/users", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -33,12 +39,17 @@ export default function UsersPage() {
 
   const handleUpdate = async (
     id: number,
-    input: { username: string; password: string; name: string; role: UserRole }
+    input: { username: string; password: string; name: string; role: UserRole; allowedWorkflows: number[] }
   ) => {
     const res = await fetch(`/api/users/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: input.name, role: input.role, password: input.password || undefined }),
+      body: JSON.stringify({
+        name: input.name,
+        role: input.role,
+        password: input.password || undefined,
+        allowedWorkflows: input.allowedWorkflows,
+      }),
     });
     const result: UserResponse = await res.json();
     if (!result.ok) return result.error ?? "Failed to update user.";

@@ -64,6 +64,10 @@ export async function middleware(request: NextRequest) {
     name: claims.name,
     role: claims.role,
     createdAt: "",
+    // Not in the signed cookie claims and not needed for this fast path (it
+    // only feeds the role check below) — route handlers that need a fresh,
+    // authoritative allow-list fetch it themselves via lib/access.ts.
+    allowedWorkflows: [],
   };
 
   if (requiredRole) {

@@ -11,6 +11,7 @@ interface SessionUserRow {
   name: string | null;
   role: UserRole;
   created_at: string;
+  allowed_workflows: number[] | null;
 }
 
 export async function createSession(userId: number): Promise<{ token: string; expiresAt: Date }> {
@@ -28,7 +29,7 @@ export async function getSessionUser(token: string | undefined | null): Promise<
 
   const { data, error } = await getSupabaseAdmin()
     .from("sessions")
-    .select("expires_at, users(id, username, name, role, created_at)")
+    .select("expires_at, users(id, username, name, role, created_at, allowed_workflows)")
     .eq("token", token)
     .maybeSingle();
   if (error || !data) return null;
@@ -37,7 +38,14 @@ export async function getSessionUser(token: string | undefined | null): Promise<
 
   const row = (Array.isArray(data.users) ? data.users[0] : data.users) as SessionUserRow | null;
   if (!row) return null;
-  return { id: row.id, username: row.username, name: row.name, role: row.role, createdAt: row.created_at };
+  return {
+    id: row.id,
+    username: row.username,
+    name: row.name,
+    role: row.role,
+    createdAt: row.created_at,
+    allowedWorkflows: row.allowed_workflows ?? [],
+  };
 }
 
 export async function deleteSession(token: string | undefined | null): Promise<void> {

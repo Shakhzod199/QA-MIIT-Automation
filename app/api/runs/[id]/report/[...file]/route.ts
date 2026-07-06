@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { canAccessWorkflow, getRunWorkflowId } from "@/lib/access";
 import { getGithubConfig } from "@/lib/github";
 import { getReportFiles } from "@/lib/report-artifact";
 
@@ -25,7 +26,7 @@ function contentType(path: string): string {
 }
 
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string; file: string[] }> }
 ) {
   const config = getGithubConfig();
@@ -35,6 +36,11 @@ export async function GET(
 
   const { id, file } = await params;
   const filePath = file.join("/");
+
+  const workflowId = await getRunWorkflowId(id);
+  if (workflowId != null && !(await canAccessWorkflow(req, workflowId))) {
+    return NextResponse.json({ error: "You don't have access to this project." }, { status: 403 });
+  }
 
   const files = await getReportFiles(id, config);
   if (!files) {

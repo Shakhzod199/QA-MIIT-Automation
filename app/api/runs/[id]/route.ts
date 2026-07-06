@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
+import { canAccessWorkflow } from "@/lib/access";
 import { getGithubConfig, githubFetch } from "@/lib/github";
 import { mapArtifact, mapJob, mapRunDetail } from "@/lib/mappers";
 import type { RunDetailResponse } from "@/lib/types";
 
-export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const config = getGithubConfig();
 
   if (!config.configured) {
@@ -36,6 +37,16 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   }
 
   const runData = await runRes.json();
+
+  // The run's own payload already tells us its workflow_id — no extra
+  // GitHub call needed here, unlike the run-id-only endpoints below.
+  if (!(await canAccessWorkflow(request, runData.workflow_id))) {
+    return NextResponse.json<RunDetailResponse>(
+      { configured: true, jobs: [], artifacts: [], error: "You don't have access to this project." },
+      { status: 403 }
+    );
+  }
+
   const jobsData = jobsRes.ok ? await jobsRes.json() : { jobs: [] };
   const artifactsData = artifactsRes.ok ? await artifactsRes.json() : { artifacts: [] };
 

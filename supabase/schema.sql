@@ -10,6 +10,12 @@ create table if not exists users (
   created_at timestamptz not null default now()
 );
 
+-- GitHub Actions workflow IDs this user may see/act on. Ignored for admins
+-- (they always have full access — enforced in app code, not here). Empty
+-- array = no projects assigned yet, which for editor/viewer means no access,
+-- not "all access". Safe to re-run: no-ops if the column already exists.
+alter table users add column if not exists allowed_workflows bigint[] not null default '{}'::bigint[];
+
 create table if not exists sessions (
   token text primary key,
   user_id bigint not null references users(id) on delete cascade,

@@ -26,7 +26,7 @@ export function VisitsChart({ days }: { days: DailyVisits[] }) {
 
   return (
     <div className="rounded-lg border border-surface-border bg-surface-panel p-5">
-      <div className="flex h-[140px] items-end gap-1.5">
+      <div className="flex h-[140px] gap-1.5">
         {days.map((d) => (
           <div key={d.date} className="flex min-w-0 flex-1 flex-col items-center gap-1.5" title={`${d.date}: ${d.count}`}>
             <div className="flex h-full w-full items-end">

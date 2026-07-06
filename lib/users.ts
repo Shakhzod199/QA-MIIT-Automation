@@ -9,10 +9,18 @@ interface UserRow {
   password_hash: string;
   role: UserRole;
   created_at: string;
+  allowed_workflows: number[] | null;
 }
 
 function toUserRecord(row: UserRow): UserRecord {
-  return { id: row.id, username: row.username, name: row.name, role: row.role, createdAt: row.created_at };
+  return {
+    id: row.id,
+    username: row.username,
+    name: row.name,
+    role: row.role,
+    createdAt: row.created_at,
+    allowedWorkflows: row.allowed_workflows ?? [],
+  };
 }
 
 export async function listUsers(): Promise<UserRecord[]> {
@@ -66,6 +74,7 @@ export async function createUser(input: {
   password: string;
   name?: string;
   role: UserRole;
+  allowedWorkflows?: number[];
 }): Promise<UserRecord> {
   const db = getSupabaseAdmin();
   const { data: existing, error: lookupError } = await db
@@ -83,6 +92,9 @@ export async function createUser(input: {
       name: input.name ?? null,
       password_hash: hashPassword(input.password),
       role: input.role,
+      // Admins are unrestricted regardless of this column (checked in app
+      // code), so there's no point persisting a list for them.
+      allowed_workflows: input.role === "admin" ? [] : (input.allowedWorkflows ?? []),
     })
     .select("*")
     .single();
@@ -92,7 +104,7 @@ export async function createUser(input: {
 
 export async function updateUser(
   id: number,
-  input: { name?: string; role?: UserRole; password?: string }
+  input: { name?: string; role?: UserRole; password?: string; allowedWorkflows?: number[] }
 ): Promise<UserRecord> {
   const db = getSupabaseAdmin();
   const current = await getUserById(id);
@@ -102,9 +114,12 @@ export async function updateUser(
     throw new Error("Cannot demote the last remaining admin.");
   }
 
+  const nextRole = input.role ?? current.role;
   const patch: Record<string, unknown> = {
     name: input.name !== undefined ? input.name : current.name,
-    role: input.role ?? current.role,
+    role: nextRole,
+    allowed_workflows:
+      nextRole === "admin" ? [] : (input.allowedWorkflows ?? current.allowedWorkflows),
   };
   if (input.password) patch.password_hash = hashPassword(input.password);
 

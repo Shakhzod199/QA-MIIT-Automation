@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { canAccessWorkflow } from "@/lib/access";
 import { getGithubConfig, githubFetch } from "@/lib/github";
 import type { TriggerResponse } from "@/lib/types";
 
@@ -24,6 +25,16 @@ export async function POST(request: Request) {
     return NextResponse.json<TriggerResponse>(
       { ok: false, error: "Missing workflowId." },
       { status: 400 }
+    );
+  }
+
+  // middleware.ts already gated this route to editor+; this adds the
+  // per-project layer on top, so an editor can't trigger a suite outside
+  // their assigned projects just by knowing/guessing its workflowId.
+  if (!(await canAccessWorkflow(request, workflowId))) {
+    return NextResponse.json<TriggerResponse>(
+      { ok: false, error: "You don't have access to this project." },
+      { status: 403 }
     );
   }
 

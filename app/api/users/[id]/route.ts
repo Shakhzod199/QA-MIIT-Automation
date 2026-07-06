@@ -11,6 +11,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       name: body.name?.trim(),
       role: body.role,
       password: body.password || undefined,
+      allowedWorkflows: body.allowedWorkflows,
     });
     return NextResponse.json<UserResponse>({ ok: true, user });
   } catch (err) {
