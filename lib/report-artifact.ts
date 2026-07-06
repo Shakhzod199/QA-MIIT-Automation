@@ -12,8 +12,14 @@ export async function getReportFiles(
   runId: string,
   config: { owner?: string; repo?: string }
 ): Promise<Map<string, Uint8Array> | null> {
+  // Evict anything past TTL so old runs' unzipped reports don't pile up in
+  // memory — entries were previously only ever overwritten, never removed.
+  for (const [key, value] of cache) {
+    if (Date.now() - value.at >= TTL_MS) cache.delete(key);
+  }
+
   const entry = cache.get(runId);
-  if (entry && Date.now() - entry.at < TTL_MS) return entry.files;
+  if (entry) return entry.files;
 
   const artifactsRes = await githubFetch(
     `/repos/${config.owner}/${config.repo}/actions/runs/${runId}/artifacts`

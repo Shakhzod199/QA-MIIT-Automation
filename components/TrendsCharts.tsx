@@ -347,7 +347,10 @@ function DurationLineChart({ runs }: { runs: RunSummary[] }) {
       if (!byName.has(r.name)) byName.set(r.name, []);
       byName.get(r.name)!.push(r.durationSec as number);
     }
+    // Sorted by name so a project keeps the same color as in the pass-rate
+    // chart next to this one (which also assigns colors alphabetically).
     return Array.from(byName.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
       .map(([name, points], idx) => ({ name, color: colorFor(idx), points: points.slice(-10) }))
       .filter((s) => s.points.length >= 2);
   }, [runs]);
@@ -374,13 +377,15 @@ function DurationLineChart({ runs }: { runs: RunSummary[] }) {
 
 function PassRateLineChart({ runs, title }: { runs: RunSummary[]; title: string }) {
   const { series } = useMemo(() => passRateByProject(runs, 10), [runs]);
+  // Color by position in the full (alphabetical) list, then filter — so a
+  // project keeps its color even when another project drops below 2 points.
   const chartSeries = series
-    .filter((s) => s.points.length >= 2)
     .map((s, idx) => ({
       name: s.name,
       color: colorFor(idx),
       points: s.points.map((p) => p.rate * 100),
-    }));
+    }))
+    .filter((s) => s.points.length >= 2);
 
   if (chartSeries.length === 0) {
     return (
@@ -477,6 +482,14 @@ function StatsSection({ runs, type }: { runs: RunSummary[]; type?: RunSummary["r
   const { t } = useI18n();
   const summary = useMemo(() => trendSummary(runs), [runs]);
   const statusCounts = useMemo(() => statusBreakdown(runs), [runs]);
+  // Real fail rate (failed / completed). "100 − pass rate" would wrongly
+  // count cancelled runs as failures.
+  const failRate = useMemo(() => {
+    const completed = runs.filter((r) => r.status === "completed");
+    if (completed.length === 0) return 0;
+    const failed = completed.filter((r) => r.conclusion === "failure").length;
+    return Math.round((failed / completed.length) * 100);
+  }, [runs]);
   const slowest = useMemo(() => slowestRuns(runs, 5), [runs]);
   const triggerComparison = useMemo(() => triggerSourceComparison(runs), [runs]);
   const typeMix = useMemo(() => runTypeBreakdown(runs), [runs]);
@@ -496,7 +509,7 @@ function StatsSection({ runs, type }: { runs: RunSummary[]; type?: RunSummary["r
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Kpi label={passRateLabel} value={`${summary.passRate}%`} hint={`${summary.completedRuns} ✓`} />
-        <Kpi label={t("trends.failRate")} value={`${100 - summary.passRate}%`} />
+        <Kpi label={t("trends.failRate")} value={`${failRate}%`} />
         <Kpi
           label={t("trends.avgDuration")}
           value={summary.avgDurationSec != null ? formatDuration(summary.avgDurationSec) : "—"}

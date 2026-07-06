@@ -46,7 +46,10 @@ function buildPassRateTrend(runs: RunSummary[]): number[] {
       if (r.conclusion === "success") buckets[i].p++;
     }
   }
-  let prev = 0.95;
+  // Days without runs carry the previous day's rate. Seed with the first real
+  // rate (not an invented constant) so leading empty days don't fabricate data.
+  const firstWithRuns = buckets.find((b) => b.t > 0);
+  let prev = firstWithRuns ? firstWithRuns.p / firstWithRuns.t : 1;
   return buckets.map((b) => {
     if (b.t > 0) prev = b.p / b.t;
     return prev;
@@ -142,9 +145,12 @@ const TRIGGER_SOURCE_LABEL: Record<RunSummary["triggerSource"], string> = {
   "ci-cd": "CI/CD pipeline",
 };
 
-// Shared column template so the header row and run rows line up.
+// Shared column template so the header row and run rows line up. Narrow
+// screens keep Suite/Result/Started; sm adds Duration; lg shows everything.
 const RUN_GRID =
-  "grid grid-cols-[minmax(0,1fr)_140px_92px_78px_64px_92px] items-center gap-3";
+  "grid items-center gap-3 grid-cols-[minmax(0,1fr)_78px_92px] sm:grid-cols-[minmax(0,1fr)_78px_64px_92px] lg:grid-cols-[minmax(0,1fr)_140px_92px_78px_64px_92px]";
+// Visibility classes per column, matching the templates above.
+const COL_VISIBILITY = ["", "hidden lg:block", "hidden lg:block", "", "hidden sm:block", ""];
 
 // "19 minutes ago" wraps in a narrow column — compact the unit words.
 function shortRelativeTime(iso: string): string {
@@ -169,7 +175,7 @@ function RecentRunsHeader() {
           key={label}
           className={`text-[10px] font-semibold uppercase tracking-[0.7px] text-q-dim ${
             i === 5 ? "text-right" : ""
-          }`}
+          } ${COL_VISIBILITY[i]}`}
         >
           {label}
         </span>
@@ -219,7 +225,7 @@ function RecentRunRow({ run }: { run: RunSummary }) {
       </div>
 
       {/* Triggered by */}
-      <div className="min-w-0">
+      <div className="hidden min-w-0 lg:block">
         <div className="truncate text-[12px] text-q-sub">{run.actor ?? "—"}</div>
         <div className="mt-0.5 truncate text-[11px] text-q-dim">
           via {TRIGGER_SOURCE_LABEL[run.triggerSource]}
@@ -228,7 +234,7 @@ function RecentRunRow({ run }: { run: RunSummary }) {
 
       {/* Framework */}
       <span
-        className="w-fit rounded-[6px] px-2 py-[3px] font-mono text-[10.5px] font-semibold"
+        className="hidden w-fit rounded-[6px] px-2 py-[3px] font-mono text-[10.5px] font-semibold lg:block"
         style={{ color: typeBadge.color, background: typeBadge.bg }}
       >
         {typeBadge.label}
@@ -242,7 +248,7 @@ function RecentRunRow({ run }: { run: RunSummary }) {
       </span>
 
       {/* Duration */}
-      <span className="font-mono text-[12px] text-q-muted">
+      <span className="hidden font-mono text-[12px] text-q-muted sm:block">
         {formatDuration(run.durationSec)}
       </span>
 
@@ -289,10 +295,10 @@ export default function DashboardPage() {
       <div className="flex items-center justify-between border-b border-surface-border pb-5">
         <div>
           <h2 className="text-[19px] font-semibold tracking-[-0.4px] text-q-text">
-            {getGreeting()}, QA Team
+            {getGreeting()}, {currentUser?.name || currentUser?.username || "QA Team"}
           </h2>
           <p className="mt-[3px] text-[12.5px] text-q-muted">
-            miit.web · production · last sync just now
+            miit.web · production · last run {formatRelativeTime(stats.lastRunAt).toLowerCase()}
           </p>
         </div>
         <RefreshButton
@@ -322,9 +328,12 @@ export default function DashboardPage() {
           <PassRateTrendChart runs={runs} />
         </div>
 
-        {/* Today by result */}
+        {/* Runs by result — same window as the stats row (last N fetched runs) */}
         <div className="rounded-[12px] border border-surface-border bg-surface-panel p-[18px]">
-          <span className="text-[13px] font-semibold text-q-text">Today by result</span>
+          <div className="flex items-center justify-between">
+            <span className="text-[13px] font-semibold text-q-text">Runs by result</span>
+            <span className="font-mono text-[11px] text-q-dim">last {stats.total} runs</span>
+          </div>
           <div className="mt-4">
             <TodayByResult
               passed={stats.passed}
@@ -343,7 +352,7 @@ export default function DashboardPage() {
           className="flex items-center justify-between px-[18px] py-[15px]"
           style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
         >
-          <span className="text-[13px] font-semibold text-q-text">Recent runs</span>
+          <span className="text-[13px] font-semibold text-q-text">{t("dashboard.recentRuns")}</span>
           <Link href="/reports" className="text-[12px] font-medium text-q-green transition hover:opacity-80">
             View all →
           </Link>
@@ -351,7 +360,7 @@ export default function DashboardPage() {
 
         {recentRuns.length === 0 ? (
           <div className="px-[18px] py-8 text-center text-[13px] text-q-muted">
-            No runs yet
+            {t("dashboard.noRuns")}
           </div>
         ) : (
           <div>

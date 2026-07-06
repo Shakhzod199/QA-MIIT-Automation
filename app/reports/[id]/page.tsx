@@ -48,6 +48,14 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
 
   const { run, jobs, artifacts } = data;
   const badge = getStatusBadge(run.status, run.conclusion);
+  // GitHub event names are jargon — translate the common ones.
+  const EVENT_LABEL: Record<string, string> = {
+    workflow_dispatch: "Started manually (dashboard or API)",
+    push: "Started by a push",
+    schedule: "Started on a schedule",
+    pull_request: "Started by a pull request",
+  };
+  const eventLabel = EVENT_LABEL[run.event] ?? `Started by ${run.event}`;
   const hasReport = artifacts.some(
     (artifact) => artifact.name.toLowerCase().includes("report") && !artifact.expired
   );
@@ -67,7 +75,15 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
         <div className="flex items-start justify-between">
           <div>
             <h2 className="text-xl font-semibold text-white">{run.name}</h2>
-            <p className="mt-1 text-sm text-gray-500">Triggered by {run.event} event</p>
+            <p className="mt-1 text-sm text-gray-500">
+              {eventLabel}
+              {run.actor ? ` by ${run.actor}` : ""}
+            </p>
+            {run.commitMessage && (
+              <p className="mt-1 text-sm text-gray-500">
+                Commit: <span className="text-gray-300">&ldquo;{run.commitMessage}&rdquo;</span>
+              </p>
+            )}
           </div>
           <a
             href={run.htmlUrl}
@@ -102,8 +118,10 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
             <p className="mt-1 text-sm text-gray-200">{formatRelativeTime(run.updatedAt)}</p>
           </div>
           <div>
-            <p className="text-xs uppercase tracking-wide text-gray-500">Triggered by</p>
-            <p className="mt-1 text-sm text-gray-200">{run.actor ?? "—"}</p>
+            <p className="text-xs uppercase tracking-wide text-gray-500">Triggered via</p>
+            <p className="mt-1 text-sm text-gray-200">
+              {run.triggerSource === "ci-cd" ? "CI/CD pipeline" : "Dashboard"}
+            </p>
           </div>
         </div>
       </div>

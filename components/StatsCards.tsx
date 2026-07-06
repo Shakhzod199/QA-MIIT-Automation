@@ -52,23 +52,29 @@ export function StatCard({
 }
 
 export function StatsCards({ stats }: { stats: RunStats }) {
+  // The stats window is however many runs the page fetched (last N runs),
+  // not a time window — don't label it "24h".
+  const windowLabel = `last ${stats.total} run${stats.total === 1 ? "" : "s"}`;
   return (
     <div className="grid grid-cols-1 gap-[14px] sm:grid-cols-2 lg:grid-cols-4">
       <StatCard
-        label="Pass rate · 24h"
+        label="Pass rate"
         value={`${stats.passRate}%`}
-        title={`${stats.passRate}% of completed runs passed`}
+        sub={windowLabel}
+        title={`${stats.passRate}% of the ${stats.completed} completed runs in this window passed`}
       />
       <StatCard
-        label="Runs · 24h"
+        label="Runs"
         value={String(stats.total)}
-        title={`${stats.total} total runs recorded`}
+        sub={`${stats.completed} completed`}
+        title={`${stats.total} runs in this window, ${stats.completed} of them completed`}
       />
       <StatCard
         label="Fail rate"
         value={`${stats.failRate}%`}
+        sub={windowLabel}
         valueColor={stats.failRate > 0 ? "#ff5d5d" : undefined}
-        title={`${stats.failRate}% of completed runs failed`}
+        title={`${stats.failRate}% of the ${stats.completed} completed runs in this window failed`}
       />
       <StatCard
         label="Last run"

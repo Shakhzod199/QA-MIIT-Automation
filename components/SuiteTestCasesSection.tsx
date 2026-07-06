@@ -87,15 +87,26 @@ export function SuiteTestCasesSection({ runs }: { runs: RunSummary[] }) {
         const state = runState[s.workflowId] ?? "idle";
         return (
           <div key={s.workflowId} className="overflow-hidden rounded-[12px] border border-surface-border bg-surface-panel">
-            <button
-              type="button"
+            {/* Not a <button>: the row holds nested buttons/links (Run, View
+                full suite), and interactive elements can't nest inside a
+                button (invalid HTML, React hydration errors). The dedicated
+                toggle <button> inside keeps it keyboard-accessible. */}
+            <div
               onClick={() => toggle(s.workflowId)}
-              className="flex w-full items-center justify-between gap-4 px-[18px] py-[14px] text-left transition hover:bg-surface-hover"
+              className="flex w-full cursor-pointer items-center justify-between gap-4 px-[18px] py-[14px] text-left transition hover:bg-surface-hover"
             >
-              <span className="flex min-w-0 items-center gap-3">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggle(s.workflowId);
+                }}
+                aria-expanded={isOpen}
+                className="flex min-w-0 items-center gap-3 text-left"
+              >
                 <ChevronIcon open={isOpen} />
                 <span className="truncate text-[14px] font-semibold text-q-text">{s.name}</span>
-              </span>
+              </button>
               <span className="flex shrink-0 items-center gap-4">
                 <span
                   className="rounded-[6px] px-2 py-0.5 font-mono text-[11px] font-semibold"
@@ -148,7 +159,7 @@ export function SuiteTestCasesSection({ runs }: { runs: RunSummary[] }) {
                   {t("dashboard.viewFullSuite")} →
                 </Link>
               </span>
-            </button>
+            </div>
 
             {isOpen && (
               <div className="border-t border-surface-border p-[18px]">
