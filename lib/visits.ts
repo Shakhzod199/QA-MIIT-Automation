@@ -15,14 +15,24 @@ export async function getDailyVisits(days = 14): Promise<DailyVisits[]> {
 
   const { data, error } = await getSupabaseAdmin()
     .from("login_events")
-    .select("created_at")
+    .select("created_at, users(username)")
     .gte("created_at", since.toISOString());
   if (error) throw new Error(error.message);
 
   const counts = new Map<string, number>();
-  for (const row of data as { created_at: string }[]) {
+  const usersByDay = new Map<string, Set<string>>();
+  for (const row of data as {
+    created_at: string;
+    users: { username: string } | { username: string }[] | null;
+  }[]) {
     const day = row.created_at.slice(0, 10);
     counts.set(day, (counts.get(day) ?? 0) + 1);
+
+    const userRow = Array.isArray(row.users) ? row.users[0] : row.users;
+    if (userRow?.username) {
+      if (!usersByDay.has(day)) usersByDay.set(day, new Set());
+      usersByDay.get(day)!.add(userRow.username);
+    }
   }
 
   const result: DailyVisits[] = [];
@@ -30,7 +40,11 @@ export async function getDailyVisits(days = 14): Promise<DailyVisits[]> {
     const d = new Date();
     d.setUTCDate(d.getUTCDate() - i);
     const key = d.toISOString().slice(0, 10);
-    result.push({ date: key, count: counts.get(key) ?? 0 });
+    result.push({
+      date: key,
+      count: counts.get(key) ?? 0,
+      users: Array.from(usersByDay.get(key) ?? []).sort(),
+    });
   }
   return result;
 }

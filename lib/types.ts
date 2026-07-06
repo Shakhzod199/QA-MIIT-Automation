@@ -215,6 +215,8 @@ export interface DailyVisits {
   /** YYYY-MM-DD, local calendar day. */
   date: string;
   count: number;
+  /** Usernames who logged in that day, deduped — powers the chart tooltip. */
+  users: string[];
 }
 
 export interface VisitsResponse {

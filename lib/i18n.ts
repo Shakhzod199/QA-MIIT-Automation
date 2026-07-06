@@ -196,6 +196,8 @@ const en: Dict = {
   "users.dailyVisits": "Daily visits",
   "users.dailyVisitsSubtitle": "Successful logins per day, last 14 days",
   "users.noVisits": "No visits recorded yet.",
+  "users.loginsWord": "logins",
+  "users.noLoginsTooltip": "No logins",
 };
 
 const uz: Dict = {
@@ -384,6 +386,8 @@ const uz: Dict = {
   "users.dailyVisits": "Kunlik tashriflar",
   "users.dailyVisitsSubtitle": "Oxirgi 14 kundagi muvaffaqiyatli kirishlar",
   "users.noVisits": "Hozircha tashriflar qayd etilmagan.",
+  "users.loginsWord": "kirish",
+  "users.noLoginsTooltip": "Kirishlar yo‘q",
 };
 
 const ru: Dict = {
@@ -572,6 +576,8 @@ const ru: Dict = {
   "users.dailyVisits": "Посещения по дням",
   "users.dailyVisitsSubtitle": "Успешные входы в систему за последние 14 дней",
   "users.noVisits": "Посещений пока не зафиксировано.",
+  "users.loginsWord": "входов",
+  "users.noLoginsTooltip": "Нет входов",
 };
 
 export const TRANSLATIONS: Record<Locale, Dict> = { en, uz, ru };
