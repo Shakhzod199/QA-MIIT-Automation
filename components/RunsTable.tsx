@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { formatDuration, formatRelativeTime } from "@/lib/format";
 import { useI18n } from "@/components/I18nProvider";
 import { ClipboardCheckIcon, FlaskIcon } from "@/components/icons";
+import { TriggerSourceBadge } from "@/components/TriggerSourceBadge";
 import type { RunSummary } from "@/lib/types";
 
 function useTicker(active: boolean) {
@@ -186,30 +187,6 @@ function RunTypeBadge({ runType }: { runType: RunSummary["runType"] }) {
       style={{ color: s.color, background: s.bg }}
     >
       {s.label}
-    </span>
-  );
-}
-
-function TriggerSourceBadge({ source }: { source: RunSummary["triggerSource"] }) {
-  const { t } = useI18n();
-  if (source === "ci-cd") {
-    return (
-      <span
-        className="inline-flex items-center gap-1.5 rounded-[6px] px-2 py-[3px] font-mono text-[10.5px] font-semibold"
-        style={{ background: "rgba(139,92,246,0.14)", color: "#8b5cf6" }}
-      >
-        <span className="h-1.5 w-1.5 rounded-full bg-[#8b5cf6]" />
-        {t("table.triggerCi")}
-      </span>
-    );
-  }
-  return (
-    <span
-      className="inline-flex items-center gap-1.5 rounded-[6px] px-2 py-[3px] font-mono text-[10.5px] font-semibold"
-      style={{ background: "rgba(91,99,110,0.2)", color: "#8a93a0" }}
-    >
-      <span className="h-1.5 w-1.5 rounded-full bg-[#5b636e]" />
-      {t("table.triggerManual")}
     </span>
   );
 }

@@ -19,6 +19,12 @@ export interface SuiteTrend {
   passRate: number; // 0..100
   avgDurationSec: number | null;
   lastRunAt: string | null;
+  /** How the suite's most recent run was started, null when the suite has no runs. */
+  lastTriggerSource: RunSummary["triggerSource"] | null;
+  /** Runs in this window started from the dashboard. */
+  manualCount: number;
+  /** Runs in this window started by an automated caller (e.g. deploy pipeline). */
+  cicdCount: number;
   /** Newest-first, capped at 12 — for a GitHub-style recent-results strip. */
   recent: {
     id: number;
@@ -28,6 +34,7 @@ export interface SuiteTrend {
     createdAt: string;
     /** Playwright filter for a single-test run, else null = full suite. */
     testFilter: string | null;
+    triggerSource: RunSummary["triggerSource"];
   }[];
 }
 
@@ -138,6 +145,9 @@ export function suiteBreakdown(runs: RunSummary[]): SuiteTrend[] {
       passRate: completed.length ? Math.round((passed / completed.length) * 100) : 0,
       avgDurationSec: avg,
       lastRunAt: list[0]?.createdAt ?? null,
+      lastTriggerSource: list[0]?.triggerSource ?? null,
+      manualCount: list.filter((r) => r.triggerSource === "manual").length,
+      cicdCount: list.filter((r) => r.triggerSource === "ci-cd").length,
       // Newest-first, capped — just enough for a GitHub-style result strip.
       recent: list.slice(0, 12).map((r) => ({
         id: r.id,
@@ -146,6 +156,7 @@ export function suiteBreakdown(runs: RunSummary[]): SuiteTrend[] {
         runNumber: r.runNumber,
         createdAt: r.createdAt,
         testFilter: r.testFilter,
+        triggerSource: r.triggerSource,
       })),
     });
   }

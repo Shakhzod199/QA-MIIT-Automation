@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useI18n } from "@/components/I18nProvider";
+import { TriggerSourceBadge } from "@/components/TriggerSourceBadge";
 import { formatDateTime, formatDuration, formatRelativeTime, getStatusBadge } from "@/lib/format";
 import {
   passRateByProject,
@@ -142,6 +143,63 @@ function TriggerComparisonCards({
   );
 }
 
+/**
+ * Per-suite view of who started the runs: a strip of the recent runs colored
+ * by trigger source (oldest → newest) plus a badge for how the *latest* run
+ * was started — answers "was this project last run by CI/CD or by hand?"
+ * without opening each suite.
+ */
+function TriggerBySuite({ runs }: { runs: RunSummary[] }) {
+  const { t } = useI18n();
+  const suites = useMemo(() => suiteBreakdown(runs), [runs]);
+
+  if (suites.length === 0) {
+    return <p className="text-sm text-gray-500">No runs yet.</p>;
+  }
+
+  return (
+    <div>
+      <div className="space-y-2.5">
+        {suites.map((s) => (
+          <div key={s.workflowId} className="flex items-center gap-3">
+            <Link
+              href={`/suites/${s.workflowId}`}
+              className="w-[128px] shrink-0 truncate rounded-[6px] px-2 py-0.5 font-mono text-xs text-q-green transition-colors hover:bg-[rgba(61,220,151,0.18)]"
+              style={{ background: "rgba(61,220,151,0.1)" }}
+            >
+              {s.name}
+            </Link>
+            {/* Recent runs oldest → newest, colored by who triggered them. */}
+            <div className="flex min-w-0 flex-1 items-center gap-0.5">
+              {[...s.recent].reverse().map((r) => (
+                <span
+                  key={r.id}
+                  title={`Run #${r.runNumber} · ${
+                    r.triggerSource === "ci-cd" ? t("table.triggerCi") : t("table.triggerManual")
+                  } · ${formatDateTime(r.createdAt)}`}
+                  className="h-2.5 w-1.5 rounded-sm"
+                  style={{ background: SOURCE_COLORS[r.triggerSource] }}
+                />
+              ))}
+            </div>
+            <span className="hidden shrink-0 font-mono text-[11px] tabular-nums text-q-dim sm:inline">
+              {s.manualCount} {t("table.triggerManual")} · {s.cicdCount} {t("table.triggerCi")}
+            </span>
+            {s.lastTriggerSource && (
+              <TriggerSourceBadge source={s.lastTriggerSource} title={t("trends.lastRunTrigger")} />
+            )}
+          </div>
+        ))}
+      </div>
+      <div className="mt-3 flex items-center gap-4">
+        <LegendDot color={SOURCE_COLORS.manual} label={t("table.triggerManual")} />
+        <LegendDot color={SOURCE_COLORS["ci-cd"]} label={t("table.triggerCi")} />
+        <span className="text-[11px] text-q-dim">{t("trends.lastRunTriggerHint")}</span>
+      </div>
+    </div>
+  );
+}
+
 /** Top N longest-running completed runs — flags duration outliers/perf regressions at a glance. */
 function SlowestRunsList({
   items,
@@ -184,6 +242,7 @@ function ResultStrip({
     runNumber: number;
     createdAt: string;
     testFilter: string | null;
+    triggerSource: RunSummary["triggerSource"];
   }[];
 }) {
   const chrono = [...recent].reverse(); // oldest → newest, left to right
@@ -192,9 +251,9 @@ function ResultStrip({
       {chrono.map((r) => (
         <span
           key={r.id}
-          title={`Run #${r.runNumber} · ${getStatusBadge(r.status, r.conclusion).label} · ${formatDateTime(r.createdAt)} · ${
-            r.testFilter ?? "Full suite"
-          }`}
+          title={`Run #${r.runNumber} · ${getStatusBadge(r.status, r.conclusion).label} · ${
+            r.triggerSource === "ci-cd" ? "CI/CD" : "Manual"
+          } · ${formatDateTime(r.createdAt)} · ${r.testFilter ?? "Full suite"}`}
           className={`h-2.5 w-1.5 rounded-sm ${
             r.status !== "completed"
               ? "bg-[#5b9dff]/70"
@@ -491,6 +550,10 @@ function StatsSection({ runs, type }: { runs: RunSummary[]; type?: RunSummary["r
           <SlowestRunsList items={slowest} />
         </ChartCard>
       </div>
+
+      <ChartCard title={t("trends.triggerBySuite")}>
+        <TriggerBySuite runs={runs} />
+      </ChartCard>
 
       <div>
         <h3 className="mb-3 text-lg font-medium text-white">{t("trends.bySuite")}</h3>

@@ -133,6 +133,9 @@ const en: Dict = {
   "trends.slowestRuns": "Slowest runs",
   "trends.recent": "Recent",
   "trends.other": "Other",
+  "trends.triggerBySuite": "Recent triggers by suite",
+  "trends.lastRunTrigger": "How the latest run was started",
+  "trends.lastRunTriggerHint": "badge = latest run",
 
   "flaky.title": "Flaky Tests",
   "flaky.subtitle":
@@ -310,6 +313,9 @@ const uz: Dict = {
   "trends.slowestRuns": "Eng sekin ishga tushirishlar",
   "trends.recent": "So‘nggilari",
   "trends.other": "Boshqa",
+  "trends.triggerBySuite": "To‘plamlar bo‘yicha so‘nggi ishga tushirishlar",
+  "trends.lastRunTrigger": "Oxirgi ishga tushirish qanday boshlangan",
+  "trends.lastRunTriggerHint": "belgi = oxirgi ishga tushirish",
 
   "flaky.title": "Beqaror testlar",
   "flaky.subtitle":
@@ -487,6 +493,9 @@ const ru: Dict = {
   "trends.slowestRuns": "Самые долгие запуски",
   "trends.recent": "Недавние",
   "trends.other": "Другое",
+  "trends.triggerBySuite": "Последние запуски по наборам",
+  "trends.lastRunTrigger": "Как был запущен последний прогон",
+  "trends.lastRunTriggerHint": "значок = последний запуск",
 
   "flaky.title": "Нестабильные тесты",
   "flaky.subtitle":

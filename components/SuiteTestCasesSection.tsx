@@ -6,6 +6,7 @@ import { useSWRConfig } from "swr";
 import { useI18n } from "@/components/I18nProvider";
 import { useCurrentUser } from "@/components/UserProvider";
 import { SuiteTestCaseList } from "@/components/SuiteTestCaseList";
+import { TriggerSourceBadge } from "@/components/TriggerSourceBadge";
 import { getSuiteDisabledReason } from "@/lib/disabledSuites";
 import { hasRole } from "@/lib/permissions";
 import { suiteBreakdown } from "@/lib/trends";
@@ -108,6 +109,10 @@ export function SuiteTestCasesSection({ runs }: { runs: RunSummary[] }) {
                 >
                   {s.passRate}%
                 </span>
+                {/* How the suite's most recent run was started (Manual vs CI/CD). */}
+                {s.lastTriggerSource && (
+                  <TriggerSourceBadge source={s.lastTriggerSource} title={t("trends.lastRunTrigger")} />
+                )}
                 <span className="hidden font-mono text-[12px] text-q-dim sm:inline">
                   {s.total} {t("trends.runs")}
                 </span>
