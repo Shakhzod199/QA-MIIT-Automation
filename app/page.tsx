@@ -139,8 +139,44 @@ const TYPE_BADGE: Record<RunSummary["runType"], { label: string; color: string; 
 
 const TRIGGER_SOURCE_LABEL: Record<RunSummary["triggerSource"], string> = {
   manual: "Dashboard",
-  "ci-cd": "CI/CD",
+  "ci-cd": "CI/CD pipeline",
 };
+
+// Shared column template so the header row and run rows line up.
+const RUN_GRID =
+  "grid grid-cols-[minmax(0,1fr)_140px_92px_78px_64px_92px] items-center gap-3";
+
+// "19 minutes ago" wraps in a narrow column — compact the unit words.
+function shortRelativeTime(iso: string): string {
+  return formatRelativeTime(iso)
+    .replace(" seconds", " sec")
+    .replace(" minutes", " min")
+    .replace(" minute", " min")
+    .replace(" hours", " hr")
+    .replace(" hour", " hr")
+    .replace(" days", " d")
+    .replace(" day", " d");
+}
+
+function RecentRunsHeader() {
+  return (
+    <div
+      className={`${RUN_GRID} px-[18px] pb-2 pt-3`}
+      style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+    >
+      {["Suite", "Triggered by", "Framework", "Result", "Duration", "Started"].map((label, i) => (
+        <span
+          key={label}
+          className={`text-[10px] font-semibold uppercase tracking-[0.7px] text-q-dim ${
+            i === 5 ? "text-right" : ""
+          }`}
+        >
+          {label}
+        </span>
+      ))}
+    </div>
+  );
+}
 
 function RecentRunRow({ run }: { run: RunSummary }) {
   const dot = statusDotColor(run);
@@ -148,71 +184,71 @@ function RecentRunRow({ run }: { run: RunSummary }) {
   const statusBadge = getStatusBadge(run.status, run.conclusion);
   const isLive = run.status === "in_progress" || run.status === "queued";
 
-  const metaParts = [
-    `#${run.runNumber}`,
-    run.branch,
-    run.actor ? `by ${run.actor}` : null,
-    TRIGGER_SOURCE_LABEL[run.triggerSource],
-  ].filter(Boolean);
-
   return (
     <Link
       href={`/reports/${run.id}`}
-      className="flex items-center gap-[14px] px-[18px] py-[13px] transition hover:bg-white/[0.02]"
+      className={`${RUN_GRID} px-[18px] py-[13px] transition hover:bg-white/[0.02]`}
       style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}
     >
-      {/* Status dot */}
-      <span
-        className="h-2 w-2 shrink-0 rounded-full"
-        style={{
-          background: dot,
-          ...(isLive ? { animation: "blip 1.2s infinite" } : {}),
-        }}
-      />
-
-      {/* Name + run metadata */}
-      <div className="min-w-0 flex-1">
-        <div className="truncate text-[13px] font-semibold text-q-text">
-          {run.name}
-          {run.testFilter && (
-            <span className="ml-1.5 font-mono text-[10.5px] font-normal text-q-dim" title={run.testFilter}>
-              ({run.testFilter})
-            </span>
-          )}
+      {/* Suite: dot + name, run # and branch below */}
+      <div className="min-w-0">
+        <div className="flex items-center gap-2">
+          <span
+            className="h-2 w-2 shrink-0 rounded-full"
+            style={{
+              background: dot,
+              ...(isLive ? { animation: "blip 1.2s infinite" } : {}),
+            }}
+          />
+          <span className="truncate text-[13px] font-semibold text-q-text">{run.name}</span>
         </div>
-        <div className="mt-0.5 truncate font-mono text-[11px] text-q-dim">
-          {metaParts.join(" · ")}
+        <div className="mt-0.5 truncate pl-4 font-mono text-[11px] text-q-dim">
+          Run #{run.runNumber}
+          {run.branch ? ` · ${run.branch} branch` : ""}
         </div>
+        {run.testFilter && (
+          <div className="mt-0.5 truncate pl-4 font-mono text-[11px] text-q-dim" title={run.testFilter}>
+            Single test: {run.testFilter}
+          </div>
+        )}
         {run.commitMessage && (
-          <div className="mt-0.5 truncate text-[11px] text-q-dim" title={run.commitMessage}>
-            &ldquo;{run.commitMessage}&rdquo;
+          <div className="mt-0.5 truncate pl-4 text-[11px] text-q-dim" title={run.commitMessage}>
+            Commit: &ldquo;{run.commitMessage}&rdquo;
           </div>
         )}
       </div>
 
-      {/* Type badge */}
+      {/* Triggered by */}
+      <div className="min-w-0">
+        <div className="truncate text-[12px] text-q-sub">{run.actor ?? "—"}</div>
+        <div className="mt-0.5 truncate text-[11px] text-q-dim">
+          via {TRIGGER_SOURCE_LABEL[run.triggerSource]}
+        </div>
+      </div>
+
+      {/* Framework */}
       <span
-        className="shrink-0 rounded-[6px] px-2 py-[3px] font-mono text-[10.5px] font-semibold"
+        className="w-fit rounded-[6px] px-2 py-[3px] font-mono text-[10.5px] font-semibold"
         style={{ color: typeBadge.color, background: typeBadge.bg }}
       >
         {typeBadge.label}
       </span>
 
-      {/* Status */}
+      {/* Result */}
       <span
-        className={`w-[70px] shrink-0 rounded-[6px] px-2 py-[3px] text-center font-mono text-[10.5px] font-semibold ${statusBadge.className}`}
+        className={`w-fit rounded-[6px] px-2 py-[3px] font-mono text-[10.5px] font-semibold ${statusBadge.className}`}
       >
         {statusBadge.label}
       </span>
 
       {/* Duration */}
-      <span className="w-[52px] shrink-0 font-mono text-[12px] text-q-muted">
+      <span className="font-mono text-[12px] text-q-muted">
         {formatDuration(run.durationSec)}
       </span>
 
-      {/* Time ago */}
-      <span className="w-[62px] shrink-0 text-right text-[12px] text-q-dim">
-        {formatRelativeTime(run.createdAt)}
+      {/* Started */}
+      <span className="whitespace-nowrap text-right text-[12px] text-q-dim" title={new Date(run.createdAt).toLocaleString()}>
+        {shortRelativeTime(run.createdAt)}
       </span>
     </Link>
   );
@@ -319,6 +355,7 @@ export default function DashboardPage() {
           </div>
         ) : (
           <div>
+            <RecentRunsHeader />
             {recentRuns.map((run) => (
               <RecentRunRow key={run.id} run={run} />
             ))}
