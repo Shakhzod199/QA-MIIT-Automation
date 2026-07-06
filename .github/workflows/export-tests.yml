@@ -40,6 +40,14 @@ on:
         required: false
         default: "manual"
         type: string
+      dashboard_user:
+        description: >-
+          Internal — set automatically by the dashboard's trigger API to the
+          username of whoever clicked Run, so the Telegram notification can
+          say who ran it. Leave empty when running from the GitHub UI directly.
+        required: false
+        default: ""
+        type: string
 
 env:
   BASE_URL: https://export.miit.uz
@@ -125,6 +133,11 @@ jobs:
           RUN_NUMBER: ${{ github.run_number }}
           BRANCH: ${{ github.ref_name }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          EVENT_NAME: ${{ github.event_name }}
+          TRIGGERED_BY: ${{ inputs.triggered_by }}
+          DASHBOARD_USER: ${{ inputs.dashboard_user }}
+          TYPE_RAW: ${{ inputs.type }}
+          TEST_FILTER_RAW: ${{ inputs.test_filter }}
         run: |
           if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
             echo "Telegram secrets not set — skipping notification."
@@ -136,8 +149,22 @@ jobs:
             cancelled) EMOJI="⚠️" ;;
             *) EMOJI="ℹ️" ;;
           esac
-          TEXT="$(printf '%s <b>Export Tests</b> #%s\nResult: <b>%s</b>\nBranch: <code>%s</code>\n%s' \
-            "$EMOJI" "$RUN_NUMBER" "$STATUS" "$BRANCH" "$RUN_URL")"
+          # Who/what actually kicked this off, in priority order: scheduled
+          # cron > the GitLab deploy pipeline's automated trigger > a
+          # dashboard user > a bare manual workflow_dispatch from GitHub's UI.
+          if [ "$EVENT_NAME" = "schedule" ]; then
+            TRIGGER_LINE="Scheduled (daily cron)"
+          elif [ "${TRIGGERED_BY:-manual}" = "gitlab-deploy" ]; then
+            TRIGGER_LINE="CI/CD (GitLab deploy)"
+          elif [ -n "$DASHBOARD_USER" ]; then
+            TRIGGER_LINE="Manual — ${DASHBOARD_USER}"
+          else
+            TRIGGER_LINE="Manual"
+          fi
+          TEST_TYPE="${TYPE_RAW:-frontend}"
+          TEST_DISPLAY="${TEST_FILTER_RAW:-Full suite}"
+          TEXT="$(printf '%s <b>Export Tests</b> #%s\nResult: <b>%s</b>\nType: <code>%s</code>\nTest: <code>%s</code>\nTriggered by: %s\nBranch: <code>%s</code>\n%s' \
+            "$EMOJI" "$RUN_NUMBER" "$STATUS" "$TEST_TYPE" "$TEST_DISPLAY" "$TRIGGER_LINE" "$BRANCH" "$RUN_URL")"
           curl -fsS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
             --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
             --data-urlencode "parse_mode=HTML" \
@@ -213,6 +240,9 @@ jobs:
           RUN_NUMBER: ${{ github.run_number }}
           BRANCH: ${{ github.ref_name }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          TRIGGERED_BY: ${{ inputs.triggered_by }}
+          DASHBOARD_USER: ${{ inputs.dashboard_user }}
+          TEST_FILTER_RAW: ${{ inputs.test_filter }}
         run: |
           if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
             echo "Telegram secrets not set — skipping notification."
@@ -224,8 +254,18 @@ jobs:
             cancelled) EMOJI="⚠️" ;;
             *) EMOJI="ℹ️" ;;
           esac
-          TEXT="$(printf '%s <b>Export Tests [load]</b> #%s\nResult: <b>%s</b>\nBranch: <code>%s</code>\n%s' \
-            "$EMOJI" "$RUN_NUMBER" "$STATUS" "$BRANCH" "$RUN_URL")"
+          # load_test only ever runs from workflow_dispatch (see the job's
+          # `if:`), never from the schedule trigger — no event_name check needed.
+          if [ "${TRIGGERED_BY:-manual}" = "gitlab-deploy" ]; then
+            TRIGGER_LINE="CI/CD (GitLab deploy)"
+          elif [ -n "$DASHBOARD_USER" ]; then
+            TRIGGER_LINE="Manual — ${DASHBOARD_USER}"
+          else
+            TRIGGER_LINE="Manual"
+          fi
+          TEST_DISPLAY="${TEST_FILTER_RAW:-Full suite (load + stress)}"
+          TEXT="$(printf '%s <b>Export Tests [load]</b> #%s\nResult: <b>%s</b>\nTest: <code>%s</code>\nTriggered by: %s\nBranch: <code>%s</code>\n%s' \
+            "$EMOJI" "$RUN_NUMBER" "$STATUS" "$TEST_DISPLAY" "$TRIGGER_LINE" "$BRANCH" "$RUN_URL")"
           curl -fsS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
             --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
             --data-urlencode "parse_mode=HTML" \

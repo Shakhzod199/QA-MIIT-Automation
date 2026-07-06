@@ -38,13 +38,21 @@ export async function POST(request: Request) {
     );
   }
 
+  // Stamp the dispatch with whoever's logged in, so the workflow's Telegram
+  // notification can say who ran it instead of just "manual" vs "CI/CD".
+  // Read straight off the header middleware.ts already forwards — no extra
+  // DB lookup needed, and every call here is already behind a valid session.
+  const username = request.headers.get("x-user-username");
+  const mergedInputs: Record<string, string> = { ...(inputs ?? {}) };
+  if (username) mergedInputs.dashboard_user = username;
+
   const res = await githubFetch(
     `/repos/${config.owner}/${config.repo}/actions/workflows/${workflowId}/dispatches`,
     {
       method: "POST",
       body: JSON.stringify({
         ref: ref ?? "main",
-        ...(inputs && Object.keys(inputs).length > 0 ? { inputs } : {}),
+        ...(Object.keys(mergedInputs).length > 0 ? { inputs: mergedInputs } : {}),
       }),
     }
   );

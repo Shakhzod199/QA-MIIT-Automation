@@ -37,6 +37,17 @@ export function VisitsChart({ days }: { days: DailyVisits[] }) {
 
   const linePoints = days.map((d, i) => `${xPct(i)},${100 - yPct(d.count)}`).join(" ");
 
+  // The tooltip is centered on its point by default, but that pushes it past
+  // the chart's edge (and forces a page-wide horizontal scrollbar) for the
+  // first/last couple of points. Anchor it to the point's left or right edge
+  // instead whenever it's near either end.
+  const tooltipTranslateX = (i: number): string => {
+    const pct = xPct(i);
+    if (pct < 15) return "0%";
+    if (pct > 85) return "-100%";
+    return "-50%";
+  };
+
   return (
     <div className="rounded-lg border border-surface-border bg-surface-panel p-5">
       <div className="relative h-[140px] w-full" style={{ overflow: "visible" }}>
@@ -84,7 +95,7 @@ export function VisitsChart({ days }: { days: DailyVisits[] }) {
                 style={{
                   left: "50%",
                   bottom: `calc(${yPct(d.count)}% + 12px)`,
-                  transform: "translateX(-50%)",
+                  transform: `translateX(${tooltipTranslateX(i)})`,
                   background: "#12161d",
                 }}
               >
