@@ -14,7 +14,7 @@ const RUN_NAME_SEP = " — ";
 
 // Non-default test types encode as "<Suite> [type]" before the filter suffix
 // above. Absent (older runs, or default "frontend" dispatches) → "frontend".
-const TYPE_SUFFIX_RE = / \[(frontend|api|load)\]$/;
+const TYPE_SUFFIX_RE = / \[(frontend|api|load|security)\]$/;
 
 // Automated (non-dashboard) triggers — e.g. the GitLab deploy pipeline — encode
 // as "<Suite> [type] (CI/CD)" right before the filter suffix. Absent (dashboard

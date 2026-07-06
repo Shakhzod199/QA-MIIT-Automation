@@ -44,6 +44,7 @@ const en: Dict = {
   "suite.frontend": "Frontend",
   "suite.api": "API tests",
   "suite.load": "Load/Stress (K6)",
+  "suite.security": "Security",
   "suite.viewerReadOnly": "You have read-only access and can't run or cancel tests.",
 
   "suiteTests.subtitle": "Select the test cases to run from the latest results of this suite.",
@@ -82,6 +83,7 @@ const en: Dict = {
   "table.typeFrontend": "Front",
   "table.typeApi": "API",
   "table.typeLoad": "K6",
+  "table.typeSecurity": "Security",
   "table.viewK6Report": "View report",
   "table.status": "Status",
   "table.progress": "Progress",
@@ -224,6 +226,7 @@ const uz: Dict = {
   "suite.frontend": "Frontend",
   "suite.api": "API testlar",
   "suite.load": "Yuklama/Stress (K6)",
+  "suite.security": "Xavfsizlik",
   "suite.viewerReadOnly": "Sizda faqat ko‘rish huquqi bor — testlarni ishga tushira yoki bekor qila olmaysiz.",
 
   "suiteTests.subtitle": "Ushbu to‘plamning so‘nggi natijalaridan ishga tushiriladigan testlarni tanlang.",
@@ -262,6 +265,7 @@ const uz: Dict = {
   "table.typeFrontend": "Frontend",
   "table.typeApi": "API",
   "table.typeLoad": "K6",
+  "table.typeSecurity": "Xavfsizlik",
   "table.viewK6Report": "Hisobotni ko‘rish",
   "table.status": "Holat",
   "table.progress": "Jarayon",
@@ -404,6 +408,7 @@ const ru: Dict = {
   "suite.frontend": "Frontend",
   "suite.api": "API-тесты",
   "suite.load": "Нагрузка/Стресс (K6)",
+  "suite.security": "Безопасность",
   "suite.viewerReadOnly": "У вас доступ только для просмотра — вы не можете запускать или отменять тесты.",
 
   "suiteTests.subtitle": "Выберите тест-кейсы для запуска из последних результатов этого набора.",
@@ -442,6 +447,7 @@ const ru: Dict = {
   "table.typeFrontend": "Frontend",
   "table.typeApi": "API",
   "table.typeLoad": "K6",
+  "table.typeSecurity": "Безопасность",
   "table.viewK6Report": "Смотреть отчёт",
   "table.status": "Статус",
   "table.progress": "Прогресс",

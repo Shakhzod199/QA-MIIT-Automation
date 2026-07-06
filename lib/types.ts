@@ -20,7 +20,7 @@ export interface RunSummary {
   /** Playwright filter for a single-test run (from run-name), else null = full suite. */
   testFilter: string | null;
   /** Test type dispatched (from run-name); defaults to "frontend" when absent (older runs). */
-  runType: "frontend" | "api" | "load";
+  runType: "frontend" | "api" | "load" | "security";
   /** Who started the run (from run-name's " (CI/CD)" marker): the dashboard ("manual") or an automated caller like the GitLab deploy pipeline ("ci-cd"). */
   triggerSource: "manual" | "ci-cd";
 }

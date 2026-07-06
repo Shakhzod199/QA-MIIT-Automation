@@ -128,11 +128,12 @@ function statusDotColor(run: RunSummary): string {
   return "#5b636e";
 }
 
-// Type badge (Playwright / API / K6)
+// Type badge (Playwright / API / K6 / Security)
 const TYPE_BADGE: Record<RunSummary["runType"], { label: string; color: string; bg: string }> = {
   frontend: { label: "Playwright", color: "#8b5cf6", bg: "rgba(139,92,246,0.14)" },
   api: { label: "API", color: "#2dd4bf", bg: "rgba(45,212,191,0.14)" },
   load: { label: "K6", color: "#ff5fa2", bg: "rgba(255,95,162,0.14)" },
+  security: { label: "Security", color: "#f5b544", bg: "rgba(245,181,68,0.14)" },
 };
 
 function RecentRunRow({ run }: { run: RunSummary }) {

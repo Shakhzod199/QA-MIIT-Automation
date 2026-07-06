@@ -226,11 +226,11 @@ export interface RunTypeCount {
   count: number;
 }
 
-/** How many runs of each test type (frontend/api/load) are in this window. */
+/** How many runs of each test type (frontend/api/load/security) are in this window. */
 export function runTypeBreakdown(runs: RunSummary[]): RunTypeCount[] {
-  const counts: Record<RunSummary["runType"], number> = { frontend: 0, api: 0, load: 0 };
+  const counts: Record<RunSummary["runType"], number> = { frontend: 0, api: 0, load: 0, security: 0 };
   for (const run of runs) counts[run.runType] += 1;
-  return (["frontend", "api", "load"] as const).map((type) => ({ type, count: counts[type] }));
+  return (["frontend", "api", "load", "security"] as const).map((type) => ({ type, count: counts[type] }));
 }
 
 export function trendSummary(runs: RunSummary[]): TrendSummary {

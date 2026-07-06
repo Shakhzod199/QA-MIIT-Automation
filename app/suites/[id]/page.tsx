@@ -36,7 +36,7 @@ function SuiteTestsPageInner({ params }: { params: Promise<{ id: string }> }) {
   const { t } = useI18n();
   const workflowId = Number(id);
   const searchParams = useSearchParams();
-  const type = (searchParams.get("type") as "frontend" | "api" | "load" | null) ?? "frontend";
+  const type = (searchParams.get("type") as "frontend" | "api" | "load" | "security" | null) ?? "frontend";
 
   const { data: workflowsData } = useSWR<WorkflowsResponse>("/api/workflows", fetcher);
   const { data: runsData, mutate: mutateRuns } = useSWR<RunsResponse>("/api/runs?per_page=50", fetcher);
@@ -137,7 +137,7 @@ function SuiteTestsPageInner({ params }: { params: Promise<{ id: string }> }) {
     { value: "stress", label: t("suiteTests.runStress") },
   ];
 
-  if (type !== "frontend") {
+  if (type === "api" || type === "load") {
     // API tests have a real per-test catalog (the report's test list), so
     // show counts of how many API tests exist/passed/failed instead of the
     // run-level stats below. K6 (load) has no such catalog — it only ever
@@ -330,7 +330,7 @@ function SuiteTestsPageInner({ params }: { params: Promise<{ id: string }> }) {
 
       <div>
         <h3 className="mb-3 text-lg font-medium text-white">{t("suiteTests.testCases")}</h3>
-        <SuiteTestCaseList workflowId={workflowId} workflowName={workflow?.name} />
+        <SuiteTestCaseList workflowId={workflowId} workflowName={workflow?.name} runType={type} />
       </div>
     </div>
   );

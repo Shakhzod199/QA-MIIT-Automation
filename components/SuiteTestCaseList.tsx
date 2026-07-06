@@ -9,7 +9,7 @@ import { InfoIcon } from "@/components/icons";
 import { getSuiteDisabledReason } from "@/lib/disabledSuites";
 import { hasRole } from "@/lib/permissions";
 import { getTestDescription } from "@/lib/testDescriptions";
-import type { RunsResponse, TestCaseResult, TestReportResponse, TriggerResponse } from "@/lib/types";
+import type { RunSummary, RunsResponse, TestCaseResult, TestReportResponse, TriggerResponse } from "@/lib/types";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -39,12 +39,22 @@ const RADIO_CHECKBOX_CLASS =
   "h-[14px] w-[14px] shrink-0 cursor-pointer appearance-none rounded-[4px] border border-[rgba(255,255,255,0.2)] bg-transparent transition-colors checked:border-q-green checked:bg-q-green";
 
 /**
- * The Playwright test-case list + run controls for one suite (frontend type
- * only — API/Load have a different, non-per-test run model and stay on the
- * suite detail page). Shared by app/suites/[id]/page.tsx and the "All test
- * cases" home page so both stay in sync with one implementation.
+ * The Playwright test-case list + run controls for one suite, for run types
+ * that have a real per-test catalog (frontend, security — API/Load have a
+ * different, run-level-only model and stay on the suite detail page's simple
+ * stat-card view instead). Shared by app/suites/[id]/page.tsx (any of those
+ * types, via `runType`) and the "All test cases" home page (frontend only,
+ * the default) so both stay in sync with one implementation.
  */
-export function SuiteTestCaseList({ workflowId, workflowName }: { workflowId: number; workflowName?: string }) {
+export function SuiteTestCaseList({
+  workflowId,
+  workflowName,
+  runType = "frontend",
+}: {
+  workflowId: number;
+  workflowName?: string;
+  runType?: RunSummary["runType"];
+}) {
   const { t, locale } = useI18n();
   const [infoTest, setInfoTest] = useState<TestCaseResult | null>(null);
 
@@ -54,7 +64,7 @@ export function SuiteTestCaseList({ workflowId, workflowName }: { workflowId: nu
   const canTrigger = !currentUser || hasRole(currentUser.role, "editor");
   const disabledReason = getSuiteDisabledReason(workflowName) ?? (canTrigger ? null : t("suite.viewerReadOnly"));
 
-  // Newest *full-suite* frontend run for this workflow that produced a
+  // Newest *full-suite* run of this type for this workflow that produced a
   // report artifact (success/failure only, never a single-test run — that
   // can't be the source of the full catalog). Same rule as the suite page.
   const latestRunId = useMemo(() => {
@@ -62,12 +72,12 @@ export function SuiteTestCaseList({ workflowId, workflowName }: { workflowId: nu
     return runs.find(
       (r) =>
         r.workflowId === workflowId &&
-        r.runType === "frontend" &&
+        r.runType === runType &&
         r.status === "completed" &&
         (r.conclusion === "success" || r.conclusion === "failure") &&
         !r.testFilter
     )?.id;
-  }, [runsData, workflowId]);
+  }, [runsData, workflowId, runType]);
 
   const { data: testsData, isLoading } = useSWR<TestReportResponse>(
     latestRunId ? `/api/runs/${latestRunId}/tests` : null,
@@ -105,10 +115,15 @@ export function SuiteTestCaseList({ workflowId, workflowName }: { workflowId: nu
     setError(null);
 
     const filter = allSelected ? "" : Array.from(selected).join(" ");
+    // The workflow's `type` input defaults to "frontend", so frontend runs can
+    // omit it; every other type must say so explicitly or the dispatch would
+    // silently run the frontend suite instead.
+    const typeInput = runType !== "frontend" ? { type: runType } : {};
+    const inputs = filter ? { ...typeInput, test_filter: filter } : typeInput;
     const res = await fetch("/api/runs/trigger", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(filter ? { workflowId, inputs: { test_filter: filter } } : { workflowId }),
+      body: JSON.stringify(Object.keys(inputs).length > 0 ? { workflowId, inputs } : { workflowId }),
     });
     const result: TriggerResponse = await res.json();
 
@@ -126,10 +141,11 @@ export function SuiteTestCaseList({ workflowId, workflowName }: { workflowId: nu
     if (pendingFilter || disabledReason) return;
     setPendingFilter(filter);
     setError(null);
+    const typeInput = runType !== "frontend" ? { type: runType } : {};
     const res = await fetch("/api/runs/trigger", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ workflowId, inputs: { test_filter: filter } }),
+      body: JSON.stringify({ workflowId, inputs: { ...typeInput, test_filter: filter } }),
     });
     const result: TriggerResponse = await res.json();
     setPendingFilter(null);

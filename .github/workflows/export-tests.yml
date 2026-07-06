@@ -25,6 +25,7 @@ on:
           - frontend
           - api
           - load
+          - security
       test_filter:
         description: >-
           For frontend/api: optional Playwright filter to run a single test,
@@ -68,6 +69,8 @@ jobs:
         env:
           EXPORT_USERNAME: ${{ secrets.EXPORT_USERNAME }}
           EXPORT_PASSWORD: ${{ secrets.EXPORT_PASSWORD }}
+          EXPORT_VIEWER_USERNAME: ${{ secrets.EXPORT_VIEWER_USERNAME }}
+          EXPORT_VIEWER_PASSWORD: ${{ secrets.EXPORT_VIEWER_PASSWORD }}
           TYPE: ${{ inputs.type }}
           TEST_FILTER: ${{ inputs.test_filter }}
         run: |
@@ -80,6 +83,15 @@ jobs:
                 npx playwright test --project=export-api $TEST_FILTER
               else
                 npx playwright test --project=export-api
+              fi ;;
+            security)
+              # Read-only role-boundary checks (see export-api-security/role-boundaries.spec.ts).
+              # Self-skips (not a failure) if EXPORT_VIEWER_* secrets aren't set yet.
+              if [ -n "$TEST_FILTER" ]; then
+                echo "Running selected security tests: $TEST_FILTER"
+                npx playwright test --project=export-api-security $TEST_FILTER
+              else
+                npx playwright test --project=export-api-security
               fi ;;
             *)
               if [ -n "$TEST_FILTER" ]; then

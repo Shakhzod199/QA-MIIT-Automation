@@ -22,11 +22,13 @@ const TYPE_COLORS: Record<RunSummary["runType"], string> = {
   frontend: "#8b5cf6",
   api: "#2dd4bf",
   load: "#ff5fa2",
+  security: "#f5b544",
 };
 const TYPE_LABEL_KEYS: Record<RunSummary["runType"], string> = {
   frontend: "suite.frontend",
   api: "suite.api",
   load: "suite.load",
+  security: "suite.security",
 };
 // Matches TriggerSourceBadge.
 const SOURCE_COLORS: Record<RunSummary["triggerSource"], string> = {
@@ -568,6 +570,7 @@ const SECTION_TABS = [
   { key: "frontend", labelKey: "suite.frontend" },
   { key: "api", labelKey: "suite.api" },
   { key: "load", labelKey: "suite.load" },
+  { key: "security", labelKey: "suite.security" },
 ] as const;
 type SectionKey = (typeof SECTION_TABS)[number]["key"];
 
@@ -578,6 +581,7 @@ export function TrendsView({ runs }: { runs: RunSummary[] }) {
   const frontendRuns = useMemo(() => runs.filter((r) => r.runType === "frontend"), [runs]);
   const apiRuns = useMemo(() => runs.filter((r) => r.runType === "api"), [runs]);
   const loadRuns = useMemo(() => runs.filter((r) => r.runType === "load"), [runs]);
+  const securityRuns = useMemo(() => runs.filter((r) => r.runType === "security"), [runs]);
 
   if (runs.length === 0) {
     return (
@@ -611,6 +615,7 @@ export function TrendsView({ runs }: { runs: RunSummary[] }) {
       {section === "frontend" && <StatsSection runs={frontendRuns} type="frontend" />}
       {section === "api" && <StatsSection runs={apiRuns} type="api" />}
       {section === "load" && <StatsSection runs={loadRuns} type="load" />}
+      {section === "security" && <StatsSection runs={securityRuns} type="security" />}
     </div>
   );
 }

@@ -72,6 +72,43 @@ export const TEST_DESCRIPTIONS: Record<string, Record<Locale, string>> = {
     ru: "Проверяет, что вход по логину и паролю успешно перенаправляет пользователя на панель управления.",
   },
 
+  // ── Export API security ──────────────────────────────────────────────────
+  "tests/export-api-security/role-boundaries.spec.ts:45": {
+    en: "Logs in as a restricted \"viewer\" account and checks the system correctly refuses to show it the full user list, which should only be visible to admins.",
+    uz: "Cheklangan (\"viewer\") hisob bilan tizimga kirib, faqat administratorlarga ko‘rinishi kerak bo‘lgan to‘liq foydalanuvchilar ro‘yxatini tizim to‘g‘ri rad etishini tekshiradi.",
+    ru: "Входит под ограниченной учётной записью («viewer») и проверяет, что система корректно отказывает в показе полного списка пользователей, который должен быть виден только администраторам.",
+  },
+  "tests/export-api-security/role-boundaries.spec.ts:50": {
+    en: "Checks that a restricted \"viewer\" account cannot view the list of roles used to control who can do what — that's admin-only information.",
+    uz: "Cheklangan (\"viewer\") hisob kim nima qila olishini boshqaruvchi rollar ro‘yxatini ko‘ra olmasligini tekshiradi — bu faqat administratorlarga tegishli ma'lumot.",
+    ru: "Проверяет, что ограниченная учётная запись («viewer») не может просматривать список ролей, определяющих права доступа — это информация только для администраторов.",
+  },
+  "tests/export-api-security/role-boundaries.spec.ts:55": {
+    en: "Checks that a restricted \"viewer\" account cannot view the permission configuration tables — another admin-only screen.",
+    uz: "Cheklangan (\"viewer\") hisob ruxsatlar konfiguratsiyasi jadvallarini ko‘ra olmasligini tekshiradi — bu ham faqat administratorlarga tegishli ekran.",
+    ru: "Проверяет, что ограниченная учётная запись («viewer») не может просматривать таблицы настройки прав доступа — ещё один экран только для администраторов.",
+  },
+  "tests/export-api-security/role-boundaries.spec.ts:65": {
+    en: "Control check: confirms a real admin account CAN see the user list, proving the previous \"viewer is blocked\" result means the role check works — not that the feature itself is broken.",
+    uz: "Nazorat tekshiruvi: haqiqiy administrator hisobi foydalanuvchilar ro‘yxatini ko‘ra olishini tasdiqlaydi — bu oldingi \"viewer bloklangan\" natijasi funksiya buzilgani uchun emas, rol tekshiruvi ishlayotgani uchun ekanini isbotlaydi.",
+    ru: "Контрольная проверка: подтверждает, что реальный администратор ВИДИТ список пользователей — это доказывает, что предыдущий результат «viewer заблокирован» связан с работающей проверкой роли, а не с поломкой самой функции.",
+  },
+  "tests/export-api-security/role-boundaries.spec.ts:70": {
+    en: "Control check: confirms a real admin account can view the roles configuration, the admin-side counterpart to the viewer-is-blocked test above.",
+    uz: "Nazorat tekshiruvi: haqiqiy administrator hisobi rollar konfiguratsiyasini ko‘ra olishini tasdiqlaydi — yuqoridagi \"viewer bloklangan\" testining administrator tomonidagi hamkori.",
+    ru: "Контрольная проверка: подтверждает, что реальный администратор может просматривать настройки ролей — это «зеркальная» проверка для теста блокировки viewer выше.",
+  },
+  "tests/export-api-security/role-boundaries.spec.ts:78": {
+    en: "Takes a real login token and corrupts one character in it, then checks the system rejects it — proving a tampered login session can't be used to sneak in.",
+    uz: "Haqiqiy kirish tokenidagi bitta belgini buzib, tizim uni rad etishini tekshiradi — bu buzilgan sessiya orqali tizimga kira olmaslikni isbotlaydi.",
+    ru: "Портит один символ в настоящем токене входа и проверяет, что система его отклоняет — это доказывает, что подделанной сессией нельзя воспользоваться для входа.",
+  },
+  "tests/export-api-security/role-boundaries.spec.ts:89": {
+    en: "Sends a completely fake login token to an admin-only page and checks the system says \"you're not logged in\" rather than \"you're logged in but not allowed\" — so a bad token can never be used to fish for which pages exist.",
+    uz: "Administratorlarga tegishli sahifaga soxta tokenni yuborib, tizim \"tizimga kirmagansiz\" deb javob berishini (\"kirgansiz, lekin ruxsat yo‘q\" emas) tekshiradi — shunda soxta token orqali qaysi sahifalar mavjudligini bilib bo‘lmaydi.",
+    ru: "Отправляет полностью поддельный токен на страницу только для администраторов и проверяет, что система отвечает «вы не вошли», а не «вы вошли, но нет доступа» — так поддельным токеном нельзя выяснить, какие страницы вообще существуют.",
+  },
+
   // ── PMI ───────────────────────────────────────────────────────────────
   "tests/pmi-tests/columns.spec.ts:22": {
     en: "Checks that turning on every optional column in the Projects table actually adds it, and that each column shows real data instead of being empty.",

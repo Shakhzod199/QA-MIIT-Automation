@@ -56,6 +56,18 @@ export default defineConfig({
       },
     },
 
+    // ── QA Dashboard security (auth/authz/session of THIS app) ────────────
+    // No browser — pure API-level checks via the `request` fixture against a
+    // running instance of the dashboard itself. Needs SECURITY_ADMIN_USER /
+    // SECURITY_ADMIN_PASS (an existing admin) to provision role fixtures; the
+    // spec self-skips if they're absent. Point SECURITY_BASE_URL at the
+    // running app (defaults to the local prod server on :3417).
+    {
+      name: "security",
+      testDir: "./tests/security",
+      use: { baseURL: process.env.SECURITY_BASE_URL ?? "http://localhost:3417" },
+    },
+
     // ── add new projects below this line ──────────────────────────────────
     // SEZ's account appears to be single-session: even just *reusing* one
     // cached login from two contexts at once (not only fresh UI logins) can
@@ -170,6 +182,17 @@ export default defineConfig({
     {
       name: "export-api",
       testDir: "./tests/export-api",
+      use: { baseURL: process.env.BASE_URL ?? "https://export.miit.uz" },
+    },
+
+    // ── export backend security (role boundaries, read-only) ───────────────
+    // No browser — pure API-level checks via the `request` fixture. Needs
+    // EXPORT_VIEWER_USERNAME / EXPORT_VIEWER_PASSWORD (a pre-existing,
+    // restricted-role account) to run; the spec self-skips if they're absent.
+    // Deliberately read-only — see role-boundaries.spec.ts header comment.
+    {
+      name: "export-api-security",
+      testDir: "./tests/export-api-security",
       use: { baseURL: process.env.BASE_URL ?? "https://export.miit.uz" },
     },
     // {

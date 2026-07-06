@@ -7,6 +7,7 @@ const TABS = [
   { type: "frontend", key: "suite.frontend" },
   { type: "api", key: "suite.api" },
   { type: "load", key: "suite.load" },
+  { type: "security", key: "suite.security" },
 ] as const;
 
 type SuiteType = (typeof TABS)[number]["type"];

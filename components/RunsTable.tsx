@@ -179,6 +179,7 @@ function RunTypeBadge({ runType }: { runType: RunSummary["runType"] }) {
     frontend: { color: "#8b5cf6", bg: "rgba(139,92,246,0.14)", label: t("table.typeFrontend") },
     api: { color: "#2dd4bf", bg: "rgba(45,212,191,0.14)", label: t("table.typeApi") },
     load: { color: "#ff5fa2", bg: "rgba(255,95,162,0.14)", label: t("table.typeLoad") },
+    security: { color: "#f5b544", bg: "rgba(245,181,68,0.14)", label: t("table.typeSecurity") },
   };
   const s = MAP[runType];
   return (
