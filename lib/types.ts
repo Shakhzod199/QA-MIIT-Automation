@@ -23,6 +23,12 @@ export interface RunSummary {
   runType: "frontend" | "api" | "load" | "security";
   /** Who started the run (from run-name's " (CI/CD)" marker): the dashboard ("manual") or an automated caller like the GitLab deploy pipeline ("ci-cd"). */
   triggerSource: "manual" | "ci-cd";
+  /** GitHub login of whoever triggered the run, if known. */
+  actor: string | null;
+  /** GitHub event that started the run, e.g. "push", "workflow_dispatch", "schedule". */
+  event: string;
+  /** First line of the triggering commit message, if available. */
+  commitMessage: string | null;
 }
 
 export interface RunStats {
@@ -79,8 +85,6 @@ export interface ArtifactSummary {
 }
 
 export interface RunDetail extends RunSummary {
-  event: string;
-  actor: string | null;
   updatedAt: string;
 }
 

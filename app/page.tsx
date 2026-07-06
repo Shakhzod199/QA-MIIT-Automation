@@ -10,7 +10,7 @@ import { useCurrentUser } from "@/components/UserProvider";
 import { useI18n } from "@/components/I18nProvider";
 import { hasRole } from "@/lib/permissions";
 import { runsRefreshInterval } from "@/lib/runsPolling";
-import { formatDuration, formatRelativeTime } from "@/lib/format";
+import { formatDuration, formatRelativeTime, getStatusBadge } from "@/lib/format";
 import type { RunsResponse, RunSummary, WorkflowsResponse } from "@/lib/types";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -137,29 +137,28 @@ const TYPE_BADGE: Record<RunSummary["runType"], { label: string; color: string; 
   security: { label: "Security", color: "#f5b544", bg: "rgba(245,181,68,0.14)" },
 };
 
+const TRIGGER_SOURCE_LABEL: Record<RunSummary["triggerSource"], string> = {
+  manual: "Dashboard",
+  "ci-cd": "CI/CD",
+};
+
 function RecentRunRow({ run }: { run: RunSummary }) {
   const dot = statusDotColor(run);
-  const badge = TYPE_BADGE[run.runType];
+  const typeBadge = TYPE_BADGE[run.runType];
+  const statusBadge = getStatusBadge(run.status, run.conclusion);
   const isLive = run.status === "in_progress" || run.status === "queued";
 
-  let countLabel: string;
-  if (run.status === "in_progress") countLabel = "running";
-  else if (run.status === "queued") countLabel = "queued";
-  else if (run.conclusion === "failure") countLabel = "failed";
-  else countLabel = "—";
-
-  const countColor =
-    run.status === "in_progress"
-      ? "#5b9dff"
-      : run.conclusion === "failure"
-      ? "#ff5d5d"
-      : run.conclusion === "success"
-      ? "#b9c0c9"
-      : "#8a93a0";
+  const metaParts = [
+    `#${run.runNumber}`,
+    run.branch,
+    run.actor ? `by ${run.actor}` : null,
+    TRIGGER_SOURCE_LABEL[run.triggerSource],
+  ].filter(Boolean);
 
   return (
-    <div
-      className="flex items-center gap-[14px] px-[18px] py-[13px]"
+    <Link
+      href={`/reports/${run.id}`}
+      className="flex items-center gap-[14px] px-[18px] py-[13px] transition hover:bg-white/[0.02]"
       style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}
     >
       {/* Status dot */}
@@ -171,29 +170,39 @@ function RecentRunRow({ run }: { run: RunSummary }) {
         }}
       />
 
-      {/* Name + file path */}
+      {/* Name + run metadata */}
       <div className="min-w-0 flex-1">
-        <div className="truncate text-[13px] font-semibold text-q-text">{run.name}</div>
-        <div className="mt-0.5 truncate font-mono text-[11px] text-q-dim">
-          #{run.runNumber}
-          {run.branch ? ` · ${run.branch}` : ""}
+        <div className="truncate text-[13px] font-semibold text-q-text">
+          {run.name}
+          {run.testFilter && (
+            <span className="ml-1.5 font-mono text-[10.5px] font-normal text-q-dim" title={run.testFilter}>
+              ({run.testFilter})
+            </span>
+          )}
         </div>
+        <div className="mt-0.5 truncate font-mono text-[11px] text-q-dim">
+          {metaParts.join(" · ")}
+        </div>
+        {run.commitMessage && (
+          <div className="mt-0.5 truncate text-[11px] text-q-dim" title={run.commitMessage}>
+            &ldquo;{run.commitMessage}&rdquo;
+          </div>
+        )}
       </div>
 
       {/* Type badge */}
       <span
         className="shrink-0 rounded-[6px] px-2 py-[3px] font-mono text-[10.5px] font-semibold"
-        style={{ color: badge.color, background: badge.bg }}
+        style={{ color: typeBadge.color, background: typeBadge.bg }}
       >
-        {badge.label}
+        {typeBadge.label}
       </span>
 
-      {/* Count/status */}
+      {/* Status */}
       <span
-        className="w-[54px] shrink-0 font-mono text-[12px] font-medium"
-        style={{ color: countColor }}
+        className={`w-[70px] shrink-0 rounded-[6px] px-2 py-[3px] text-center font-mono text-[10.5px] font-semibold ${statusBadge.className}`}
       >
-        {countLabel}
+        {statusBadge.label}
       </span>
 
       {/* Duration */}
@@ -205,7 +214,7 @@ function RecentRunRow({ run }: { run: RunSummary }) {
       <span className="w-[62px] shrink-0 text-right text-[12px] text-q-dim">
         {formatRelativeTime(run.createdAt)}
       </span>
-    </div>
+    </Link>
   );
 }
 

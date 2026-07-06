@@ -49,14 +49,15 @@ export function mapRun(run: any): RunSummary {
     testFilter,
     runType,
     triggerSource,
+    actor: run.triggering_actor?.login ?? run.actor?.login ?? null,
+    event: run.event,
+    commitMessage: run.head_commit?.message?.split("\n")[0] ?? null,
   };
 }
 
 export function mapRunDetail(run: any): RunDetail {
   return {
     ...mapRun(run),
-    event: run.event,
-    actor: run.triggering_actor?.login ?? run.actor?.login ?? null,
     updatedAt: run.updated_at,
   };
 }
