@@ -412,6 +412,9 @@ function SuiteTable({ runs }: { runs: RunSummary[] }) {
 
   return (
     <div className="overflow-hidden rounded-lg border border-surface-border bg-surface-panel">
+      <div className="border-b border-surface-border px-4 py-3 text-[13px] font-semibold text-q-text">
+        {t("trends.bySuite")}
+      </div>
       <table className="w-full text-left text-sm">
         <thead>
           <tr className="border-b border-surface-border text-xs uppercase tracking-wide text-gray-500">
@@ -506,9 +509,9 @@ function StatsSection({ runs, type }: { runs: RunSummary[]; type?: RunSummary["r
   const passRateChartTitle = type === "load" ? t("trends.thresholdPassRateChart") : t("trends.passRateChart");
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Kpi label={passRateLabel} value={`${summary.passRate}%`} hint={`${summary.completedRuns} ✓`} />
+    <div className="space-y-[14px]">
+      <div className="grid grid-cols-2 gap-[14px] lg:grid-cols-4">
+        <Kpi label={passRateLabel} value={`${summary.passRate}%`} hint={`${summary.completedRuns} completed`} />
         <Kpi label={t("trends.failRate")} value={`${failRate}%`} />
         <Kpi
           label={t("trends.avgDuration")}
@@ -525,29 +528,26 @@ function StatsSection({ runs, type }: { runs: RunSummary[]; type?: RunSummary["r
         <DurationLineChart runs={runs} />
       </div>
 
-      <ChartCard title={t("trends.statusBreakdown")}>
-        <MixBar
-          items={statusCounts
-            .filter((s) => s.bucket !== "other" || s.count > 0)
-            .map((s) => ({
-              label: t(
-                s.bucket === "passed"
-                  ? "status.passed"
-                  : s.bucket === "failed"
-                    ? "status.failed"
-                    : s.bucket === "cancelled"
-                      ? "status.cancelled"
-                      : "trends.other"
-              ),
-              count: s.count,
-              color: STATUS_COLORS[s.bucket],
-            }))}
-        />
-      </ChartCard>
-
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <ChartCard title={t("trends.triggerComparison")}>
-          <TriggerComparisonCards items={triggerComparison} />
+      {/* Short cards share one row instead of each spanning the full width. */}
+      <div className="grid grid-cols-1 gap-[14px] lg:grid-cols-3">
+        <ChartCard title={t("trends.statusBreakdown")}>
+          <MixBar
+            items={statusCounts
+              .filter((s) => s.bucket !== "other" || s.count > 0)
+              .map((s) => ({
+                label: t(
+                  s.bucket === "passed"
+                    ? "status.passed"
+                    : s.bucket === "failed"
+                      ? "status.failed"
+                      : s.bucket === "cancelled"
+                        ? "status.cancelled"
+                        : "trends.other"
+                ),
+                count: s.count,
+                color: STATUS_COLORS[s.bucket],
+              }))}
+          />
           {!type && (
             <div className="mt-4">
               <h4 className="mb-3 text-sm font-medium text-gray-300">{t("trends.runMix")}</h4>
@@ -561,6 +561,9 @@ function StatsSection({ runs, type }: { runs: RunSummary[]; type?: RunSummary["r
             </div>
           )}
         </ChartCard>
+        <ChartCard title={t("trends.triggerComparison")}>
+          <TriggerComparisonCards items={triggerComparison} />
+        </ChartCard>
         <ChartCard title={t("trends.slowestRuns")}>
           <SlowestRunsList items={slowest} />
         </ChartCard>
@@ -570,10 +573,7 @@ function StatsSection({ runs, type }: { runs: RunSummary[]; type?: RunSummary["r
         <TriggerBySuite runs={runs} />
       </ChartCard>
 
-      <div>
-        <h3 className="mb-3 text-lg font-medium text-white">{t("trends.bySuite")}</h3>
-        <SuiteTable runs={runs} />
-      </div>
+      <SuiteTable runs={runs} />
     </div>
   );
 }
