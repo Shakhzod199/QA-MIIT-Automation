@@ -64,6 +64,31 @@ function LegendDot({ color, className, label, value }: { color?: string; classNa
   );
 }
 
+/** Instant styled hover tooltip — native `title` is too slow/plain for tiny hover targets like strip squares. */
+function HoverTip({
+  tip,
+  className,
+  style,
+  children,
+}: {
+  tip: React.ReactNode;
+  className?: string;
+  style?: React.CSSProperties;
+  children?: React.ReactNode;
+}) {
+  return (
+    <span className={`group relative flex ${className ?? ""}`} style={style}>
+      {children}
+      <span
+        className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1.5 hidden -translate-x-1/2 whitespace-nowrap rounded-[8px] border border-surface-border px-2.5 py-1.5 text-left text-[11px] font-normal normal-case tracking-normal shadow-lg group-hover:block"
+        style={{ background: "#12161d" }}
+      >
+        {tip}
+      </span>
+    </span>
+  );
+}
+
 function Kpi({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <div className="rounded-[12px] border border-surface-border bg-surface-panel p-4">
@@ -82,14 +107,22 @@ function MixBar({ items }: { items: { label: string; count: number; color: strin
   }
   return (
     <div>
-      <div className="flex h-3 w-full overflow-hidden rounded-full bg-surface-border">
+      {/* No overflow-hidden on the track: it would clip the segment tooltips, so
+          the end caps are rounded on the first/last segments instead. */}
+      <div className="flex h-3 w-full rounded-full bg-surface-border">
         {items
           .filter((i) => i.count > 0)
           .map((i) => (
-            <div
+            <HoverTip
               key={i.label}
-              title={`${i.label}: ${i.count}`}
+              className="h-full first:rounded-l-full last:rounded-r-full"
               style={{ width: `${(i.count / total) * 100}%`, backgroundColor: i.color }}
+              tip={
+                <span className="flex items-center gap-1.5 font-mono font-semibold text-q-text">
+                  <span className="h-1.5 w-1.5 rounded-full" style={{ background: i.color }} />
+                  {i.label}: {i.count} ({Math.round((i.count / total) * 100)}%)
+                </span>
+              }
             />
           ))}
       </div>
@@ -181,26 +214,26 @@ function TriggerBySuite({ runs }: { runs: RunSummary[] }) {
             {/* Recent runs oldest → newest, colored by who triggered them. */}
             <div className="flex min-w-0 flex-1 items-center gap-0.5">
               {[...s.recent].reverse().map((r) => (
-                <span key={r.id} className="group relative flex">
+                <HoverTip
+                  key={r.id}
+                  tip={
+                    <>
+                      <span className="flex items-center gap-1.5 font-mono font-semibold text-q-text">
+                        <span
+                          className="h-1.5 w-1.5 rounded-full"
+                          style={{ background: SOURCE_COLORS[r.triggerSource] }}
+                        />
+                        Run #{r.runNumber} · {r.triggerSource === "ci-cd" ? t("table.triggerCi") : t("table.triggerManual")}
+                      </span>
+                      <span className="mt-0.5 block text-q-sub">{formatDateTime(r.createdAt)}</span>
+                    </>
+                  }
+                >
                   <span
                     className="h-2.5 w-1.5 rounded-sm transition-transform group-hover:scale-y-125"
                     style={{ background: SOURCE_COLORS[r.triggerSource] }}
                   />
-                  {/* Instant styled tooltip (native `title` is too slow for a strip of tiny squares). */}
-                  <span
-                    className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1.5 hidden -translate-x-1/2 whitespace-nowrap rounded-[8px] border border-surface-border px-2.5 py-1.5 text-[11px] shadow-lg group-hover:block"
-                    style={{ background: "#12161d" }}
-                  >
-                    <span className="flex items-center gap-1.5 font-mono font-semibold text-q-text">
-                      <span
-                        className="h-1.5 w-1.5 rounded-full"
-                        style={{ background: SOURCE_COLORS[r.triggerSource] }}
-                      />
-                      Run #{r.runNumber} · {r.triggerSource === "ci-cd" ? t("table.triggerCi") : t("table.triggerManual")}
-                    </span>
-                    <span className="mt-0.5 block text-q-sub">{formatDateTime(r.createdAt)}</span>
-                  </span>
-                </span>
+                </HoverTip>
               ))}
             </div>
             <span className="hidden shrink-0 font-mono text-[11px] tabular-nums text-q-dim sm:inline">
@@ -269,25 +302,37 @@ function ResultStrip({
   const chrono = [...recent].reverse(); // oldest → newest, left to right
   return (
     <div className="flex items-center gap-0.5">
-      {chrono.map((r) => (
-        <span
-          key={r.id}
-          title={`Run #${r.runNumber} · ${getStatusBadge(r.status, r.conclusion).label} · ${
-            r.triggerSource === "ci-cd" ? "CI/CD" : "Manual"
-          } · ${formatDateTime(r.createdAt)} · ${r.testFilter ?? "Full suite"}`}
-          className={`h-2.5 w-1.5 rounded-sm ${
-            r.status !== "completed"
-              ? "bg-[#5b9dff]/70"
-              : r.conclusion === "success"
-                ? "bg-q-green"
-                : r.conclusion === "failure"
-                  ? "bg-q-red"
-                  : r.conclusion === "cancelled"
-                    ? "bg-q-amber/70"
-                    : "bg-[#5b636e]"
-          }`}
-        />
-      ))}
+      {chrono.map((r) => {
+        const colorClass =
+          r.status !== "completed"
+            ? "bg-[#5b9dff]/70"
+            : r.conclusion === "success"
+              ? "bg-q-green"
+              : r.conclusion === "failure"
+                ? "bg-q-red"
+                : r.conclusion === "cancelled"
+                  ? "bg-q-amber/70"
+                  : "bg-[#5b636e]";
+        return (
+          <HoverTip
+            key={r.id}
+            tip={
+              <>
+                <span className="flex items-center gap-1.5 font-mono font-semibold text-q-text">
+                  <span className={`h-1.5 w-1.5 rounded-full ${colorClass}`} />
+                  Run #{r.runNumber} · {getStatusBadge(r.status, r.conclusion).label}
+                </span>
+                <span className="mt-0.5 block text-q-sub">
+                  {r.triggerSource === "ci-cd" ? "CI/CD" : "Manual"} · {formatDateTime(r.createdAt)} ·{" "}
+                  {r.testFilter ?? "Full suite"}
+                </span>
+              </>
+            }
+          >
+            <span className={`h-2.5 w-1.5 rounded-sm transition-transform group-hover:scale-y-125 ${colorClass}`} />
+          </HoverTip>
+        );
+      })}
     </div>
   );
 }
@@ -430,7 +475,9 @@ function SuiteTable({ runs }: { runs: RunSummary[] }) {
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-surface-border bg-surface-panel">
+    // No overflow-hidden here (nothing inside paints past the rounded corners),
+    // so the ResultStrip tooltips can escape the panel.
+    <div className="rounded-lg border border-surface-border bg-surface-panel">
       <div className="border-b border-surface-border px-4 py-3 text-[13px] font-semibold text-q-text">
         {t("trends.bySuite")}
       </div>
