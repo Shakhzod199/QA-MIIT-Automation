@@ -320,7 +320,7 @@ function SuiteTestsPageInner({ params }: { params: Promise<{ id: string }> }) {
         </div>
       </div>
 
-      <TypeTabs workflowId={workflowId} active={type} />
+      <TypeTabs workflowId={workflowId} active={type} workflowName={workflow?.name} />
 
       {testsData?.available ? (
         <div className="grid grid-cols-1 gap-[14px] sm:grid-cols-2 lg:grid-cols-4">

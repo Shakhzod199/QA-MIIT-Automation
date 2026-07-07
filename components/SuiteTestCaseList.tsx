@@ -145,6 +145,31 @@ export function SuiteTestCaseList({
     }
   };
 
+  // Run the whole suite with no filter — the empty state's only action, since
+  // without a completed run there's no per-test catalog to pick from yet (the
+  // first full run is what produces the report the list is built from).
+  const handleRunAll = async () => {
+    if (state === "pending" || disabledReason) return;
+    setState("pending");
+    setError(null);
+    const typeInput = runType !== "frontend" ? { type: runType } : {};
+    const res = await fetch("/api/runs/trigger", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(Object.keys(typeInput).length > 0 ? { workflowId, inputs: typeInput } : { workflowId }),
+    });
+    const result: TriggerResponse = await res.json();
+
+    if (result.ok) {
+      setState("triggered");
+      setTimeout(() => mutateRuns(), 1500);
+      setTimeout(() => setState("idle"), 4000);
+    } else {
+      setState("idle");
+      setError(result.error ?? "Failed to trigger run");
+    }
+  };
+
   const handleRunSingleTest = async (filter: string) => {
     if (pendingFilter || disabledReason) return;
     setPendingFilter(filter);
@@ -173,7 +198,27 @@ export function SuiteTestCaseList({
   if (tests.length === 0) {
     return (
       <div className="rounded-[12px] border border-surface-border bg-surface-panel p-8 text-center text-[13px] text-q-muted">
-        {t("suiteTests.empty")}
+        <p>{t("suiteTests.empty")}</p>
+        <button
+          onClick={handleRunAll}
+          disabled={state === "pending" || !!disabledReason}
+          title={disabledReason ?? undefined}
+          className="mt-4 inline-flex items-center gap-1.5 rounded-[9px] px-4 py-[9px] text-[13px] font-bold transition disabled:cursor-not-allowed disabled:opacity-60"
+          style={
+            state === "triggered"
+              ? { background: "rgba(61,220,151,0.2)", color: "#3ddc97" }
+              : { background: "#3ddc97", color: "#06140d" }
+          }
+        >
+          {state === "pending" && (
+            <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+          )}
+          {state === "triggered" ? t("suiteTests.triggered") : t("suiteTests.run")}
+        </button>
+        {error && <p className="mt-2 text-[12px] text-q-red">{error}</p>}
       </div>
     );
   }
