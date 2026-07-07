@@ -163,7 +163,12 @@ function TriggerBySuite({ runs }: { runs: RunSummary[] }) {
     <div>
       {/* Two columns: each row's content is short, so full-width rows left a
           long empty stretch between the strip and the counts. */}
-      <div className="grid grid-cols-1 gap-x-10 gap-y-2.5 xl:grid-cols-2">
+      <div className="relative grid grid-cols-1 gap-x-10 gap-y-2.5 xl:grid-cols-2">
+        {/* Vertical divider between the two columns. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 left-1/2 hidden w-px -translate-x-1/2 bg-surface-border xl:block"
+        />
         {suites.map((s) => (
           <div key={s.workflowId} className="flex items-center gap-3">
             <Link
@@ -176,14 +181,26 @@ function TriggerBySuite({ runs }: { runs: RunSummary[] }) {
             {/* Recent runs oldest → newest, colored by who triggered them. */}
             <div className="flex min-w-0 flex-1 items-center gap-0.5">
               {[...s.recent].reverse().map((r) => (
-                <span
-                  key={r.id}
-                  title={`Run #${r.runNumber} · ${
-                    r.triggerSource === "ci-cd" ? t("table.triggerCi") : t("table.triggerManual")
-                  } · ${formatDateTime(r.createdAt)}`}
-                  className="h-2.5 w-1.5 rounded-sm"
-                  style={{ background: SOURCE_COLORS[r.triggerSource] }}
-                />
+                <span key={r.id} className="group relative flex">
+                  <span
+                    className="h-2.5 w-1.5 rounded-sm transition-transform group-hover:scale-y-125"
+                    style={{ background: SOURCE_COLORS[r.triggerSource] }}
+                  />
+                  {/* Instant styled tooltip (native `title` is too slow for a strip of tiny squares). */}
+                  <span
+                    className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1.5 hidden -translate-x-1/2 whitespace-nowrap rounded-[8px] border border-surface-border px-2.5 py-1.5 text-[11px] shadow-lg group-hover:block"
+                    style={{ background: "#12161d" }}
+                  >
+                    <span className="flex items-center gap-1.5 font-mono font-semibold text-q-text">
+                      <span
+                        className="h-1.5 w-1.5 rounded-full"
+                        style={{ background: SOURCE_COLORS[r.triggerSource] }}
+                      />
+                      Run #{r.runNumber} · {r.triggerSource === "ci-cd" ? t("table.triggerCi") : t("table.triggerManual")}
+                    </span>
+                    <span className="mt-0.5 block text-q-sub">{formatDateTime(r.createdAt)}</span>
+                  </span>
+                </span>
               ))}
             </div>
             <span className="hidden shrink-0 font-mono text-[11px] tabular-nums text-q-dim sm:inline">
