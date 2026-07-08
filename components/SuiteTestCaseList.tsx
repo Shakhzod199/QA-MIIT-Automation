@@ -290,7 +290,6 @@ export function SuiteTestCaseList({
           const describePath = test.titlePath.length > 1 ? test.titlePath.slice(0, -1).join(" › ") : "";
           const durationLabel = test.durationMs > 0 ? `${(test.durationMs / 1000).toFixed(1)}s` : "—";
           const description = getTestDescription(test.file, test.line, locale);
-          const isFailed = test.status === "failed" || test.status === "timedOut";
           return (
             <label
               key={`${filter}::${test.project}`}
@@ -332,19 +331,6 @@ export function SuiteTestCaseList({
                   )}
                 </div>
                 {describePath && <div className="mt-[2px] font-mono text-[11px] text-q-dim">{describePath}</div>}
-                {isFailed && test.error && (
-                  <div
-                    className="mt-[7px] truncate font-mono text-[11px] text-[#ff7a7a]"
-                    style={{
-                      background: "rgba(255,93,93,0.08)",
-                      borderLeft: "2px solid #ff5d5d",
-                      padding: "6px 9px",
-                      borderRadius: "0 5px 5px 0",
-                    }}
-                  >
-                    {test.error}
-                  </div>
-                )}
               </div>
               <span className="w-[84px] flex-none pt-[2px]">
                 <span
