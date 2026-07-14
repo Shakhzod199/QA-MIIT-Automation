@@ -24,7 +24,17 @@ create table if not exists sessions (
 
 create index if not exists sessions_user_id_idx on sessions(user_id);
 
--- One row per successful login — powers the daily visits chart on /users.
+-- Bumped by a client heartbeat (see app/api/heartbeat) roughly every 45s
+-- while a tab is open. Null means the session was created before this
+-- column existed, or has never sent a heartbeat yet. Powers the "online
+-- now" indicator on /users — distinct from a login event, which only marks
+-- the moment auth succeeded and says nothing about current activity.
+alter table sessions add column if not exists last_seen timestamptz;
+
+create index if not exists sessions_last_seen_idx on sessions(last_seen);
+
+-- One row per successful login — an audit trail (see lib/visits.ts). Not used
+-- for the /users "online now" indicator, which reads sessions.last_seen instead.
 create table if not exists login_events (
   id bigint generated always as identity primary key,
   user_id bigint not null references users(id) on delete cascade,

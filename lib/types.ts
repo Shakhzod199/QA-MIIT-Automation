@@ -215,16 +215,14 @@ export interface UpdateUserRequest {
   allowedWorkflows?: number[];
 }
 
-export interface DailyVisits {
-  /** YYYY-MM-DD, local calendar day. */
-  date: string;
-  count: number;
-  /** Usernames who logged in that day, deduped — powers the chart tooltip. */
-  users: string[];
+export interface OnlineUser {
+  id: number;
+  username: string;
+  name: string | null;
 }
 
-export interface VisitsResponse {
+export interface OnlineUsersResponse {
   ok: boolean;
-  days: DailyVisits[];
+  users: OnlineUser[];
   error?: string;
 }

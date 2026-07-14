@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { SidebarNav } from "@/components/SidebarNav";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { PresenceHeartbeat } from "@/components/PresenceHeartbeat";
 import { useCurrentUser } from "@/components/UserProvider";
 
 export function ConditionalLayout({ children }: { children: React.ReactNode }) {
@@ -23,6 +24,7 @@ export function ConditionalLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen bg-surface">
+      {user && <PresenceHeartbeat />}
       <aside className="sticky top-0 flex h-screen w-[212px] shrink-0 flex-col overflow-y-auto border-r border-surface-border bg-surface-sidebar">
         {/* Logo */}
         <Link

@@ -93,6 +93,9 @@ export async function middleware(request: NextRequest) {
   headers.set("x-user-username", user.username);
   headers.set("x-user-name", user.name ?? "");
   headers.set("x-user-role", user.role);
+  // sessions.token — lets /api/heartbeat write last_seen without re-verifying
+  // the cookie itself (that already happened above, at zero I/O cost).
+  headers.set("x-session-id", claims.sid);
 
   return NextResponse.next({ request: { headers } });
 }

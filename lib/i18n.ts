@@ -193,11 +193,10 @@ const en: Dict = {
   "users.projectsAll": "All projects",
   "users.projectsNone": "No access",
   "users.empty": "No users yet.",
-  "users.dailyVisits": "Daily visits",
-  "users.dailyVisitsSubtitle": "Successful logins per day, last 14 days",
-  "users.noVisits": "No visits recorded yet.",
-  "users.loginsWord": "logins",
-  "users.noLoginsTooltip": "No logins",
+  "users.onlineNow": "Online now",
+  "users.onlineNowSubtitle": "Users active in the last couple of minutes",
+  "users.onlineCount": "{n} online",
+  "users.noOneOnline": "No one is online right now.",
 };
 
 const uz: Dict = {
@@ -383,11 +382,10 @@ const uz: Dict = {
   "users.projectsAll": "Barcha loyihalar",
   "users.projectsNone": "Kirish huquqi yo‘q",
   "users.empty": "Hozircha foydalanuvchilar yo‘q.",
-  "users.dailyVisits": "Kunlik tashriflar",
-  "users.dailyVisitsSubtitle": "Oxirgi 14 kundagi muvaffaqiyatli kirishlar",
-  "users.noVisits": "Hozircha tashriflar qayd etilmagan.",
-  "users.loginsWord": "kirish",
-  "users.noLoginsTooltip": "Kirishlar yo‘q",
+  "users.onlineNow": "Hozir onlayn",
+  "users.onlineNowSubtitle": "Oxirgi bir necha daqiqada faol bo‘lgan foydalanuvchilar",
+  "users.onlineCount": "{n} onlayn",
+  "users.noOneOnline": "Hozircha hech kim onlayn emas.",
 };
 
 const ru: Dict = {
@@ -573,11 +571,10 @@ const ru: Dict = {
   "users.projectsAll": "Все проекты",
   "users.projectsNone": "Нет доступа",
   "users.empty": "Пользователей пока нет.",
-  "users.dailyVisits": "Посещения по дням",
-  "users.dailyVisitsSubtitle": "Успешные входы в систему за последние 14 дней",
-  "users.noVisits": "Посещений пока не зафиксировано.",
-  "users.loginsWord": "входов",
-  "users.noLoginsTooltip": "Нет входов",
+  "users.onlineNow": "Онлайн сейчас",
+  "users.onlineNowSubtitle": "Пользователи, активные за последние пару минут",
+  "users.onlineCount": "{n} онлайн",
+  "users.noOneOnline": "Сейчас никого нет онлайн.",
 };
 
 export const TRANSLATIONS: Record<Locale, Dict> = { en, uz, ru };
