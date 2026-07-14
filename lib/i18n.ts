@@ -197,6 +197,11 @@ const en: Dict = {
   "users.onlineNowSubtitle": "Users active in the last couple of minutes",
   "users.onlineCount": "{n} online",
   "users.noOneOnline": "No one is online right now.",
+  "users.loginHistory": "Login history",
+  "users.loginHistorySubtitle": "Successful logins per day, last 7 days",
+  "users.noVisits": "No logins recorded yet.",
+  "users.loginsWord": "logins",
+  "users.noLoginsTooltip": "No logins",
 };
 
 const uz: Dict = {
@@ -386,6 +391,11 @@ const uz: Dict = {
   "users.onlineNowSubtitle": "Oxirgi bir necha daqiqada faol bo‘lgan foydalanuvchilar",
   "users.onlineCount": "{n} onlayn",
   "users.noOneOnline": "Hozircha hech kim onlayn emas.",
+  "users.loginHistory": "Kirishlar tarixi",
+  "users.loginHistorySubtitle": "Oxirgi 7 kundagi muvaffaqiyatli kirishlar",
+  "users.noVisits": "Hozircha kirishlar qayd etilmagan.",
+  "users.loginsWord": "kirish",
+  "users.noLoginsTooltip": "Kirishlar yo‘q",
 };
 
 const ru: Dict = {
@@ -575,6 +585,11 @@ const ru: Dict = {
   "users.onlineNowSubtitle": "Пользователи, активные за последние пару минут",
   "users.onlineCount": "{n} онлайн",
   "users.noOneOnline": "Сейчас никого нет онлайн.",
+  "users.loginHistory": "История входов",
+  "users.loginHistorySubtitle": "Успешные входы в систему за последние 7 дней",
+  "users.noVisits": "Входов пока не зафиксировано.",
+  "users.loginsWord": "входов",
+  "users.noLoginsTooltip": "Нет входов",
 };
 
 export const TRANSLATIONS: Record<Locale, Dict> = { en, uz, ru };

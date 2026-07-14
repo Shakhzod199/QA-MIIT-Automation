@@ -6,16 +6,19 @@ import { useI18n } from "@/components/I18nProvider";
 import { UsersTable } from "@/components/UsersTable";
 import { UserFormModal } from "@/components/UserFormModal";
 import { OnlineUsers } from "@/components/OnlineUsers";
-import type { UserRecord, UserResponse, UserRole, UsersResponse } from "@/lib/types";
+import { VisitsChart } from "@/components/VisitsChart";
+import type { UserRecord, UserResponse, UserRole, UsersResponse, VisitsResponse } from "@/lib/types";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export default function UsersPage() {
   const { t } = useI18n();
   const { data, mutate } = useSWR<UsersResponse>("/api/users", fetcher);
+  const { data: visitsData } = useSWR<VisitsResponse>("/api/users/visits?days=7", fetcher);
   const [modal, setModal] = useState<"add" | UserRecord | null>(null);
 
   const users = data?.users ?? [];
+  const visits = visitsData?.days ?? [];
 
   const handleCreate = async (input: {
     username: string;
@@ -86,6 +89,12 @@ export default function UsersPage() {
         <h3 className="mb-3 text-[14px] font-semibold text-q-text">{t("users.onlineNow")}</h3>
         <p className="mb-3 -mt-2 text-[12px] text-q-muted">{t("users.onlineNowSubtitle")}</p>
         <OnlineUsers />
+      </div>
+
+      <div>
+        <h3 className="mb-3 text-[14px] font-semibold text-q-text">{t("users.loginHistory")}</h3>
+        <p className="mb-3 -mt-2 text-[12px] text-q-muted">{t("users.loginHistorySubtitle")}</p>
+        <VisitsChart days={visits} />
       </div>
 
       <UsersTable users={users} onEdit={setModal} onDelete={handleDelete} />
