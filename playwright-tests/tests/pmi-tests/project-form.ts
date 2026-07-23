@@ -182,7 +182,9 @@ export async function createProject2tip(page: Page): Promise<CreatedProject> {
   await selectRandomDavlat(page);
   await selectFirstOption(page, "Investor");
   await formItem(page, "Loyiha qiymati").locator("input").first().fill("1.2");
-  expect(await selectFirstOption(page, "Soha guruhi")).toBe(true);
+  // "Soha guruhi" removed from the PMI form at the client's request
+  // (2026-07-23). Kept commented — restore if the field is brought back.
+  // expect(await selectFirstOption(page, "Soha guruhi")).toBe(true);
   await selectFirstOption(page, "Soha");
 
   const tuman = formItem(page, "Tuman/Shahar").locator(".n-base-selection").first();

@@ -146,9 +146,9 @@ test.describe("PMI — Loyihalar CRUD", () => {
     await formItem(page, "Loyiha qiymati").locator("input").first().fill("1.2");
 
     // ── 5. Soha guruhi: first option (drives the Soha list) ──────────────
-    // Assert it was actually present/filled (not silently skipped) since this
-    // field is the distinguishing extra for the "Yo‘l xaritaga" project type.
-    expect(await selectFirstOption(page, "Soha guruhi")).toBe(true);
+    // Removed from the PMI form at the client's request (2026-07-23). Kept
+    // commented — restore this step if the "Soha guruhi" field is brought back.
+    // expect(await selectFirstOption(page, "Soha guruhi")).toBe(true);
 
     // ── 6. Soha: first option ────────────────────────────────────────────
     await selectFirstOption(page, "Soha");
