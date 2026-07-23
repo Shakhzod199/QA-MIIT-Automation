@@ -25,13 +25,15 @@ async function expectStatsNonZero(stats: Locator, label: string) {
 
   // Widgets briefly render 0/placeholder values until their API call resolves.
   // Wait (web-first, no networkidle) until every numeric stat has loaded non-zero.
+  // Timeout is generous: under parallel load the dashboard backend has been seen
+  // to take just over 20s, so a marginally slow response must not flake the run.
   await expect
     .poll(
       async () => {
         const nums = (await stats.allTextContents()).map(parseLocaleNumber).filter((n): n is number => n !== null);
         return nums.length > 0 && nums.every((n) => n !== 0);
       },
-      { timeout: 20000, message: `${label} stats never finished loading as non-zero` },
+      { timeout: 35000, message: `${label} stats never finished loading as non-zero` },
     )
     .toBe(true);
 
