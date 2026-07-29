@@ -4,6 +4,7 @@ import {
   analyzeFailures,
   isAnalysisConfigured,
   MAX_PER_RUN,
+  ruleAnalysis,
   type AnalysisInput,
 } from "@/lib/failureAnalysis";
 import { getGithubConfig } from "@/lib/github";
@@ -26,10 +27,6 @@ function empty(extra?: Partial<RunAnalysisResponse>): RunAnalysisResponse {
  * error, the summary page renders exactly as it did before the feature existed.
  */
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  if (!isAnalysisConfigured()) {
-    return NextResponse.json<RunAnalysisResponse>({ configured: false, analyses: [] });
-  }
-
   const config = getGithubConfig();
   if (!config.configured) {
     return NextResponse.json<RunAnalysisResponse>({ configured: false, analyses: [] });
@@ -56,6 +53,18 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   );
   if (failures.length === 0) return NextResponse.json(empty());
 
+  // Without an API key, serve the zero-cost keyword classifier. It covers
+  // infra and backend failures well and says so via `source: "rules"`; rows it
+  // can't classify are simply absent and render as they always have.
+  if (!isAnalysisConfigured()) {
+    return NextResponse.json<RunAnalysisResponse>({
+      configured: true,
+      analyses: failures
+        .map((test) => ruleAnalysis(test))
+        .filter((a): a is NonNullable<typeof a> => a !== null),
+    });
+  }
+
   // One broken login step can fail a hundred tests; cap the work so a single
   // page view can't turn into a hundred model calls.
   const selected = failures.slice(0, MAX_PER_RUN);
@@ -77,7 +86,15 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         : {}),
     });
   } catch (err) {
-    console.error("[analysis] failed for run", id, err);
-    return NextResponse.json(empty({ error: "Analysis is temporarily unavailable." }));
+    // The whole model path failed — most likely the failure_analysis table
+    // hasn't been applied, or the API is unreachable. Serve rules rather than
+    // nothing; the page still tells the reader something useful.
+    console.error("[analysis] model path failed for run", id, err);
+    return NextResponse.json<RunAnalysisResponse>({
+      configured: true,
+      analyses: failures
+        .map((test) => ruleAnalysis(test))
+        .filter((a): a is NonNullable<typeof a> => a !== null),
+    });
   }
 }

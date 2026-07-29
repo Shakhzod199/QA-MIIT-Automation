@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import Anthropic from "@anthropic-ai/sdk";
+import { classifyFailure } from "@/lib/failureRules";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { testKey, type FailureAnalysis, type FailureOwner, type TestCaseResult } from "@/lib/types";
 
@@ -187,6 +188,7 @@ function toAnalysis(row: CachedRow, key: string): FailureAnalysis {
     key,
     owner: row.owner,
     confidence: row.confidence,
+    source: "model",
     cause: { en: row.cause_en, uz: row.cause_uz, ru: row.cause_ru },
     messageUz: row.message_uz || null,
   };
@@ -220,6 +222,30 @@ async function writeCache(fp: string, test: AnalysisInput["test"], out: ModelOut
     { onConflict: "fingerprint" }
   );
   if (error) throw new Error(`failure_analysis write failed: ${error.message}`);
+}
+
+/**
+ * Wraps the zero-cost keyword classifier in the same shape the model path
+ * returns. Used when no API key is configured, and per-failure when a
+ * generation errors. Returns null when no rule matches confidently — the row
+ * then renders exactly as it did before this feature existed.
+ */
+export function ruleAnalysis(
+  test: Pick<TestCaseResult, "file" | "line" | "titlePath" | "error" | "stack">,
+  key = testKey(test),
+  fp = fingerprint(test, test.error ?? "")
+): FailureAnalysis | null {
+  const verdict = classifyFailure(test);
+  if (!verdict) return null;
+  return {
+    fingerprint: fp,
+    key,
+    owner: verdict.owner,
+    confidence: verdict.confidence,
+    source: "rules",
+    cause: verdict.cause,
+    messageUz: verdict.messageUz,
+  };
 }
 
 /** Runs `worker` over `items` with a bounded number in flight at once. */
@@ -280,9 +306,12 @@ export async function analyzeFailures(inputs: AnalysisInput[]): Promise<FailureA
   }
 
   return withFingerprints
-    .map(({ key, fp }) => {
+    .map(({ input, key, fp }) => {
       const row = cached.get(fp);
-      return row ? toAnalysis(row, key) : null;
+      if (row) return toAnalysis(row, key);
+      // Generation failed for this one — fall back to the keyword classifier
+      // rather than dropping the row entirely.
+      return ruleAnalysis(input.test, key, fp);
     })
     .filter((a): a is FailureAnalysis => a !== null);
 }

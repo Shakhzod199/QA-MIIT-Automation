@@ -5,11 +5,12 @@
 //
 //   npx tsx --env-file=.env.local scripts/analyze-run.ts            # newest run with failures
 //   npx tsx --env-file=.env.local scripts/analyze-run.ts 12345678   # a specific run id
-//   npx tsx --env-file=.env.local scripts/analyze-run.ts --dry      # list failures, no model calls
+//   npx tsx --env-file=.env.local scripts/analyze-run.ts --dry      # list failures, no analysis
+//   npx tsx --env-file=.env.local scripts/analyze-run.ts --rules    # keyword classifier only, free
 //
 // Needs GITHUB_TOKEN / GITHUB_OWNER / GITHUB_REPO, plus ANTHROPIC_API_KEY and
 // the Supabase keys unless --dry is passed.
-import { analyzeFailures, isAnalysisConfigured, MAX_PER_RUN } from "@/lib/failureAnalysis";
+import { analyzeFailures, isAnalysisConfigured, MAX_PER_RUN, ruleAnalysis } from "@/lib/failureAnalysis";
 import { getGithubConfig, githubFetch } from "@/lib/github";
 import { parsePlaywrightReport } from "@/lib/playwright-report";
 import { findReportFile, getReportFiles } from "@/lib/report-artifact";
@@ -17,6 +18,7 @@ import { getTestDescription } from "@/lib/testDescriptions";
 import { testKey, type TestCaseResult } from "@/lib/types";
 
 const dry = process.argv.includes("--dry");
+const rulesOnly = process.argv.includes("--rules");
 const runIdArg = process.argv.slice(2).find((a) => /^\d+$/.test(a));
 
 function fail(message: string): never {
@@ -53,10 +55,10 @@ async function loadTests(runId: string): Promise<TestCaseResult[] | null> {
 
 async function main(): Promise<void> {
   if (!config.configured) fail("Missing GITHUB_TOKEN / GITHUB_OWNER / GITHUB_REPO.");
-  if (!dry && !isAnalysisConfigured()) {
+  if (!dry && !rulesOnly && !isAnalysisConfigured()) {
     fail(
-      "ANTHROPIC_API_KEY is not set — add it to .env.local, or pass --dry to list\n" +
-        "the failures without calling the model."
+      "ANTHROPIC_API_KEY is not set. Add it to .env.local, or pass --rules to use\n" +
+        "the free keyword classifier, or --dry to just list the failures."
     );
   }
 
@@ -81,9 +83,11 @@ async function main(): Promise<void> {
   }
 
   const started = Date.now();
-  const analyses = await analyzeFailures(
-    selected.map((test) => ({ test, description: getTestDescription(test.file, test.line, "en") }))
-  );
+  const analyses = rulesOnly
+    ? selected.map((test) => ruleAnalysis(test)).filter((a): a is NonNullable<typeof a> => a !== null)
+    : await analyzeFailures(
+        selected.map((test) => ({ test, description: getTestDescription(test.file, test.line, "en") }))
+      );
 
   const byKey = new Map(analyses.map((a) => [a.key, a]));
   const counts: Record<string, number> = {};
@@ -93,11 +97,12 @@ async function main(): Promise<void> {
     console.log("─".repeat(76));
     console.log(`${test.file}:${test.line} — ${test.titlePath.join(" › ")}`);
     if (!a) {
-      console.log("  (no analysis — generation failed; see the error logged above)\n");
+      console.log("  (not classified — row renders unchanged)\n");
+      counts.unclassified = (counts.unclassified ?? 0) + 1;
       continue;
     }
     counts[a.owner] = (counts[a.owner] ?? 0) + 1;
-    console.log(`  owner      : ${a.owner.toUpperCase()}  (${a.confidence} confidence)`);
+    console.log(`  owner      : ${a.owner.toUpperCase()}  (${a.confidence} confidence, via ${a.source})`);
     console.log(`  cause (en) : ${a.cause.en}`);
     console.log(`  cause (uz) : ${a.cause.uz}`);
     console.log(`  message    : ${a.messageUz ?? "— none (infra) —"}`);

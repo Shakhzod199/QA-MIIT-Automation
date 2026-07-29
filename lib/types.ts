@@ -139,6 +139,12 @@ export interface FailureAnalysis {
   key: string;
   owner: FailureOwner;
   confidence: "high" | "medium" | "low";
+  /**
+   * Which tier produced this. "rules" is the zero-cost keyword classifier used
+   * when no API key is configured — coarser, and the UI says so rather than
+   * passing a template off as a diagnosis.
+   */
+  source: "model" | "rules";
   /** Plain-language cause, per locale. */
   cause: Record<Locale, string>;
   /**

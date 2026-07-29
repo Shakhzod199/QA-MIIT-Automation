@@ -66,6 +66,17 @@ export default function FailureAnalysisPanel({
         {analysis.confidence !== "high" && (
           <span className="text-xs text-gray-500">{t(`analysis.confidence.${analysis.confidence}`)}</span>
         )}
+        {/* Say plainly when a verdict came from keyword rules rather than a
+            real reading of the evidence — a template shouldn't be mistaken
+            for a diagnosis. */}
+        {analysis.source === "rules" && (
+          <span
+            className="text-xs text-gray-600"
+            title={t("analysis.ruleBasedHint")}
+          >
+            · {t("analysis.ruleBased")}
+          </span>
+        )}
       </div>
 
       <p className="mt-2 text-sm text-gray-200">{analysis.cause[locale]}</p>
