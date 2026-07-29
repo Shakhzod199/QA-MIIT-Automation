@@ -44,6 +44,30 @@ create table if not exists login_events (
 create index if not exists login_events_created_at_idx on login_events(created_at);
 create index if not exists login_events_user_id_idx on login_events(user_id);
 
+-- Cached LLM analysis of a test failure (see lib/failureAnalysis.ts).
+--
+-- Keyed by a fingerprint of (file:line + normalized error text) rather than by
+-- run, deliberately: the same failure recurring across runs is analyzed once
+-- and reused, so a test that has been broken for a fortnight costs a single
+-- generation instead of one per run. A genuinely different error on the same
+-- test normalizes differently and gets its own row.
+create table if not exists failure_analysis (
+  fingerprint  text primary key,
+  test_file    text not null,
+  test_line    int not null,
+  owner        text not null check (owner in ('backend', 'frontend', 'test', 'infra')),
+  confidence   text not null check (confidence in ('high', 'medium', 'low')),
+  cause_en     text not null,
+  cause_uz     text not null,
+  cause_ru     text not null,
+  -- Null for 'infra': there is no team to message, it just needs a retry.
+  message_uz   text,
+  model        text not null,
+  created_at   timestamptz not null default now()
+);
+
+create index if not exists failure_analysis_test_idx on failure_analysis(test_file, test_line);
+
 -- Row Level Security -------------------------------------------------------
 -- The app never queries these tables from the browser: all reads/writes go
 -- through Next.js Route Handlers using the SUPABASE_SERVICE_ROLE_KEY, which
@@ -59,7 +83,9 @@ create index if not exists login_events_user_id_idx on login_events(user_id);
 alter table users enable row level security;
 alter table sessions enable row level security;
 alter table login_events enable row level security;
+alter table failure_analysis enable row level security;
 
 revoke all on users from anon, authenticated;
 revoke all on sessions from anon, authenticated;
 revoke all on login_events from anon, authenticated;
+revoke all on failure_analysis from anon, authenticated;

@@ -6,12 +6,19 @@ import type {
 
 // Minimal shape of the Playwright JSON reporter output we rely on. The real
 // payload has far more, but these are the stable fields we read.
+interface PwError {
+  message?: string;
+  stack?: string;
+  /** Rendered source excerpt around the failing line, when Playwright captured one. */
+  snippet?: string;
+  location?: { file?: string; line?: number; column?: number };
+}
 interface PwResult {
   status?: string; // "passed" | "failed" | "timedOut" | "skipped" | "interrupted"
   duration?: number;
   retry?: number;
-  error?: { message?: string };
-  errors?: { message?: string }[];
+  error?: PwError;
+  errors?: PwError[];
 }
 interface PwTest {
   projectName?: string;
@@ -59,13 +66,35 @@ function mapStatus(test: PwTest): TestStatus {
   }
 }
 
-function extractError(test: PwTest): string | null {
+/** Keeps payloads bounded — a stack can run to hundreds of lines. */
+function clip(s: string, max: number): string {
+  const clean = stripAnsi(s).trim();
+  return clean.length > max ? `${clean.slice(0, max)}\n… (truncated)` : clean;
+}
+
+interface ExtractedFailure {
+  error: string | null;
+  stack: string | null;
+  snippet: string | null;
+}
+
+/**
+ * Pulls the first real failure out of a test's attempts. `stack` and `snippet`
+ * are what make automated diagnosis possible — the message alone often reads
+ * "expected 0, received 11.2" with no indication of which assertion produced it.
+ */
+function extractFailure(test: PwTest): ExtractedFailure {
   for (const result of test.results ?? []) {
     if (result.status === "passed" || result.status === "skipped") continue;
-    const msg = result.error?.message ?? result.errors?.[0]?.message;
-    if (msg) return stripAnsi(msg).trim();
+    const err = result.error ?? result.errors?.[0];
+    if (!err?.message) continue;
+    return {
+      error: clip(err.message, 4000),
+      stack: err.stack ? clip(err.stack, 4000) : null,
+      snippet: err.snippet ? clip(err.snippet, 2000) : null,
+    };
   }
-  return null;
+  return { error: null, stack: null, snippet: null };
 }
 
 /** Recursively walks the suite tree, accumulating one row per spec/test. */
@@ -85,6 +114,7 @@ function walk(
       for (const test of spec.tests ?? []) {
         const results = test.results ?? [];
         const last = results[results.length - 1];
+        const failure = extractFailure(test);
         out.push({
           titlePath: [...nextPrefix, spec.title],
           file: spec.file ?? suite.file ?? "",
@@ -93,7 +123,13 @@ function walk(
           status: mapStatus(test),
           durationMs: last?.duration ?? 0,
           retries: Math.max(0, ...results.map((r) => r.retry ?? 0)),
-          error: extractError(test),
+          error: failure.error,
+          stack: failure.stack,
+          snippet: failure.snippet,
+          attempts: results.map((r) => ({
+            status: r.status ?? "unknown",
+            durationMs: r.duration ?? 0,
+          })),
         });
       }
     }

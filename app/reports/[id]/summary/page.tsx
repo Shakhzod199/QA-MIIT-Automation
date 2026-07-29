@@ -3,10 +3,18 @@
 import { use, useMemo } from "react";
 import Link from "next/link";
 import useSWR from "swr";
+import FailureAnalysisPanel from "@/components/FailureAnalysis";
 import { useI18n } from "@/components/I18nProvider";
 import { formatDateTime, formatRelativeTime } from "@/lib/format";
 import { getTestDescription } from "@/lib/testDescriptions";
-import type { RunDetailResponse, TestCaseResult, TestReportResponse } from "@/lib/types";
+import { testKey } from "@/lib/types";
+import type {
+  FailureAnalysis,
+  RunAnalysisResponse,
+  RunDetailResponse,
+  TestCaseResult,
+  TestReportResponse,
+} from "@/lib/types";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -36,7 +44,15 @@ function StatBlock({ label, value, tone }: { label: string; value: number; tone?
   );
 }
 
-function ResultRow({ test, locale }: { test: TestCaseResult; locale: "en" | "uz" | "ru" }) {
+function ResultRow({
+  test,
+  locale,
+  analysis,
+}: {
+  test: TestCaseResult;
+  locale: "en" | "uz" | "ru";
+  analysis?: FailureAnalysis;
+}) {
   const { t } = useI18n();
   const description = getTestDescription(test.file, test.line, locale) ?? test.titlePath.join(" › ");
   const isPass = test.status === "passed" || test.status === "flaky";
@@ -60,6 +76,7 @@ function ResultRow({ test, locale }: { test: TestCaseResult; locale: "en" | "uz"
         {test.status === "flaky" && (
           <p className="mt-0.5 text-xs text-amber-400">{t("resultsSummary.passedAfterRetry")}</p>
         )}
+        {analysis && <FailureAnalysisPanel analysis={analysis} locale={locale} />}
         {test.error && (
           <details className="mt-1.5">
             <summary className="cursor-pointer text-xs text-gray-500 hover:text-gray-300">
@@ -82,9 +99,21 @@ export default function RunSummaryPage({ params }: { params: Promise<{ id: strin
   const { data: runData } = useSWR<RunDetailResponse>(`/api/runs/${id}`, fetcher);
   const { data: testsData, isLoading } = useSWR<TestReportResponse>(`/api/runs/${id}/tests`, fetcher);
 
+  // Generating analyses for a run that hasn't been seen before takes a few
+  // seconds, so it loads independently of the results — the page renders
+  // immediately and the tags fill in when they arrive.
+  const { data: analysisData } = useSWR<RunAnalysisResponse>(`/api/runs/${id}/analysis`, fetcher, {
+    revalidateOnFocus: false,
+  });
+
   const run = runData?.run;
   const tests = testsData?.tests ?? [];
   const summary = testsData?.summary;
+
+  const analysisByKey = useMemo(
+    () => new Map((analysisData?.analyses ?? []).map((a) => [a.key, a])),
+    [analysisData]
+  );
 
   const groups = useMemo(() => {
     const byFile = new Map<string, TestCaseResult[]>();
@@ -138,6 +167,14 @@ export default function RunSummaryPage({ params }: { params: Promise<{ id: strin
         </div>
       )}
 
+      {analysisData?.limited && (
+        <p className="text-center text-xs text-gray-500">
+          {t("analysis.limited")
+            .replace("{analyzed}", String(analysisData.limited.analyzed))
+            .replace("{total}", String(analysisData.limited.total))}
+        </p>
+      )}
+
       {isLoading && !testsData ? (
         <p className="text-center text-sm text-gray-500">…</p>
       ) : !hasData ? (
@@ -155,7 +192,12 @@ export default function RunSummaryPage({ params }: { params: Promise<{ id: strin
               </div>
               <div>
                 {fileTests.map((test, i) => (
-                  <ResultRow key={`${test.file}:${test.titlePath.join("/")}:${i}`} test={test} locale={locale} />
+                  <ResultRow
+                    key={`${test.file}:${test.titlePath.join("/")}:${i}`}
+                    test={test}
+                    locale={locale}
+                    analysis={analysisByKey.get(testKey(test))}
+                  />
                 ))}
               </div>
             </div>

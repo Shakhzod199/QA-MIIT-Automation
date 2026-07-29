@@ -1,3 +1,5 @@
+import type { Locale } from "@/lib/i18n";
+
 export interface WorkflowSummary {
   id: number;
   name: string;
@@ -110,6 +112,50 @@ export interface TestCaseResult {
   retries: number;
   /** ANSI-stripped error message for failing/flaky tests, else null. */
   error: string | null;
+  /** ANSI-stripped stack trace for the failure, else null. */
+  stack: string | null;
+  /** Source excerpt around the failing line, when Playwright captured one. */
+  snippet: string | null;
+  /** One entry per attempt, oldest first — lets a retry pattern be spotted. */
+  attempts: { status: string; durationMs: number }[];
+}
+
+/** Who needs to act on a failure. Only backend/frontend produce a dev-facing message. */
+export type FailureOwner = "backend" | "frontend" | "test" | "infra";
+
+/**
+ * Identifies which rendered test row an analysis belongs to. Lives here rather
+ * than in lib/failureAnalysis.ts so the browser can call it without pulling the
+ * Supabase admin client into the bundle.
+ */
+export function testKey(test: Pick<TestCaseResult, "file" | "line" | "titlePath">): string {
+  return `${test.file}:${test.line}:${test.titlePath.join(" › ")}`;
+}
+
+export interface FailureAnalysis {
+  /** Stable hash of (file:line + normalized error) — the cache key. */
+  fingerprint: string;
+  /** Identifies which rendered test row this belongs to. */
+  key: string;
+  owner: FailureOwner;
+  confidence: "high" | "medium" | "low";
+  /** Plain-language cause, per locale. */
+  cause: Record<Locale, string>;
+  /**
+   * Uzbek text to send on. Its audience depends on `owner`: the dev team for
+   * backend/frontend, the QA engineer for "test", and null for "infra" (where
+   * there is nobody to message — it just needs a retry).
+   */
+  messageUz: string | null;
+}
+
+export interface RunAnalysisResponse {
+  /** False when ANTHROPIC_API_KEY is absent — the UI then renders as before. */
+  configured: boolean;
+  analyses: FailureAnalysis[];
+  /** Set when the per-run cap kicked in. */
+  limited?: { analyzed: number; total: number };
+  error?: string;
 }
 
 export interface TestReportSummary {

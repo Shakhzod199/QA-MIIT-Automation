@@ -6,9 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "analyze-run": "tsx --env-file=.env.local scripts/analyze-run.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.115.0",
     "@supabase/supabase-js": "^2.110.0",
     "jszip": "^3.10.1",
     "next": "^16",
@@ -26,6 +28,7 @@
     "autoprefixer": "^10.4.19",
     "postcss": "^8.4.40",
     "tailwindcss": "^3.4.10",
+    "tsx": "^4.23.1",
     "typescript": "^5.9.3"
   }
 }
