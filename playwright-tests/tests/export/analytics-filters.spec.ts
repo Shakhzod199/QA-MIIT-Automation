@@ -360,10 +360,11 @@ test.describe("Analitika — Filtrlar panel", () => {
   });
 
   // ── Known product bugs ───────────────────────────────────────────────────
-  // Both are marked test.fail(): they document confirmed defects without
-  // turning the suite red, and Playwright will report "expected to fail but
-  // passed" the moment either is fixed — which is the signal to delete the
-  // annotation rather than the test.
+  // A confirmed defect is recorded as test.fail(): it documents the bug
+  // without turning the suite red, and Playwright reports "expected to fail
+  // but passed" the moment it is fixed — the signal to delete the annotation
+  // rather than the test. That is exactly what happened to the country-count
+  // test below on 2026-07-31.
 
   test("Tozalash should also clear the text inputs", async ({ page }) => {
     // BUG (found 2026-07-27): "Tozalash" resets the filter state — the charts
@@ -388,12 +389,13 @@ test.describe("Analitika — Filtrlar panel", () => {
   });
 
   test("Country-count badges should respond to the Davlat filter", async ({ page }) => {
-    // BUG (found 2026-07-27): GET /api/v1/companies/charts/countries-count
-    // ignores every filter parameter. Filtering down to a single country still
-    // answers {"export_countries_count":117,"import_countries_count":151}
-    // while the money totals correctly drop to $0, so the cards contradict
-    // themselves. Backend bug — the endpoint drops the filters server-side.
-    test.fail();
+    // FIXED 2026-07-31. This documented a backend bug found 2026-07-27:
+    // GET /api/v1/companies/charts/countries-count ignored every filter
+    // parameter, so filtering to a single country still answered
+    // {"export_countries_count":117,"import_countries_count":151} while the
+    // money totals on the same cards correctly dropped to $0. The endpoint now
+    // respects the filters — the test reported "expected to fail, but passed",
+    // so its test.fail() has been removed and this is a live regression guard.
 
     await gotoAnalytics(page);
 
