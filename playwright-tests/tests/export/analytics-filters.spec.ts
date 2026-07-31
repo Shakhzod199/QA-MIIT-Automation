@@ -14,18 +14,23 @@ import { AUTH_FILE, BASE_URL } from "./helpers";
 // requests with a query parameter, so each test asserts on both signals:
 // the outgoing request parameter and the resulting KPI values.
 //
-//   Section       Label            Query parameter
-//   ─────────────────────────────────────────────────
-//   Qidirish      Oylar kesimida   months
-//                 STIR             inn
-//                 Korxona nomi     name
-//                 Mahsulot         product_name
-//                 TN VED           tnved
-//   Joylashuv     Viloyat          region_ids
-//                 Tuman            district_ids
-//                 Davlat           country_ids
-//   Bank va soha  Soha             sphere_ids
-//                 Bank             bank_ids
+//   Section       Label            Control   Query parameter
+//   ────────────────────────────────────────────────────────────
+//   Qidirish      Oylar kesimida   select    months
+//                 STIR             input     inn
+//                 Korxona nomi     input     name
+//                 Mahsulot         select    grouped_names
+//                 TN VED           input     tnved
+//   Joylashuv     Viloyat          select    region_ids
+//                 Tuman            select    district_ids
+//                 Davlat           select    country_ids
+//   Bank va soha  Soha             select    sphere_ids
+//                 Bank             select    bank_ids
+//
+// "Mahsulot" was a free-text input sending ?product_name until 2026-07-31,
+// when the frontend team turned it into a product-catalog dropdown that sends
+// ?grouped_names with the option's label. It is the one select that sends a
+// name rather than a list of numeric ids — hence `valueKind` below.
 // ---------------------------------------------------------------------------
 
 test.use({
@@ -42,21 +47,27 @@ test.describe.configure({ timeout: 120000 });
 
 const SECTIONS = ["Qidirish", "Joylashuv", "Bank va soha"] as const;
 
+// `valueKind` says what the control puts in the query string: "ids" for a
+// comma-separated list of numeric ids, "name" for the option's own label.
 const SELECT_FILTERS = [
-  { label: "Oylar kesimida", param: "months" },
-  { label: "Viloyat", param: "region_ids" },
-  { label: "Tuman", param: "district_ids" },
-  { label: "Davlat", param: "country_ids" },
-  { label: "Soha", param: "sphere_ids" },
-  { label: "Bank", param: "bank_ids" },
+  { label: "Oylar kesimida", param: "months", valueKind: "ids" },
+  { label: "Mahsulot", param: "grouped_names", valueKind: "name" },
+  { label: "Viloyat", param: "region_ids", valueKind: "ids" },
+  { label: "Tuman", param: "district_ids", valueKind: "ids" },
+  { label: "Davlat", param: "country_ids", valueKind: "ids" },
+  { label: "Soha", param: "sphere_ids", valueKind: "ids" },
+  { label: "Bank", param: "bank_ids", valueKind: "ids" },
 ] as const;
 
 const TEXT_FILTERS = [
   { label: "STIR", param: "inn", value: "200000000" },
   { label: "Korxona nomi", param: "name", value: "AGRO" },
-  { label: "Mahsulot", param: "product_name", value: "paxta" },
   { label: "TN VED", param: "tnved", value: "5201" },
 ] as const;
+
+// A product that exists in the Mahsulot catalog and has real export data —
+// used by the end-to-end filter test at the bottom of this file.
+const PRODUCT = "Benzin";
 
 // Each field is a <label> followed by its sibling control. The panel's own
 // classes are Tailwind utilities shared with the rest of the page and its only
@@ -203,7 +214,7 @@ test.describe("Analitika — Filtrlar panel", () => {
     }
   });
 
-  for (const { label, param } of SELECT_FILTERS) {
+  for (const { label, param, valueKind } of SELECT_FILTERS) {
     test(`Select filter "${label}" applies as ?${param}`, async ({ page }) => {
       await gotoAnalytics(page);
 
@@ -227,7 +238,11 @@ test.describe("Analitika — Filtrlar panel", () => {
 
       const value = params.get(param);
       expect(value, `"${label}" should send a non-empty ${param}`).toBeTruthy();
-      expect(value, `${param} should be a numeric id list`).toMatch(/^\d+(,\d+)*$/);
+      if (valueKind === "ids") {
+        expect(value, `${param} should be a numeric id list`).toMatch(/^\d+(,\d+)*$/);
+      } else {
+        expect(value, `${param} should carry the chosen option's label`).toBe(chosen);
+      }
 
       // The control should also show what was picked.
       await expect(select).toContainText(chosen);
@@ -359,20 +374,93 @@ test.describe("Analitika — Filtrlar panel", () => {
     await expect.poll(async () => moneyStats(page), { timeout: 60000 }).toEqual(baseline);
   });
 
-  // ── Known product bugs ───────────────────────────────────────────────────
-  // A confirmed defect is recorded as test.fail(): it documents the bug
-  // without turning the suite red, and Playwright reports "expected to fail
-  // but passed" the moment it is fixed — the signal to delete the annotation
-  // rather than the test. That is exactly what happened to the country-count
-  // test below on 2026-07-31.
+  test(`Mahsulot "${PRODUCT}" filters the whole Analitika page to that product`, async ({ page }) => {
+    await gotoAnalytics(page);
+    const baseline = await moneyStats(page);
+
+    const select = filterSelect(page, "Mahsulot");
+    await select.scrollIntoViewIfNeeded();
+    await select.click();
+
+    const options = openMenuOptions(page);
+    await expect(options.first()).toBeVisible({ timeout: 30000 });
+
+    // The catalog runs to hundreds of products and the menu has no search box
+    // of its own — the select itself is filterable, so type to narrow it.
+    await page.keyboard.type(PRODUCT, { delay: 40 });
+    const option = options.filter({ hasText: new RegExp(`^${PRODUCT}$`, "i") }).first();
+    await expect(option, `"${PRODUCT}" should be offered in the Mahsulot catalog`).toBeVisible({
+      timeout: 15000,
+    });
+
+    // Record every chart request the pick triggers. Waiting on a single one
+    // only proves the filter reached the API; collecting them all is what
+    // proves the whole page re-queried for this product.
+    const chartUrls: string[] = [];
+    const collect = (request: { url: () => string }) => {
+      if (request.url().includes("/api/v1/companies/charts/")) chartUrls.push(request.url());
+    };
+    page.on("request", collect);
+
+    const params = await captureFilterRequest(page, "grouped_names", async () => {
+      await option.click();
+      await page.keyboard.press("Escape");
+    });
+
+    // 1. The product reaches the API under its own key, by name.
+    expect(params.get("grouped_names"), `Mahsulot should send grouped_names=${PRODUCT}`).toBe(PRODUCT);
+
+    // 2. The control shows what was picked.
+    await expect(select).toContainText(PRODUCT);
+
+    // 3. Every chart on the page — not just the one we waited for — re-requested
+    //    scoped to this product.
+    await expect
+      .poll(() => chartUrls.length, {
+        timeout: 30000,
+        message: "expected the Analitika charts to re-request after picking a product",
+      })
+      .toBeGreaterThanOrEqual(5);
+    page.off("request", collect);
+
+    const unscoped = chartUrls
+      .filter((url) => new URL(url).searchParams.get("grouped_names") !== PRODUCT)
+      .map((url) => new URL(url).pathname);
+    expect([...new Set(unscoped)], `every chart request should carry grouped_names=${PRODUCT}`).toEqual([]);
+
+    // 4. The page is showing real numbers for this product, not a blank or
+    //    zeroed board — the totals move off the unfiltered baseline and stay
+    //    non-zero.
+    await expect
+      .poll(async () => moneyStats(page), {
+        timeout: 60000,
+        message: `KPI totals never changed after filtering to ${PRODUCT}`,
+      })
+      .not.toEqual(baseline);
+
+    const totals = (await moneyStats(page)).map(parseLocaleNumber).filter((n): n is number => n !== null);
+    expect(totals.length, `expected KPI money totals for ${PRODUCT}`).toBeGreaterThan(0);
+    expect(totals.every((n) => n !== 0), `every ${PRODUCT} KPI total should be non-zero`).toBe(true);
+  });
+
+  // ── Former product bugs, now regression guards ───────────────────────────
+  // Both were recorded as test.fail() on 2026-07-27 to document a confirmed
+  // defect without turning the suite red. Playwright reports "expected to fail
+  // but passed" the moment a bug is fixed, which is the signal to delete the
+  // annotation rather than the test — and that is what happened to both of
+  // them on 2026-07-31.
 
   test("Tozalash should also clear the text inputs", async ({ page }) => {
-    // BUG (found 2026-07-27): "Tozalash" resets the filter state — the charts
-    // re-request without `name`/`inn`/etc. and the KPI totals return to their
-    // unfiltered values — but the four text boxes keep displaying the old
-    // terms. The sidebar then shows filters that are not applied, and only a
-    // page reload clears them. Frontend state-sync bug, not a test bug.
-    test.fail();
+    // FIXED 2026-07-31. This documented a frontend state-sync bug found
+    // 2026-07-27: "Tozalash" reset the filter state — the charts re-requested
+    // without `name`/`inn`/etc. and the KPI totals returned to their unfiltered
+    // values — but the text boxes kept displaying the old terms, so the sidebar
+    // showed filters that were not applied until a page reload.
+    //
+    // The fix went unnoticed for a few days because this test could not reach
+    // its assertion: it filled every TEXT_FILTERS field, and "Mahsulot" was
+    // still listed there after it had become a select, so the test timed out
+    // on a locator that no longer existed.
 
     await gotoAnalytics(page);
 
