@@ -1,7 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { TestCaseResult, TestReportSummary, TestStatus } from "@/lib/types";
+import FailureAnalysisPanel, { OwnerChip } from "@/components/FailureAnalysis";
+import { useI18n } from "@/components/I18nProvider";
+import { testKey } from "@/lib/types";
+import type { FailureAnalysis, TestCaseResult, TestReportSummary, TestStatus } from "@/lib/types";
 
 function formatMs(ms: number): string {
   if (ms < 1000) return `${ms}ms`;
@@ -29,7 +32,15 @@ function SummaryChip({ label, value, dot }: { label: string; value: number; dot:
   );
 }
 
-function TestRow({ test }: { test: TestCaseResult }) {
+function TestRow({
+  test,
+  analysis,
+  locale,
+}: {
+  test: TestCaseResult;
+  analysis?: FailureAnalysis;
+  locale: "en" | "uz" | "ru";
+}) {
   const meta = STATUS_META[test.status];
   const title = test.titlePath.join(" › ");
   const hasError = Boolean(test.error);
@@ -42,6 +53,8 @@ function TestRow({ test }: { test: TestCaseResult }) {
         {meta.mark}
       </span>
       <span className="min-w-0 flex-1 truncate text-sm text-gray-200">{title}</span>
+      {/* Who owns this failure, visible without expanding the row. */}
+      {analysis && <OwnerChip owner={analysis.owner} />}
       {test.retries > 0 && (
         <span className="shrink-0 rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium text-amber-300">
           {test.retries} retr{test.retries === 1 ? "y" : "ies"}
@@ -75,9 +88,16 @@ function TestRow({ test }: { test: TestCaseResult }) {
           </svg>
         </div>
       </summary>
-      <pre className="overflow-x-auto whitespace-pre-wrap border-t border-surface-border bg-red-500/5 px-4 py-3 font-mono text-xs leading-relaxed text-red-300">
-        {test.error}
-      </pre>
+      <div className="border-t border-surface-border">
+        {analysis && (
+          <div className="px-4 pt-3">
+            <FailureAnalysisPanel analysis={analysis} locale={locale} />
+          </div>
+        )}
+        <pre className="overflow-x-auto whitespace-pre-wrap bg-red-500/5 px-4 py-3 font-mono text-xs leading-relaxed text-red-300">
+          {test.error}
+        </pre>
+      </div>
     </details>
   );
 }
@@ -88,12 +108,17 @@ type Sort = "file" | "slowest";
 export function TestResults({
   summary,
   tests,
+  analyses = [],
 }: {
   summary: TestReportSummary;
   tests: TestCaseResult[];
+  analyses?: FailureAnalysis[];
 }) {
   const [filter, setFilter] = useState<Filter>("all");
   const [sort, setSort] = useState<Sort>("file");
+  const { locale } = useI18n();
+
+  const analysisByKey = useMemo(() => new Map(analyses.map((a) => [a.key, a])), [analyses]);
 
   const filtered = useMemo(() => {
     if (filter === "failed") return tests.filter((t) => t.status === "failed" || t.status === "timedOut");
@@ -183,7 +208,12 @@ export function TestResults({
               </div>
               <div>
                 {group.tests.map((test, i) => (
-                  <TestRow key={`${test.file}:${test.titlePath.join("/")}:${test.project}:${i}`} test={test} />
+                  <TestRow
+                    key={`${test.file}:${test.titlePath.join("/")}:${test.project}:${i}`}
+                    test={test}
+                    analysis={analysisByKey.get(testKey(test))}
+                    locale={locale}
+                  />
                 ))}
               </div>
             </div>

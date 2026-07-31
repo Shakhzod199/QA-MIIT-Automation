@@ -19,6 +19,21 @@ const OWNER_STYLES: Record<FailureOwner, string> = {
   infra: "bg-gray-500/15 text-gray-400 ring-gray-500/30",
 };
 
+/**
+ * The owner tag on its own, for the collapsed test row — the whole point is to
+ * see who owns a failure without opening anything.
+ */
+export function OwnerChip({ owner }: { owner: FailureOwner }) {
+  const { t } = useI18n();
+  return (
+    <span
+      className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium ring-1 ring-inset ${OWNER_STYLES[owner]}`}
+    >
+      {t(`analysis.owner.${owner}`)}
+    </span>
+  );
+}
+
 function CopyButton({ text }: { text: string }) {
   const { t } = useI18n();
   const [copied, setCopied] = useState(false);

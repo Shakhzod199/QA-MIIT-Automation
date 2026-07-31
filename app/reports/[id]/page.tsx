@@ -6,7 +6,7 @@ import useSWR from "swr";
 import { ClipboardCheckIcon, ExternalLinkIcon, FlaskIcon } from "@/components/icons";
 import { TestResults } from "@/components/TestResults";
 import { formatDateTime, formatDuration, formatRelativeTime, getStatusBadge } from "@/lib/format";
-import type { RunDetailResponse, TestReportResponse } from "@/lib/types";
+import type { RunAnalysisResponse, RunDetailResponse, TestReportResponse } from "@/lib/types";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -23,6 +23,13 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
   const { data: testsData } = useSWR<TestReportResponse>(
     data?.run?.status === "completed" ? `/api/runs/${id}/tests` : null,
     fetcher
+  );
+  // Owner tag + cause + dev message per failed test. Loaded separately from the
+  // results so the list renders immediately and the tags fill in when ready.
+  const { data: analysisData } = useSWR<RunAnalysisResponse>(
+    data?.run?.status === "completed" ? `/api/runs/${id}/analysis` : null,
+    fetcher,
+    { revalidateOnFocus: false }
   );
 
   if (!data) {
@@ -191,7 +198,11 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
             <h3 className="text-lg font-medium text-white">Tests</h3>
             <span className="text-sm text-gray-500">{testsData.summary.total} test{testsData.summary.total !== 1 ? "s" : ""}</span>
           </div>
-          <TestResults summary={testsData.summary} tests={testsData.tests} />
+          <TestResults
+            summary={testsData.summary}
+            tests={testsData.tests}
+            analyses={analysisData?.analyses}
+          />
         </div>
       )}
 
