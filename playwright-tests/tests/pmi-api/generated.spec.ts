@@ -57,11 +57,22 @@ function buildUrl(rawPath: string, op: OpenApiOp): { url: string; hasParams: boo
       url = url.replace(`{${p.name}}`, placeholderFor(p.schema?.type));
     }
   }
-  const requiredQuery = (op.parameters ?? []).filter((p) => p.in === "query" && p.required);
-  if (requiredQuery.length > 0) {
+  const query = (op.parameters ?? []).filter((p) => p.in === "query");
+  const params = query
+    .filter((p) => p.required && p.name !== "limit")
+    .map((p) => `${p.name}=${placeholderFor(p.schema?.type)}`);
+
+  // Ask paginated endpoints for a single row. These checks only care about the
+  // status code, but Playwright buffers the whole response body — and
+  // unpaginated, GET /test/project/list answers with 48 MB after 86s
+  // (list/word is worse and never finished at all), blowing the 60s timeout.
+  // With limit=1 both come back in ~0.2s. A page size cannot turn a 200 into a
+  // 401, so it does not weaken what these tests assert.
+  if (query.some((p) => p.name === "limit")) params.push("limit=1");
+
+  if (params.length > 0) {
     hasParams = true;
-    const qs = requiredQuery.map((p) => `${p.name}=${placeholderFor(p.schema?.type)}`).join("&");
-    url += `${url.includes("?") ? "&" : "?"}${qs}`;
+    url += `${url.includes("?") ? "&" : "?"}${params.join("&")}`;
   }
   return { url, hasParams };
 }
@@ -121,8 +132,13 @@ test.describe("PMI API — generated GET coverage", () => {
         test(`GET ${rawPath} — ${public_ ? "is reachable without a token" : "accepts a valid token"}`, async ({
           request,
         }) => {
-          // A few heavy aggregation/stats endpoints take longer than the default 30s.
-          test.setTimeout(60000);
+          // A few heavy aggregation/report endpoints take far longer than the
+          // default 30s, and limit=1 does not help because the aggregation
+          // still spans every project. GET /test/project/report/summary-program
+          // is the worst: ~19 MB in 16-39s on its own, and past 60s when the
+          // suite runs several workers at once. Generous here so a slow
+          // backend does not read as an auth failure.
+          test.setTimeout(120000);
           const res = await request.get(fullUrl, public_ ? {} : { headers: authHeader(token) });
           if (!public_) expect(res.status(), `unexpected 401 for GET ${rawPath} with a valid token`).not.toBe(401);
         });
