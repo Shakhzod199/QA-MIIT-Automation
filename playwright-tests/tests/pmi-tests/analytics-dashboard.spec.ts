@@ -82,14 +82,10 @@ const FOUR_COLUMN_KEYS = new Set(BLOCKS.filter((b) => b.fourColumn).map((b) => b
 
 const ALL_KEYS = BLOCKS.map((b) => b.key);
 
-/** Every block except GVA, whose table drops rows — see the test.fail below. */
-const KEYS_WITH_SOUND_ROW_SETS = ALL_KEYS.filter((k) => k !== "gva");
-
 /**
- * Blocks are keyed by their heading rather than their position, because the
- * two tabs do not render the same set: the Hudud view currently drops EE and
- * IPJC (see "the Hudud view shows a table for all 12 metrics"), which would
- * silently shift every index after it.
+ * Blocks are keyed by their heading rather than their position, so that a
+ * reordered or missing block fails the block-presence tests directly instead
+ * of silently shifting every index after it.
  */
 function keyBlocksByMetric(blocks: BlockCapture[]): Map<string, BlockCapture> {
   const keyed = new Map<string, BlockCapture>();
@@ -161,19 +157,25 @@ function readDashboard(page: Page): Promise<{ tiles: { label: string; value: str
         unit: txt(s.querySelector("span.tabular-nums span")),
       }));
 
+    // A metric block with no data for the period renders "Bu chorak bo'yicha
+    // ma'lumot shakillanmagan" and no <tbody> at all. It is still a block, so
+    // match on the tabs alone and let `rows` come back empty — filtering on
+    // tbody here would make an empty block indistinguishable from a missing one.
     const blocks = Array.from(document.querySelectorAll(".n-card"))
-      .filter((c) => c.querySelector(".n-tabs") && c.querySelector("tbody"))
+      .filter((c) => c.querySelector(".n-tabs"))
       .map((b) => ({
         title: txt(b.querySelector(".n-card-header__main")).replace(/Tashabbuskor\s*Hudud\s*$/, "").trim(),
         activeTab: txt(b.querySelector(".n-tabs-tab--active")),
         summary: txt(b.querySelector(".n-card-content")).split("T/r")[0],
-        rows: Array.from(b.querySelectorAll("tbody tr")).map((tr) => {
-          const cells: Record<string, string> = {};
-          tr.querySelectorAll("td[data-col-key]").forEach((td) => {
-            cells[td.getAttribute("data-col-key")!] = txt(td);
-          });
-          return cells;
-        }),
+        rows: Array.from(b.querySelectorAll("tbody tr"))
+          .map((tr) => {
+            const cells: Record<string, string> = {};
+            tr.querySelectorAll("td[data-col-key]").forEach((td) => {
+              cells[td.getAttribute("data-col-key")!] = txt(td);
+            });
+            return cells;
+          })
+          .filter((cells) => cells.name),
       }));
 
     return { tiles, blocks };
@@ -265,9 +267,8 @@ test.beforeAll(async ({ browser }) => {
 
   // Switch every block to its "Hudud" tab. This fires no refetch — by-region
   // is already loaded — so the tables repaint from the payload we captured.
-  // Blocks are re-resolved on each iteration rather than indexed up front:
-  // switching a block can remove it from the page (EE and IPJC have no data
-  // in the payload the page fetched), which would shift any cached indices.
+  // Blocks are re-resolved on each iteration rather than indexed up front, so
+  // that any reordering or remounting on tab switch cannot shift cached indices.
   expect(await page.locator(".n-tabs-tab", { hasText: /^Hudud$/ }).count()).toBe(indicators.statistics.length);
   const stillOnInitiator = () =>
     page.locator(".n-card").filter({ has: page.locator(".n-tabs-tab--active", { hasText: /^Tashabbuskor$/ }) });
@@ -363,7 +364,7 @@ test("block headlines render the values indicators returned", async () => {
   });
 });
 
-test("the Tashabbuskor view shows a table for all 12 metrics", async () => {
+test("the Tashabbuskor view shows a block for all 12 metrics", async () => {
   expect([...keyBlocksByMetric(tashabbuskor).keys()].sort()).toEqual([...ALL_KEYS].sort());
 });
 
@@ -371,17 +372,15 @@ test("Tashabbuskor tables match by-initiator row for row", async () => {
   assertValues(keyBlocksByMetric(tashabbuskor), byInitiator.results, "Tashabbuskor");
 });
 
+// GVA used to be carved out here as a known bug: the block dropped two
+// initiators ("Olmaliq KMK AJ" and the Qizilmiya... uyushmasi) that had a
+// non-zero gva.fact, so its totals could not be reconciled against its rows.
+// by-initiator now returns gva as 0 for every initiator, so the block renders
+// its empty state and the bug is not observable. It is folded back into the
+// assertion below rather than left as a test.fail that cannot fail — if the
+// drop returns once GVA has data again, this test reports it directly.
 test("Tashabbuskor tables list every initiator that has data for the metric", async () => {
-  assertRowSets(keyBlocksByMetric(tashabbuskor), byInitiator.results, "Tashabbuskor", KEYS_WITH_SOUND_ROW_SETS);
-});
-
-// KNOWN BUG: the GVA block silently drops initiators. by-initiator returns a
-// non-zero gva.fact for two more organisations than the table lists (at the
-// time of writing, "Olmaliq KMK AJ" and the Qizilmiya... uyushmasi), so the
-// GVA totals shown cannot be reconciled against the rows below them. Every
-// other block lists exactly the rows with a non-zero fact.
-test.fail("the GVA table lists every initiator with a non-zero GVA", async () => {
-  assertRowSets(keyBlocksByMetric(tashabbuskor), byInitiator.results, "Tashabbuskor", ["gva"]);
+  assertRowSets(keyBlocksByMetric(tashabbuskor), byInitiator.results, "Tashabbuskor");
 });
 
 // --- Hudud ----------------------------------------------------------------
@@ -390,16 +389,17 @@ test("Hudud tables faithfully render the by-region payload the page fetched", as
   hudud.forEach((block) => expect(block.activeTab, `block "${block.title}"`).toBe("Hudud"));
   const keyed = keyBlocksByMetric(hudud);
   assertValues(keyed, byRegion.results, "Hudud");
-  assertRowSets(keyed, byRegion.results, "Hudud", ALL_KEYS);
+  assertRowSets(keyed, byRegion.results, "Hudud");
 });
 
-// KNOWN BUG, and the sharpest consequence of the wrong-year fetch below: at
-// year=2025 by-region returns ee and ip as 0 for all 14 regions, so the page
-// drops the "Energiya samaradorligi (EE)" and IPJC blocks from the regional
-// view altogether — two metrics simply vanish when you switch to Hudud. At
-// the selected period (2026) by-region populates both for all 14 regions, so
-// fixing the year restores the blocks and this goes green.
-test.fail("the Hudud view shows a table for all 12 metrics", async () => {
+// All 12 blocks survive the switch to Hudud. They do not all show a table:
+// at year=2025 by-region returns ee and ip as 0 for all 14 regions, so those
+// two render their empty state — a visible consequence of the wrong-year
+// fetch asserted below, not a missing block. (This was previously marked as a
+// known bug claiming the blocks vanished; they never did. The spec's own
+// capture filtered out any block without a <tbody>, which made an empty block
+// look like a deleted one.)
+test("the Hudud view shows a block for all 12 metrics", async () => {
   expect([...keyBlocksByMetric(hudud).keys()].sort()).toEqual([...ALL_KEYS].sort());
 });
 
@@ -431,22 +431,38 @@ test.fail("Hudud tables match by-region for the selected period", async () => {
 // --- shared table assertion ------------------------------------------------
 
 /**
- * Tables are filtered: a block lists exactly the rows whose own metric has a
- * non-zero `fact`. Asserting that set catches rows the page drops silently.
- * Kept separate from the value check so one buggy block (see GVA above) does
- * not mask value regressions in the other eleven.
+ * The rows a block should list: those that have any data for its metric, i.e.
+ * a non-zero plan or fact. Ishlab chiqarish is the exception — it is keyed on
+ * the row's annual capacity (powerValue), the same value its first column
+ * binds (see assertValues below), so its table lists every row with a capacity
+ * even when this period's output is still 0.
  */
-function assertRowSets(blocks: Map<string, BlockCapture>, results: StatRow[], tab: string, keys: string[]) {
+function rowsWithData(results: StatRow[], block: (typeof BLOCKS)[number]): string[] {
+  const rowKey = block.rowKey ?? block.key;
+  return results
+    .filter((r) => {
+      if (block.key === "manufacture") return r.powerValue !== 0;
+      const metric = r[rowKey] as Amount;
+      return metric.plan !== 0 || metric.fact !== 0;
+    })
+    .map((r) => r.name);
+}
+
+/**
+ * Tables are filtered: a block lists exactly the rows that have data for its
+ * own metric. Asserting that set catches rows the page drops silently — this
+ * is what caught the GVA block dropping two initiators that had a non-zero
+ * fact. Kept separate from the value check so one buggy block does not mask
+ * value regressions in the other eleven.
+ */
+function assertRowSets(blocks: Map<string, BlockCapture>, results: StatRow[], tab: string) {
   BLOCKS.forEach((block) => {
     const captured = blocks.get(block.key);
-    if (!keys.includes(block.key) || !captured) return; // presence is asserted separately
-    const rowKey = block.rowKey ?? block.key;
-    const renderedNames = captured.rows.map((r) => r.name);
-    const expectedNames = results.filter((r) => (r[rowKey] as Amount).fact !== 0).map((r) => r.name);
+    if (!captured) return; // presence is asserted separately
     expect(
-      new Set(renderedNames),
-      `${tab} / ${block.key}: rendered rows differ from rows with a non-zero fact`
-    ).toEqual(new Set(expectedNames));
+      new Set(captured.rows.map((r) => r.name)),
+      `${tab} / ${block.key}: rendered rows differ from the rows that have data`
+    ).toEqual(new Set(rowsWithData(results, block)));
   });
 }
 
@@ -466,7 +482,15 @@ function assertValues(blocks: Map<string, BlockCapture>, results: StatRow[], tab
     const rendered = captured.rows;
     const label = `${tab} / ${block.key}`;
 
-    expect(rendered.length, `${label}: table is empty`).toBeGreaterThan(0);
+    if (rendered.length === 0) {
+      // The block rendered its empty state. That is only correct if the
+      // payload really has nothing for this metric this period.
+      expect(
+        rowsWithData(results, block),
+        `${label}: table is empty but the payload has rows for this metric`
+      ).toEqual([]);
+      return;
+    }
 
     for (const row of rendered) {
       const payload = byName.get(row.name);
