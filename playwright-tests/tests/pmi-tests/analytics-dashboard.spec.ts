@@ -44,6 +44,39 @@ const NON_DATA_TRAFFIC = [
   /\/_nuxt_icon\//,
 ];
 
+/** An /api/ call that carries page data, as opposed to session/infra noise. */
+function isDataCall(url: string): boolean {
+  return url.includes("/api/") && !NON_DATA_TRAFFIC.some((re) => re.test(url));
+}
+
+/**
+ * Resolves once the page has issued no data call for `quietMs`.
+ *
+ * This exists because waitForLoadState("networkidle") cannot do the job here:
+ * login() lands on /app/dashboard via a client-side route change, so the last
+ * *document* load is still /auth — long finished — and networkidle returns in
+ * about 1ms without waiting for the dashboard's own XHRs. Those then fire a
+ * few ms later, land inside the recording window, and get counted as dashboard
+ * traffic, which failed the pmt-miit provenance assertion with four strays
+ * (general/statistics, project/list, additional/statistics,
+ * countries-map-statistics) that belong to the main page.
+ */
+async function waitForDataQuiet(page: Page, quietMs = 2000, timeoutMs = 60_000): Promise<void> {
+  let lastCall = Date.now();
+  const bump = (r: Request) => {
+    if (isDataCall(r.url())) lastCall = Date.now();
+  };
+  page.on("request", bump);
+  try {
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline && Date.now() - lastCall < quietMs) {
+      await page.waitForTimeout(100);
+    }
+  } finally {
+    page.off("request", bump);
+  }
+}
+
 /** by-content key -> the Uzbek label its KPI tile is rendered under. */
 const TILE_LABELS: Record<string, string> = {
   total: "Korxona soni",
@@ -209,7 +242,7 @@ test.beforeAll(async ({ browser }) => {
   // ...) before we start recording. Navigating to the dashboard is a
   // client-side route change, so those requests are not cancelled and would
   // otherwise land after the click and look like dashboard traffic.
-  await page.waitForLoadState("networkidle", { timeout: 60_000 }).catch(() => {});
+  await waitForDataQuiet(page);
 
   const requestedUrls: string[] = [];
   const waitFor = (fragment: string) =>
@@ -263,7 +296,7 @@ test.beforeAll(async ({ browser }) => {
   const captured = await readDashboard(page);
   tashabbuskor = captured.blocks;
   tiles = captured.tiles;
-  dataCallUrls = requestedUrls.filter((u) => !NON_DATA_TRAFFIC.some((re) => re.test(u)));
+  dataCallUrls = requestedUrls.filter(isDataCall);
 
   // Switch every block to its "Hudud" tab. This fires no refetch — by-region
   // is already loaded — so the tables repaint from the payload we captured.
