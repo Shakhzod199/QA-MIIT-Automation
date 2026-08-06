@@ -224,12 +224,6 @@ let byContent: { statistics: { key: string; measurement: string; amount: Amount 
 let indicators: { statistics: { key: string; measurement: string; plan: number; fact: number }[] };
 let byInitiator: { results: StatRow[] };
 let byRegion: { results: StatRow[] };
-// Still captured in beforeAll but currently unread: the only readers were the
-// two commented-out by-region year tests near the bottom of this file. Keep
-// them so uncommenting those needs no other change.
-let byRegionRequest: Request;
-let selectedYear: string;
-let byRegionYear: string;
 let tashabbuskor: BlockCapture[];
 let hudud: BlockCapture[];
 let tiles: { label: string; value: string; unit: string }[];
@@ -289,10 +283,6 @@ test.beforeAll(async ({ browser }) => {
   indicators = (await responses.indicators.json()).data;
   byInitiator = (await responses.byInitiator.json()).data;
   byRegion = (await responses.byRegion.json()).data;
-  byRegionRequest = responses.byRegion.request();
-
-  selectedYear = new URL(responses.byInitiator.url()).searchParams.get("year") ?? "";
-  byRegionYear = new URL(responses.byRegion.url()).searchParams.get("year") ?? "";
 
   // Blocks lazy-mount on scroll.
   for (let i = 0; i < 14; i++) {
@@ -370,17 +360,11 @@ test("KPI tiles render the values by-content returned", async () => {
   }
 });
 
-// KNOWN BUG: by-content returns 8 statistics but the page renders only 7 KPI
-// tiles — `amount` (total investment volume, ~70.5 mlrd $) is dropped and
-// appears nowhere on the dashboard.
-//
-// COMMENTED OUT 2026-08-06 at the client's request — the bug is still open on
-// the PMI side. Uncomment to resume tracking it; it is written as test.fail,
-// so it passes while the tile is missing and turns red the moment one is
-// added (i.e. it reports the fix, not the bug).
-// test.fail("every by-content statistic has a KPI tile", async () => {
-//   expect(tiles.length).toBe(byContent.statistics.length);
-// });
+// NB: by-content returns 8 statistics but the page renders only 7 KPI tiles —
+// `amount` (total investment volume, ~70.5 mlrd $) is dropped and appears
+// nowhere on the dashboard. The test.fail that tracked this was removed on
+// 2026-08-06 at the client's request; the bug itself is still open, and
+// nothing in this suite watches it now.
 
 // --- metric blocks ---------------------------------------------------------
 
@@ -451,37 +435,17 @@ test("the Hudud view shows a block for all 12 metrics", async () => {
   expect([...keyBlocksByMetric(hudud).keys()].sort()).toEqual([...ALL_KEYS].sort());
 });
 
-// KNOWN BUG: the page requests by-region with year=2025 while the period
-// selector — and every other call on the screen — is on 2026. So every Hudud
-// table shows last year's figures under a "2026 yil" header, and disagrees
-// with the Tashabbuskor tab of the very same block.
+// NB: the page requests by-region with year=2025 while the period selector —
+// and every other call on the screen — is on 2026. So every Hudud table shows
+// last year's figures under a "2026 yil" header, and disagrees with the
+// Tashabbuskor tab of the very same block. The two test.fail tests that
+// tracked this (one on the query string, one on the rendered values) were
+// removed on 2026-08-06 at the client's request; the bug is still open, and
+// nothing in this suite watches it now.
 //
-// COMMENTED OUT 2026-08-06 at the client's request — the bug is still open on
-// the PMI side. Both tests below are written as test.fail, so uncommenting
-// resumes tracking without turning the suite red: they pass while the wrong
-// year is fetched and flip to failing once it is corrected.
-//
-// test.fail("Hudud tables are fetched for the period the dashboard is showing", async () => {
-//   expect(byRegionYear, `by-initiator used year=${selectedYear}, by-region used year=${byRegionYear}`).toBe(
-//     selectedYear
-//   );
-// });
-//
-// Same bug, asserted on the rendered values rather than the query string:
-// re-fetch by-region for the period actually selected and expect the tables
-// to match that instead of the 2025 payload they currently show.
-//
-// test.fail("Hudud tables match by-region for the selected period", async () => {
-//   const url = new URL(byRegionRequest.url());
-//   url.searchParams.set("year", selectedYear);
-//   const headers = await byRegionRequest.allHeaders();
-//   const res = await page.request.get(url.toString(), {
-//     headers: headers.authorization ? { authorization: headers.authorization } : undefined,
-//   });
-//   expect(res.status()).toBe(200);
-//   const expected = (await res.json()).data as { results: StatRow[] };
-//   assertValues(keyBlocksByMetric(hudud), expected.results, "Hudud");
-// });
+// Note this is why "Hudud tables faithfully render the by-region payload the
+// page fetched" above asserts against the payload the page actually fetched
+// rather than the selected period — it stays green on 2025 data by design.
 
 // --- shared table assertion ------------------------------------------------
 
