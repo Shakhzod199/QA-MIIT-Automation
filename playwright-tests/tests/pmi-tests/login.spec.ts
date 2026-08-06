@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { BASE_URL, USERNAME, PASSWORD, login } from "./helpers";
+import { BASE_URL, USERNAME, PASSWORD, login, openLoginModal } from "./helpers";
 
 test.describe("PMI login flow", () => {
   test("Shows OneID and performs login via credentials", async ({ page }) => {
@@ -11,15 +11,10 @@ test.describe("PMI login flow", () => {
       page.getByRole("button", { name: "OneID orqali kirish" })
     ).toBeVisible();
 
-    // The visible "Kirish" button no longer opens the credential modal on a
-    // single click — like SEZ, it needs 5 clicks within 5s to reveal it.
-    const hatch = page.getByRole("button", { name: "Kirish", exact: true });
-    for (let i = 0; i < 5; i++) {
-      await hatch.click({ force: true });
-    }
-
-    const loginModal = page.locator(".n-card.n-modal");
-    await expect(loginModal).toBeVisible();
+    // The credential form is hidden here: it is revealed by pressing and
+    // holding the OneID button for 5s, not by clicking "Kirish" (which stays
+    // inert until that hold unlocks it). See openLoginModal in helpers.ts.
+    const loginModal = await openLoginModal(page);
 
     await loginModal.getByPlaceholder("Login").fill(USERNAME);
     await loginModal.getByPlaceholder("Parol").fill(PASSWORD);
