@@ -224,6 +224,9 @@ let byContent: { statistics: { key: string; measurement: string; amount: Amount 
 let indicators: { statistics: { key: string; measurement: string; plan: number; fact: number }[] };
 let byInitiator: { results: StatRow[] };
 let byRegion: { results: StatRow[] };
+// Still captured in beforeAll but currently unread: the only readers were the
+// two commented-out by-region year tests near the bottom of this file. Keep
+// them so uncommenting those needs no other change.
 let byRegionRequest: Request;
 let selectedYear: string;
 let byRegionYear: string;
@@ -255,10 +258,18 @@ test.beforeAll(async ({ browser }) => {
     byRegion: waitFor(ENDPOINTS.byRegion),
   };
 
-  // Only count traffic from the click onward — the main page legitimately
-  // calls PMI's own endpoints before we ever navigate to the dashboard.
+  // Attribute each call to the route that was active when it was ISSUED,
+  // rather than to a window of wall-clock time. The main page legitimately
+  // calls PMI's own endpoints, and its last one (countries-map-statistics)
+  // is issued lazily — after the Dashbord click, but before the client-side
+  // route flips to /app/analytics. No amount of idle-waiting fences that off
+  // reliably: waitForDataQuiet above catches the three that fire together on
+  // mount, then countries-map-statistics lands outside the quiet window and
+  // shows up as a stray. The route is exact where timing is a guess.
   page.on("request", (r) => {
-    if (r.url().includes("/api/")) requestedUrls.push(r.url());
+    if (r.url().includes("/api/") && page.url().includes("/app/analytics")) {
+      requestedUrls.push(r.url());
+    }
   });
 
   await page.getByRole("button", { name: "Dashbord", exact: true }).first().click();
@@ -361,11 +372,15 @@ test("KPI tiles render the values by-content returned", async () => {
 
 // KNOWN BUG: by-content returns 8 statistics but the page renders only 7 KPI
 // tiles — `amount` (total investment volume, ~70.5 mlrd $) is dropped and
-// appears nowhere on the dashboard. Asserting the correct behaviour so this
-// goes green by itself once a tile is added.
-test.fail("every by-content statistic has a KPI tile", async () => {
-  expect(tiles.length).toBe(byContent.statistics.length);
-});
+// appears nowhere on the dashboard.
+//
+// COMMENTED OUT 2026-08-06 at the client's request — the bug is still open on
+// the PMI side. Uncomment to resume tracking it; it is written as test.fail,
+// so it passes while the tile is missing and turns red the moment one is
+// added (i.e. it reports the fix, not the bug).
+// test.fail("every by-content statistic has a KPI tile", async () => {
+//   expect(tiles.length).toBe(byContent.statistics.length);
+// });
 
 // --- metric blocks ---------------------------------------------------------
 
@@ -440,26 +455,33 @@ test("the Hudud view shows a block for all 12 metrics", async () => {
 // selector — and every other call on the screen — is on 2026. So every Hudud
 // table shows last year's figures under a "2026 yil" header, and disagrees
 // with the Tashabbuskor tab of the very same block.
-test.fail("Hudud tables are fetched for the period the dashboard is showing", async () => {
-  expect(byRegionYear, `by-initiator used year=${selectedYear}, by-region used year=${byRegionYear}`).toBe(
-    selectedYear
-  );
-});
-
+//
+// COMMENTED OUT 2026-08-06 at the client's request — the bug is still open on
+// the PMI side. Both tests below are written as test.fail, so uncommenting
+// resumes tracking without turning the suite red: they pass while the wrong
+// year is fetched and flip to failing once it is corrected.
+//
+// test.fail("Hudud tables are fetched for the period the dashboard is showing", async () => {
+//   expect(byRegionYear, `by-initiator used year=${selectedYear}, by-region used year=${byRegionYear}`).toBe(
+//     selectedYear
+//   );
+// });
+//
 // Same bug, asserted on the rendered values rather than the query string:
 // re-fetch by-region for the period actually selected and expect the tables
 // to match that instead of the 2025 payload they currently show.
-test.fail("Hudud tables match by-region for the selected period", async () => {
-  const url = new URL(byRegionRequest.url());
-  url.searchParams.set("year", selectedYear);
-  const headers = await byRegionRequest.allHeaders();
-  const res = await page.request.get(url.toString(), {
-    headers: headers.authorization ? { authorization: headers.authorization } : undefined,
-  });
-  expect(res.status()).toBe(200);
-  const expected = (await res.json()).data as { results: StatRow[] };
-  assertValues(keyBlocksByMetric(hudud), expected.results, "Hudud");
-});
+//
+// test.fail("Hudud tables match by-region for the selected period", async () => {
+//   const url = new URL(byRegionRequest.url());
+//   url.searchParams.set("year", selectedYear);
+//   const headers = await byRegionRequest.allHeaders();
+//   const res = await page.request.get(url.toString(), {
+//     headers: headers.authorization ? { authorization: headers.authorization } : undefined,
+//   });
+//   expect(res.status()).toBe(200);
+//   const expected = (await res.json()).data as { results: StatRow[] };
+//   assertValues(keyBlocksByMetric(hudud), expected.results, "Hudud");
+// });
 
 // --- shared table assertion ------------------------------------------------
 
