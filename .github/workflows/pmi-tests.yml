@@ -84,8 +84,16 @@ jobs:
           # current behaviour.
           case "${TYPE:-frontend}" in
             api)
-              echo "Running PMI API smoke tests"
-              npx playwright test --project=pmi-api ;;
+              # Honour TEST_FILTER here too: the dashboard's API tab lists the
+              # individual API tests and can dispatch just the selected ones.
+              # Without this the filter was dropped and every API test ran.
+              if [ -n "$TEST_FILTER" ]; then
+                echo "Running selected PMI API tests: $TEST_FILTER"
+                npx playwright test --project=pmi-api $TEST_FILTER
+              else
+                echo "Running PMI API smoke tests"
+                npx playwright test --project=pmi-api
+              fi ;;
             *)
               # --workers=2: testpmi.miit.uz responds slower to CI's network
               # path than to a local machine, and too many parallel sessions

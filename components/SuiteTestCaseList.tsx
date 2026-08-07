@@ -41,11 +41,12 @@ const RADIO_CHECKBOX_CLASS =
 
 /**
  * The Playwright test-case list + run controls for one suite, for run types
- * that have a real per-test catalog (frontend, security — API/Load have a
- * different, run-level-only model and stay on the suite detail page's simple
- * stat-card view instead). Shared by app/suites/[id]/page.tsx (any of those
- * types, via `runType`) and the "All test cases" home page (frontend only,
- * the default) so both stay in sync with one implementation.
+ * that have a real per-test catalog: frontend, api and security. Only Load
+ * (K6) is excluded — it produces threshold pass/fail, not a test list, so it
+ * keeps the suite detail page's run-level stat-card view instead. Shared by
+ * app/suites/[id]/page.tsx (any of those types, via `runType`) and the "All
+ * test cases" home page (frontend only, the default) so both stay in sync
+ * with one implementation.
  */
 export function SuiteTestCaseList({
   workflowId,

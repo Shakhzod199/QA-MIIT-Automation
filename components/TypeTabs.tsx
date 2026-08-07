@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/components/I18nProvider";
-import { suiteHasSecurityTests } from "@/lib/securitySuites";
+import { suiteHasApiTests, suiteHasSecurityTests } from "@/lib/securitySuites";
 
 const TABS = [
   { type: "frontend", key: "suite.frontend" },
@@ -36,7 +36,11 @@ export function TypeTabs({
     router.push(type === "frontend" ? `/suites/${workflowId}` : `/suites/${workflowId}?type=${type}`);
   };
 
-  const tabs = TABS.filter((tab) => tab.type !== "security" || suiteHasSecurityTests(workflowName));
+  const tabs = TABS.filter((tab) => {
+    if (tab.type === "security") return suiteHasSecurityTests(workflowName);
+    if (tab.type === "api") return suiteHasApiTests(workflowName);
+    return true;
+  });
 
   return (
     <div className="flex gap-1 border-b border-surface-border">

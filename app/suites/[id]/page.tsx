@@ -95,13 +95,13 @@ function SuiteTestsPageInner({ params }: { params: Promise<{ id: string }> }) {
     { keepPreviousData: false }
   );
 
-  // ── Backend (api/load) ──────────────────────────────────────────────────
-  // No per-test selection: api runs are dispatched as a single unit via the
-  // workflow's "type" input. load (K6) additionally offers a per-kind
-  // button (Load/Stress/...) by passing that kind as `test_filter` — the
-  // same input frontend/api use for a single-test filter, repurposed here
-  // (workflow-side) as "which k6 script to run". Empty = run every kind,
-  // same "no filter = whole suite" convention test_filter has elsewhere.
+  // ── Backend (load) ──────────────────────────────────────────────────────
+  // K6 offers a per-kind button (Load/Stress/...) by passing that kind as
+  // `test_filter` — the same input frontend/api use for a single-test filter,
+  // repurposed here (workflow-side) as "which k6 script to run". Empty = run
+  // every kind, same "no filter = whole suite" convention test_filter has
+  // elsewhere. api does NOT come through here: it has a real per-test catalog
+  // and shares the frontend path's SuiteTestCaseList below.
   const [typeRunState, setTypeRunState] = useState<"idle" | "pending" | "triggered">("idle");
   const [typeRunError, setTypeRunError] = useState<string | null>(null);
   // Which k6 kind ("", "load", "stress", ...) is mid-flight, so only that
@@ -147,14 +147,7 @@ function SuiteTestsPageInner({ params }: { params: Promise<{ id: string }> }) {
     { value: "stress", label: t("suiteTests.runStress") },
   ];
 
-  if (type === "api" || type === "load") {
-    // API tests have a real per-test catalog (the report's test list), so
-    // show counts of how many API tests exist/passed/failed instead of the
-    // run-level stats below. K6 (load) has no such catalog — it only ever
-    // produces threshold pass/fail, already shown per-run in the table — so
-    // it keeps the original run-based cards.
-    const apiSummary = testsData?.summary;
-
+  if (type === "load") {
     // K6 has no per-test catalog (just thresholds), so its cards stay
     // run-level — but reframed around what actually matters for a load
     // test: how long it takes and what happened most recently, rather than
@@ -200,46 +193,30 @@ function SuiteTestsPageInner({ params }: { params: Promise<{ id: string }> }) {
 
         <TypeTabs workflowId={workflowId} active={type} workflowName={workflow?.name} />
 
-        {type === "api" ? (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <StatCard label={t("suiteTests.totalApis")} value={String(apiSummary?.total ?? 0)} />
-            <StatCard
-              label={t("suiteTests.apisPassed")}
-              value={String(apiSummary?.passed ?? 0)}
-              sub={apiSummary?.total ? `${Math.round((apiSummary.passed / apiSummary.total) * 100)}%` : undefined}
-            />
-            <StatCard
-              label={t("suiteTests.apisFailed")}
-              value={String(apiSummary?.failed ?? 0)}
-              sub={apiSummary?.total ? `${Math.round((apiSummary.failed / apiSummary.total) * 100)}%` : undefined}
-            />
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard label={t("suiteTests.totalRuns")} value={String(scopedStats.total)} />
-            <StatCard
-              label={t("suiteTests.thresholdPassRate")}
-              value={`${scopedStats.passRate}%`}
-              sub={t("suiteTests.thresholdPassRateSub")}
-            />
-            <StatCard
-              label={t("suiteTests.avgDuration")}
-              value={avgDurationSec != null ? formatDuration(avgDurationSec) : "—"}
-            />
-            {latestRun && latestBadge ? (
-              <Link href={`/reports/${latestRun.id}`} className="block">
-                <StatCard
-                  label={t("suiteTests.latestResult")}
-                  value={latestBadge.label}
-                  sub={t("table.viewK6Report")}
-                  interactive
-                />
-              </Link>
-            ) : (
-              <StatCard label={t("suiteTests.latestResult")} value="—" />
-            )}
-          </div>
-        )}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard label={t("suiteTests.totalRuns")} value={String(scopedStats.total)} />
+          <StatCard
+            label={t("suiteTests.thresholdPassRate")}
+            value={`${scopedStats.passRate}%`}
+            sub={t("suiteTests.thresholdPassRateSub")}
+          />
+          <StatCard
+            label={t("suiteTests.avgDuration")}
+            value={avgDurationSec != null ? formatDuration(avgDurationSec) : "—"}
+          />
+          {latestRun && latestBadge ? (
+            <Link href={`/reports/${latestRun.id}`} className="block">
+              <StatCard
+                label={t("suiteTests.latestResult")}
+                value={latestBadge.label}
+                sub={t("table.viewK6Report")}
+                interactive
+              />
+            </Link>
+          ) : (
+            <StatCard label={t("suiteTests.latestResult")} value="—" />
+          )}
+        </div>
 
         <div className="rounded-[12px] border border-surface-border bg-surface-panel p-4">
           <div className="flex items-center justify-between gap-4">
@@ -250,7 +227,7 @@ function SuiteTestsPageInner({ params }: { params: Promise<{ id: string }> }) {
               {disabledReason && <p className="text-[12px] text-q-amber">{disabledReason}</p>}
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              {(type === "load" ? K6_KINDS : [{ value: "", label: t("suiteTests.run") }]).map((kind) => {
+              {K6_KINDS.map((kind) => {
                 const isThisPending = typeRunState === "pending" && pendingKind === kind.value;
                 const isThisTriggered = typeRunState === "triggered" && pendingKind === kind.value;
                 return (
@@ -324,9 +301,22 @@ function SuiteTestsPageInner({ params }: { params: Promise<{ id: string }> }) {
 
       {testsData?.available ? (
         <div className="grid grid-cols-1 gap-[14px] sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard label="Total tests" value={String(testsData.summary.total)} />
-          <StatCard label="Passed" value={String(testsData.summary.passed)} valueColor="#3ddc97" />
-          <StatCard label="Failed" value={String(testsData.summary.failed)} valueColor={testsData.summary.failed > 0 ? "#ff5d5d" : undefined} />
+          {/* Same catalog either way — only the wording differs, so the API
+              tab reads "APIs" instead of the generic "tests". */}
+          <StatCard
+            label={type === "api" ? t("suiteTests.totalApis") : "Total tests"}
+            value={String(testsData.summary.total)}
+          />
+          <StatCard
+            label={type === "api" ? t("suiteTests.apisPassed") : "Passed"}
+            value={String(testsData.summary.passed)}
+            valueColor="#3ddc97"
+          />
+          <StatCard
+            label={type === "api" ? t("suiteTests.apisFailed") : "Failed"}
+            value={String(testsData.summary.failed)}
+            valueColor={testsData.summary.failed > 0 ? "#ff5d5d" : undefined}
+          />
           <StatCard label="Flaky" value={String(testsData.summary.flaky)} valueColor={testsData.summary.flaky > 0 ? "#f5b544" : undefined} />
         </div>
       ) : (
