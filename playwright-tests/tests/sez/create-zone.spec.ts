@@ -1,5 +1,5 @@
-import { test, expect, type Page, type Locator } from "@playwright/test";
-import { AUTH_FILE, BASE_URL } from "./helpers";
+import { test, expect, type Page } from "@playwright/test";
+import { AUTH_FILE, BASE_URL, formItem, selectOption } from "./helpers";
 
 // ---------------------------------------------------------------------------
 // SEZ — Iqtisodiy va sanoat zonalarini yaratish (create an industrial zone).
@@ -9,31 +9,6 @@ import { AUTH_FILE, BASE_URL } from "./helpers";
 // ---------------------------------------------------------------------------
 
 test.use({ storageState: AUTH_FILE });
-
-/** The `.n-form-item` matched by its LABEL text. */
-function formItem(page: Page, label: string): Locator {
-  return page
-    .locator(".n-form-item")
-    .filter({ has: page.locator(".n-form-item-label", { hasText: label }) })
-    .first();
-}
-
-/**
- * Open an n-select field and pick an option. With no `optionText`, picks the
- * first real option; otherwise picks the first option whose text contains
- * `optionText`.
- */
-async function selectOption(page: Page, label: string, optionText?: string): Promise<void> {
-  await expect(page.locator(".n-base-select-menu:visible")).toHaveCount(0);
-  await formItem(page, label).locator(".n-base-selection").first().click();
-  let options = page
-    .locator(".n-base-select-menu:visible .n-base-select-option")
-    .filter({ hasNotText: "Aniqlanmoqda" });
-  if (optionText) options = options.filter({ hasText: optionText });
-  await expect(options.first()).toBeVisible({ timeout: 20000 });
-  await options.first().click();
-  await expect(page.locator(".n-base-select-menu:visible")).toHaveCount(0, { timeout: 5000 });
-}
 
 /**
  * Draws a triangle on the Leaflet map and finishes it. Clicking back on the
@@ -80,6 +55,10 @@ test.describe("SEZ — Iqtisodiy va sanoat zonalarini yaratish", () => {
     // under the chosen region+directorate — most random combos show "No
     // Data". "Qoraqalpog'iston Respublikasi" + the "NUKUS" directorate is a
     // known-good pair (verified against the live data).
+    //
+    // Note that "Direksiya" is NOT narrowed by the chosen Viloyat: it returns
+    // the full nationwide alphabetical list, so NUKUS has to be typed to be
+    // reachable at all. selectOption() handles that — see its comment.
     await selectOption(page, "Viloyat", "Qoraqalpog'iston Respublikasi");
     await selectOption(page, "Tuman");
     await selectOption(page, "Direksiya", "NUKUS");

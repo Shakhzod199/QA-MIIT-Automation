@@ -1,5 +1,5 @@
 import { test, expect, type Page, type Locator } from "@playwright/test";
-import { AUTH_FILE, BASE_URL } from "./helpers";
+import { AUTH_FILE, BASE_URL, formItem, selectOption } from "./helpers";
 
 // ---------------------------------------------------------------------------
 // SEZ — Investitsiya loyihalari (create an investment project).
@@ -15,31 +15,6 @@ import { AUTH_FILE, BASE_URL } from "./helpers";
 // ---------------------------------------------------------------------------
 
 test.use({ storageState: AUTH_FILE });
-
-/** The `.n-form-item` matched by its LABEL text. */
-function formItem(page: Page, label: string): Locator {
-  return page
-    .locator(".n-form-item")
-    .filter({ has: page.locator(".n-form-item-label", { hasText: label }) })
-    .first();
-}
-
-/**
- * Open an n-select field and pick an option. With no `optionText`, picks the
- * first real option; otherwise picks the first option whose text contains
- * `optionText`.
- */
-async function selectOption(page: Page, label: string, optionText?: string): Promise<void> {
-  await expect(page.locator(".n-base-select-menu:visible")).toHaveCount(0);
-  await formItem(page, label).locator(".n-base-selection").first().click();
-  let options = page
-    .locator(".n-base-select-menu:visible .n-base-select-option")
-    .filter({ hasNotText: "Aniqlanmoqda" });
-  if (optionText) options = options.filter({ hasText: optionText });
-  await expect(options.first()).toBeVisible({ timeout: 20000 });
-  await options.first().click();
-  await expect(page.locator(".n-base-select-menu:visible")).toHaveCount(0, { timeout: 5000 });
-}
 
 /**
  * Opens a tree-select field and picks the first selectable (non-disabled)

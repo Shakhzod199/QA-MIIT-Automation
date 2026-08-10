@@ -75,6 +75,19 @@ test.describe("PMI — Loyihalar filter", () => {
     test.setTimeout(120000);
     await waitForProjectsTable(page);
 
+    // The toolbar always carries a reporting-period chip ("Yanvar-Iyul"), and
+    // it is an .n-tag sitting in the very same swiper container as the filter
+    // chips — there is no container or class that separates the two. It is
+    // also not a filter: the drawer has no period field, and "Tozalash"
+    // deliberately leaves it alone because a report period always has a value.
+    // So snapshot whatever the toolbar starts with and assert relative to that
+    // baseline rather than expecting a bare count of 0.
+    const tags = page.locator(".n-tag");
+    const rawTagTexts = async () =>
+      (await tags.allTextContents()).map((t) => t.trim());
+    const tagTexts = async () => (await rawTagTexts()).sort();
+    const baselineTags = await tagTexts();
+
     // Open the right-hand filter drawer.
     await page.getByRole("button", { name: "Filtr" }).click();
     const drawer = page.locator(".n-drawer");
@@ -92,22 +105,31 @@ test.describe("PMI — Loyihalar filter", () => {
     }
     expect(applied, "at least one side-menu filter should apply").toBeGreaterThan(0);
 
-    // Close the drawer; applied filters should surface as removable tags.
+    // Close the drawer; applied filters should surface as removable tags on
+    // top of the baseline ones.
     await page.keyboard.press("Escape");
     await expect(drawer).toBeHidden();
-    const tags = page.locator(".n-tag");
-    await expect(tags.first()).toBeVisible({ timeout: 10000 });
+    await expect
+      .poll(async () => tags.count(), { timeout: 10000 })
+      .toBeGreaterThan(baselineTags.length);
 
-    // Clearing should remove all filter tags.
+    // Clearing should remove every filter tag the drawer added, leaving the
+    // toolbar exactly as it was found.
     const clear = page.getByRole("button", { name: /Tozalash|Tarozala|Clear|Filtrni tozalash/i });
     if (await clear.count()) {
       await clear.first().click();
     } else {
-      // Fall back to removing each tag individually.
-      while ((await tags.count()) > 0) {
-        await tags.first().locator(".n-tag__close").click();
+      // Fall back to removing each added tag individually. Baseline tags are
+      // skipped — closing the period chip only resets it to another period,
+      // so looping until the count hits 0 would never terminate.
+      for (let guard = 0; guard < 20; guard++) {
+        const index = (await rawTagTexts()).findIndex(
+          (text) => !baselineTags.includes(text)
+        );
+        if (index < 0) break;
+        await tags.nth(index).locator(".n-tag__close").click();
       }
     }
-    await expect(tags).toHaveCount(0, { timeout: 10000 });
+    await expect.poll(tagTexts, { timeout: 10000 }).toEqual(baselineTags);
   });
 });
