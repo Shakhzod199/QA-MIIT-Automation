@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { BASE_URL, USERNAME, PASSWORD } from "./helpers";
+import { BASE_URL, USERNAME, PASSWORD, openLoginModal } from "./helpers";
 
 test.describe("Login", () => {
   test("OneID button is visible", async ({ page }) => {
@@ -14,16 +14,8 @@ test.describe("Login", () => {
     // OneID button should be visible
     await expect(page.getByRole("button", { name: "OneID orqali kirish" })).toBeVisible();
 
-    // Click the hidden trigger 5 times within 1s to open the login modal
-    const trigger = page.locator("#shaxzod_id");
-    await expect(trigger).toBeAttached();
-    for (let i = 0; i < 5; i++) {
-      await trigger.click();
-    }
-
-    // Modal opens
-    const modal = page.locator(".n-card.n-modal");
-    await expect(modal).toBeVisible();
+    // Press and hold the OneID button for 5s to reveal the login modal
+    const modal = await openLoginModal(page);
 
     // Fill in credentials and submit
     await modal.getByPlaceholder("Login").fill(USERNAME);
