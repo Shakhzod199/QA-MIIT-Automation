@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { BASE_URL, USERNAME, PASSWORD, login } from "./helpers";
+import { BASE_URL, USERNAME, PASSWORD, login, openLoginModal } from "./helpers";
 
 test.describe("PMT login flow", () => {
   test("Shows OneID and performs login via credentials", async ({ page }) => {
@@ -11,16 +11,9 @@ test.describe("PMT login flow", () => {
       page.getByRole("button", { name: /OneID/i })
     ).toBeVisible();
 
-    // The username/password button is hidden on test/prod — opened instead
-    // via the invisible 5-click hatch next to the OneID button.
-    const hatch = page.locator('button[aria-hidden="true"]');
-    await expect(hatch).toBeAttached();
-    for (let i = 0; i < 5; i++) {
-      await hatch.click({ force: true });
-    }
-
-    const loginModal = page.locator(".n-card.n-modal");
-    await expect(loginModal).toBeVisible();
+    // The username/password button is hidden on test/prod — the modal is
+    // opened instead by pressing and holding the OneID button for 5s.
+    const loginModal = await openLoginModal(page);
 
     await loginModal.getByPlaceholder("Loginni kiriting").fill(USERNAME);
     await loginModal.getByPlaceholder("Parolni kiriting").fill(PASSWORD);

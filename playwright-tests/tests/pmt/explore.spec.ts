@@ -1,20 +1,11 @@
 import { test, expect } from "@playwright/test";
-
-const BASE_URL = "https://testpmt.miit.uz";
-const USERNAME = process.env.PMT_USERNAME!;
-const PASSWORD = process.env.PMT_PASSWORD!;
+import { login } from "./helpers";
 
 test("explore PMT navigation after login", async ({ page }) => {
-  await page.goto(`${BASE_URL}/login`);
-  const hatch = page.locator('button[aria-hidden="true"]');
-  await expect(hatch).toBeAttached();
-  for (let i = 0; i < 5; i++) await hatch.click({ force: true });
-
-  const loginModal = page.locator(".n-card.n-modal");
-  await expect(loginModal).toBeVisible();
-  await loginModal.getByPlaceholder("Loginni kiriting").fill(USERNAME);
-  await loginModal.getByPlaceholder("Parolni kiriting").fill(PASSWORD);
-  await loginModal.getByRole("button", { name: "Kirish", exact: true }).click();
+  // Uses the shared login() so the press-and-hold flow lives in exactly one
+  // place — this spec previously inlined its own copy of the (now removed)
+  // 5-click hatch and was the last thing still referencing it.
+  await login(page);
   await expect(page).toHaveURL(/\/dashboard/, { timeout: 15000 });
 
   await page.waitForTimeout(2000);

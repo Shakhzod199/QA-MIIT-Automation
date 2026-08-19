@@ -2,15 +2,30 @@ import { test, expect, type Page, type BrowserContext, type Request } from "@pla
 import { login } from "./helpers";
 
 // ---------------------------------------------------------------------------
-// PMI "Dashbord" (main page -> /app/analytics).
+// PMI "Dashbord" -> Loyiha boshqaruvi -> "Yakunlangan loyihalar"
+// (/app/analytics?tab=completed_projects).
 //
-// Every number on this page is sourced from the PMT-MIIT integration — PMI
-// itself contributes no data here. Four endpoints feed the whole screen:
+// This screen moved twice in one redesign, so the navigation is spelled out
+// here. "Dashbord" used to be a plain button that navigated straight to
+// /app/analytics; it is now a dropdown offering "Loyiha boshqaruvi"
+// (-> /app/analytics) and "Umumiy dashboard" (-> /app/pms, a different page
+// entirely). /app/analytics then defaults to a PMI-native portfolio view, and
+// the PMT-MIIT dashboard this spec covers is behind its "Yakunlangan
+// loyihalar" tab.
+//
+// Every number on that tab is sourced from the PMT-MIIT integration — PMI
+// itself contributes no data here. These endpoints feed the screen:
 //
 //   .../project/pmt-miit/statistics/by-content    -> the KPI tiles
 //   .../project/pmt-miit/statistics/indicators    -> the 12 block headlines
-//   .../project/pmt-miit/statistics/by-initiator  -> each block's "Tashabbuskor" table
+//   .../project/pmt-miit/statistics/by-network    -> each block's "Tarmoq" table
 //   .../project/pmt-miit/statistics/by-region     -> each block's "Hudud" table
+//   .../project/pmt-miit/statistics/by-initiator  -> the TOP-5 rating card
+//
+// The per-block tabs used to be "Tashabbuskor"/"Hudud" fed by by-initiator and
+// by-region. They are now "Tarmoq"/"Hudud" fed by by-network and by-region;
+// by-initiator is still fetched, but only for a rating card this spec does not
+// assert over, so it is checked for provenance and payload only.
 //
 // So this spec does two things: prove the data really does all come from that
 // integration (nothing is quietly served from PMI's own tables), and prove the
@@ -23,11 +38,16 @@ import { login } from "./helpers";
 
 test.describe.configure({ mode: "serial" });
 
+// NB: byRegion does not collide with the roadmap card's
+// /project/pmt-miit/roadmap/statistics/by-region-organization — the "roadmap/"
+// segment sits between the prefix and the fragment, so the substring match
+// below cannot confuse the two.
 const ENDPOINTS = {
   byContent: "/project/pmt-miit/statistics/by-content",
   indicators: "/project/pmt-miit/statistics/indicators",
   byInitiator: "/project/pmt-miit/statistics/by-initiator",
   byRegion: "/project/pmt-miit/statistics/by-region",
+  byNetwork: "/project/pmt-miit/statistics/by-network",
 } as const;
 
 /**
@@ -197,7 +217,7 @@ function readDashboard(page: Page): Promise<{ tiles: { label: string; value: str
     const blocks = Array.from(document.querySelectorAll(".n-card"))
       .filter((c) => c.querySelector(".n-tabs"))
       .map((b) => ({
-        title: txt(b.querySelector(".n-card-header__main")).replace(/Tashabbuskor\s*Hudud\s*$/, "").trim(),
+        title: txt(b.querySelector(".n-card-header__main")).replace(/Tarmoq\s*Hudud\s*$/, "").trim(),
         activeTab: txt(b.querySelector(".n-tabs-tab--active")),
         summary: txt(b.querySelector(".n-card-content")).split("T/r")[0],
         rows: Array.from(b.querySelectorAll("tbody tr"))
@@ -224,7 +244,8 @@ let byContent: { statistics: { key: string; measurement: string; amount: Amount 
 let indicators: { statistics: { key: string; measurement: string; plan: number; fact: number }[] };
 let byInitiator: { results: StatRow[] };
 let byRegion: { results: StatRow[] };
-let tashabbuskor: BlockCapture[];
+let byNetwork: { results: StatRow[] };
+let tarmoq: BlockCapture[];
 let hudud: BlockCapture[];
 let tiles: { label: string; value: string; unit: string }[];
 
@@ -241,6 +262,18 @@ test.beforeAll(async ({ browser }) => {
   // otherwise land after the click and look like dashboard traffic.
   await waitForDataQuiet(page);
 
+  // Step 1: the Dashbord dropdown -> Loyiha boshqaruvi -> /app/analytics.
+  // Clicking "Dashbord" no longer navigates; it opens a menu.
+  await page.getByRole("button", { name: "Dashbord", exact: true }).first().click();
+  await page.getByText("Loyiha boshqaruvi", { exact: true }).first().click();
+  await expect(page).toHaveURL(/\/app\/analytics/, { timeout: 30_000 });
+
+  // /app/analytics opens on its own PMI-native portfolio view, which issues
+  // PMI endpoints (general/statistics, step/statistics, dashboard/region-
+  // statistics). Let those finish BEFORE recording, so they are not counted
+  // against the "everything on this tab comes from pmt-miit" assertion.
+  await waitForDataQuiet(page);
+
   const requestedUrls: string[] = [];
   const waitFor = (fragment: string) =>
     page.waitForResponse((r) => r.url().includes(fragment) && r.request().method() === "GET", { timeout: 90_000 });
@@ -250,29 +283,28 @@ test.beforeAll(async ({ browser }) => {
     indicators: waitFor(ENDPOINTS.indicators),
     byInitiator: waitFor(ENDPOINTS.byInitiator),
     byRegion: waitFor(ENDPOINTS.byRegion),
+    byNetwork: waitFor(ENDPOINTS.byNetwork),
   };
 
-  // Attribute each call to the route that was active when it was ISSUED,
-  // rather than to a window of wall-clock time. The main page legitimately
-  // calls PMI's own endpoints, and its last one (countries-map-statistics)
-  // is issued lazily — after the Dashbord click, but before the client-side
-  // route flips to /app/analytics. No amount of idle-waiting fences that off
-  // reliably: waitForDataQuiet above catches the three that fire together on
-  // mount, then countries-map-statistics lands outside the quiet window and
-  // shows up as a stray. The route is exact where timing is a guess.
+  // Attribute each call to the tab that was active when it was ISSUED rather
+  // than to a window of wall-clock time: only record once the URL carries
+  // tab=completed_projects, so a late-firing call from the portfolio view
+  // cannot be misread as a stray on this tab.
   page.on("request", (r) => {
-    if (r.url().includes("/api/") && page.url().includes("/app/analytics")) {
+    if (r.url().includes("/api/") && page.url().includes("tab=completed_projects")) {
       requestedUrls.push(r.url());
     }
   });
 
-  await page.getByRole("button", { name: "Dashbord", exact: true }).first().click();
+  // Step 2: open the "Yakunlangan loyihalar" tab — the PMT-MIIT dashboard.
+  await page.getByRole("button", { name: "Yakunlangan loyihalar", exact: true }).click();
 
   const responses = {
     byContent: await pending.byContent,
     indicators: await pending.indicators,
     byInitiator: await pending.byInitiator,
     byRegion: await pending.byRegion,
+    byNetwork: await pending.byNetwork,
   };
   for (const [name, res] of Object.entries(responses)) {
     expect(res.status(), `${name} should return 200`).toBe(200);
@@ -283,6 +315,7 @@ test.beforeAll(async ({ browser }) => {
   indicators = (await responses.indicators.json()).data;
   byInitiator = (await responses.byInitiator.json()).data;
   byRegion = (await responses.byRegion.json()).data;
+  byNetwork = (await responses.byNetwork.json()).data;
 
   // Blocks lazy-mount on scroll.
   for (let i = 0; i < 14; i++) {
@@ -295,7 +328,7 @@ test.beforeAll(async ({ browser }) => {
   );
 
   const captured = await readDashboard(page);
-  tashabbuskor = captured.blocks;
+  tarmoq = captured.blocks;
   tiles = captured.tiles;
   dataCallUrls = requestedUrls.filter(isDataCall);
 
@@ -304,13 +337,13 @@ test.beforeAll(async ({ browser }) => {
   // Blocks are re-resolved on each iteration rather than indexed up front, so
   // that any reordering or remounting on tab switch cannot shift cached indices.
   expect(await page.locator(".n-tabs-tab", { hasText: /^Hudud$/ }).count()).toBe(indicators.statistics.length);
-  const stillOnInitiator = () =>
-    page.locator(".n-card").filter({ has: page.locator(".n-tabs-tab--active", { hasText: /^Tashabbuskor$/ }) });
+  const stillOnNetwork = () =>
+    page.locator(".n-card").filter({ has: page.locator(".n-tabs-tab--active", { hasText: /^Tarmoq$/ }) });
   for (let guard = 0; guard <= indicators.statistics.length; guard++) {
-    if ((await stillOnInitiator().count()) === 0) break;
-    await stillOnInitiator().first().locator(".n-tabs-tab", { hasText: /^Hudud$/ }).click();
+    if ((await stillOnNetwork().count()) === 0) break;
+    await stillOnNetwork().first().locator(".n-tabs-tab", { hasText: /^Hudud$/ }).click();
   }
-  await expect(stillOnInitiator()).toHaveCount(0, { timeout: 15_000 });
+  await expect(stillOnNetwork()).toHaveCount(0, { timeout: 15_000 });
   hudud = (await readDashboard(page)).blocks;
 });
 
@@ -320,8 +353,9 @@ test.afterAll(async () => {
 
 // --- navigation & provenance ----------------------------------------------
 
-test("the Dashbord button lands on /app/analytics", async () => {
+test("the Dashbord menu lands on the completed-projects tab of /app/analytics", async () => {
   expect(landedUrl).toContain("/app/analytics");
+  expect(landedUrl).toContain("tab=completed_projects");
 });
 
 test("every data call on the dashboard goes to the pmt-miit integration", async () => {
@@ -339,6 +373,7 @@ test("each pmt-miit endpoint returns a populated payload", async () => {
   expect(indicators.statistics.length).toBe(BLOCKS.length);
   expect(byInitiator.results.length).toBeGreaterThan(0);
   expect(byRegion.results.length).toBeGreaterThan(0);
+  expect(byNetwork.results.length).toBeGreaterThan(0);
 });
 
 // --- KPI tiles -------------------------------------------------------------
@@ -369,13 +404,13 @@ test("KPI tiles render the values by-content returned", async () => {
 // --- metric blocks ---------------------------------------------------------
 
 test("the 12 metric blocks render in the order indicators returns them", async () => {
-  expect(tashabbuskor.length).toBe(BLOCKS.length);
+  expect(tarmoq.length).toBe(BLOCKS.length);
   BLOCKS.forEach((block, i) => {
     expect(indicators.statistics[i].key, `indicators[${i}] should be "${block.key}"`).toBe(block.key);
     if (typeof block.title === "string") {
-      expect(tashabbuskor[i].title).toBe(block.title);
+      expect(tarmoq[i].title).toBe(block.title);
     } else {
-      expect(tashabbuskor[i].title).toMatch(block.title);
+      expect(tarmoq[i].title).toMatch(block.title);
     }
   });
 });
@@ -383,9 +418,9 @@ test("the 12 metric blocks render in the order indicators returns them", async (
 test("block headlines render the values indicators returned", async () => {
   BLOCKS.forEach((block, i) => {
     const stat = indicators.statistics[i];
-    const numbers = parseSummary(tashabbuskor[i].summary);
+    const numbers = parseSummary(tarmoq[i].summary);
     const expected = block.fourColumn ? [stat.plan, stat.fact] : [stat.fact];
-    expect(numbers.length, `block "${block.key}" headline: ${tashabbuskor[i].summary}`).toBe(expected.length);
+    expect(numbers.length, `block "${block.key}" headline: ${tarmoq[i].summary}`).toBe(expected.length);
     numbers.forEach((actual, j) => {
       // Headlines round like the tiles do (icor keeps a decimal, pp does not).
       expect(
@@ -396,23 +431,22 @@ test("block headlines render the values indicators returned", async () => {
   });
 });
 
-test("the Tashabbuskor view shows a block for all 12 metrics", async () => {
-  expect([...keyBlocksByMetric(tashabbuskor).keys()].sort()).toEqual([...ALL_KEYS].sort());
+test("the Tarmoq view shows a block for all 12 metrics", async () => {
+  expect([...keyBlocksByMetric(tarmoq).keys()].sort()).toEqual([...ALL_KEYS].sort());
 });
 
-test("Tashabbuskor tables match by-initiator row for row", async () => {
-  assertValues(keyBlocksByMetric(tashabbuskor), byInitiator.results, "Tashabbuskor");
+test("Tarmoq tables match by-network row for row", async () => {
+  assertValues(keyBlocksByMetric(tarmoq), byNetwork.results, "Tarmoq");
 });
 
-// GVA used to be carved out here as a known bug: the block dropped two
-// initiators ("Olmaliq KMK AJ" and the Qizilmiya... uyushmasi) that had a
-// non-zero gva.fact, so its totals could not be reconciled against its rows.
-// by-initiator now returns gva as 0 for every initiator, so the block renders
-// its empty state and the bug is not observable. It is folded back into the
-// assertion below rather than left as a test.fail that cannot fail — if the
-// drop returns once GVA has data again, this test reports it directly.
-test("Tashabbuskor tables list every initiator that has data for the metric", async () => {
-  assertRowSets(keyBlocksByMetric(tashabbuskor), byInitiator.results, "Tashabbuskor");
+// GVA used to be carved out here as a known bug, back when this tab was fed by
+// by-initiator: the block dropped two initiators ("Olmaliq KMK AJ" and the
+// Qizilmiya... uyushmasi) that had a non-zero gva.fact, so its totals could not
+// be reconciled against its rows. The tab is fed by by-network now, so that
+// exact carve-out no longer applies; the assertion below is left general so a
+// dropped row reports itself directly on whichever payload feeds the tab.
+test("Tarmoq tables list every network that has data for the metric", async () => {
+  assertRowSets(keyBlocksByMetric(tarmoq), byNetwork.results, "Tarmoq");
 });
 
 // --- Hudud ----------------------------------------------------------------
@@ -435,17 +469,21 @@ test("the Hudud view shows a block for all 12 metrics", async () => {
   expect([...keyBlocksByMetric(hudud).keys()].sort()).toEqual([...ALL_KEYS].sort());
 });
 
-// NB: the page requests by-region with year=2025 while the period selector —
-// and every other call on the screen — is on 2026. So every Hudud table shows
-// last year's figures under a "2026 yil" header, and disagrees with the
-// Tashabbuskor tab of the very same block. The two test.fail tests that
-// tracked this (one on the query string, one on the rendered values) were
-// removed on 2026-08-06 at the client's request; the bug is still open, and
-// nothing in this suite watches it now.
+// NB: the page requests BOTH by-region and by-network with year=2025 while the
+// period selector — and every other call on the screen (by-content,
+// indicators, by-initiator) — is on 2026. So both per-block tabs show last
+// year's figures under a "2026 yil" header, and disagree with the block
+// headline above them, which is fed by indicators on 2026. The redesign
+// carried the hardcoded year over from the old page and widened it from one
+// tab to two. The two test.fail tests that tracked this (one on the query
+// string, one on the rendered values) were removed on 2026-08-06 at the
+// client's request; the bug is still open, and nothing in this suite watches
+// it now.
 //
-// Note this is why "Hudud tables faithfully render the by-region payload the
-// page fetched" above asserts against the payload the page actually fetched
-// rather than the selected period — it stays green on 2025 data by design.
+// Note this is why the two "tables faithfully render the payload the page
+// fetched" assertions above compare against the payload the page actually
+// fetched rather than the selected period — they stay green on 2025 data by
+// design.
 
 // --- shared table assertion ------------------------------------------------
 
