@@ -81,19 +81,24 @@ jobs:
           path: ~/.cache/ms-playwright
           key: ${{ runner.os }}-playwright-${{ hashFiles('playwright-tests/package-lock.json') }}
 
-      # Generous on the cold path: a cache miss has been measured at over 8
-      # minutes on a slow runner. It is paid once per Playwright bump, and the
-      # step is still bounded so a genuinely hung download fails fast and is
-      # attributed to the right step instead of cancelling the whole job.
-      - name: Install Playwright browser + system deps
+      # Deliberately NOT --with-deps. That flag runs apt-get, and on this
+      # runner apt spent 6-13 MINUTES per font package against
+      # azure.archive.ubuntu.com — runs #136 and #137 both died there without
+      # ever reaching the browser download (13m11s for a single 107 KB file).
+      #
+      # It is also unnecessary: the install log shows every library Playwright
+      # actually requires (libnss3, libatk*, libcups2, libdrm, libgbm, ...)
+      # already at "the newest version" on ubuntu-latest. The only NEW packages
+      # --with-deps pulled were 9 font packages for CJK/Thai/Cyrillic glyphs,
+      # which change pixel rendering, not the DOM text these specs assert on.
+      #
+      # If a future runner image ever does drop one of those libraries, Chromium
+      # fails to launch with an explicit "missing shared library" error, which
+      # is a far better failure than a 20-minute apt hang.
+      - name: Install Playwright browser
         if: steps.playwright-cache.outputs.cache-hit != 'true'
-        timeout-minutes: 20
-        run: npx playwright install --with-deps chromium
-
-      - name: Install Playwright system deps (browser cached)
-        if: steps.playwright-cache.outputs.cache-hit == 'true'
         timeout-minutes: 10
-        run: npx playwright install-deps chromium
+        run: npx playwright install chromium
 
       - name: Run PMT tests
         env:
