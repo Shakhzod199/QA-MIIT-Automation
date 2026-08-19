@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { login, BASE_URL } from "./helpers";
+import { BASE_URL } from "./helpers";
 
 // ---------------------------------------------------------------------------
 // PMT organizations map/list view (testpmt.miit.uz/dashboard?showType=0):
@@ -15,7 +15,6 @@ async function gotoOrganizations(page: Page): Promise<void> {
 
 test.describe("PMT — Tashkilotni tizimga qo'shish (add organization)", () => {
   test.beforeEach(async ({ page }) => {
-    await login(page);
     await gotoOrganizations(page);
   });
 
@@ -54,7 +53,6 @@ test.describe("PMT — Tashkilotni tizimga qo'shish (add organization)", () => {
 
 test.describe("PMT — Korxonalar holati (organization status breakdown)", () => {
   test.beforeEach(async ({ page }) => {
-    await login(page);
     await gotoOrganizations(page);
   });
 

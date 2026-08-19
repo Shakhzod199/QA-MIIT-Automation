@@ -18,6 +18,23 @@ function requireCredential(name: "PMT_USERNAME" | "PMT_PASSWORD"): string {
 export const USERNAME = requireCredential("PMT_USERNAME");
 export const PASSWORD = requireCredential("PMT_PASSWORD");
 
+// Where auth.setup.ts caches the authenticated session. Every spec except
+// login.spec.ts reuses it via the "pmt" project's storageState, so the suite
+// logs in ONCE instead of once per test. testpmt.miit.uz is documented as
+// unable to handle many concurrent logins (hence --workers=2), and the OneID
+// modal now needs a 5s press-and-hold, so 26 per-test logins were both slow
+// and the main source of load behind the intermittent page.goto timeouts.
+export const AUTH_FILE = "playwright/.auth/pmt-user.json";
+
+/**
+ * Entry point for an already-authenticated context: opens the dashboard, where
+ * login() used to leave the page. Specs that navigate somewhere specific can
+ * just goto() directly instead.
+ */
+export async function gotoDashboard(page: Page): Promise<void> {
+  await page.goto(`${BASE_URL}/dashboard`);
+}
+
 /** How long the OneID button must be held before it reveals the modal. */
 const HOLD_MS = 5000;
 

@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { login, BASE_URL } from "./helpers";
+import { BASE_URL } from "./helpers";
 
 // ---------------------------------------------------------------------------
 // PMT dashboard's Tarmoq / Hudud / Soha tabs (testpmt.miit.uz/dashboard,
@@ -32,7 +32,6 @@ for (const [tab, name] of [
 ] as const) {
   test.describe(`PMT — dashboard ${name} tab`, () => {
     test.beforeEach(async ({ page }) => {
-      await login(page);
       await gotoTab(page, tab);
     });
 

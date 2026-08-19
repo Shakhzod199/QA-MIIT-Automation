@@ -1,11 +1,11 @@
 import { test, expect } from "@playwright/test";
-import { login } from "./helpers";
+import { gotoDashboard } from "./helpers";
 
 test("explore PMT navigation after login", async ({ page }) => {
   // Uses the shared login() so the press-and-hold flow lives in exactly one
   // place — this spec previously inlined its own copy of the (now removed)
   // 5-click hatch and was the last thing still referencing it.
-  await login(page);
+  await gotoDashboard(page);
   await expect(page).toHaveURL(/\/dashboard/, { timeout: 15000 });
 
   await page.waitForTimeout(2000);

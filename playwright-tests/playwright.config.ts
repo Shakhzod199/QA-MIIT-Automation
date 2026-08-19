@@ -2,6 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 // Keep the cached-session path in one place; tests/pmi-tests/helpers.ts
 // exports the same constant for auth.setup.ts to write to.
 const PMI_AUTH_FILE = "playwright/.auth/pmi-user.json";
+const PMT_AUTH_FILE = "playwright/.auth/pmt-user.json";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 
@@ -186,11 +187,39 @@ export default defineConfig({
     // ── pmt frontend ─────────────────────────────────────────────────────────
     // testpmt.miit.uz can't handle many concurrent logins — run with
     // --workers=2 to avoid parallel login failures. 60s timeout matches pmi.
+    // Split three ways for the same reason as pmi: one login for the whole
+    // suite instead of 26. login.spec.ts keeps doing real UI logins (that is
+    // its subject) and runs first without a cached session; pmt-setup then
+    // caches one session for everything else. --project=pmt pulls both
+    // dependencies in automatically, so CI needs no change.
+    {
+      name: "pmt-login",
+      testDir: "./tests/pmt",
+      testMatch: /login\.spec\.ts/,
+      timeout: 60000,
+      use: { ...devices["Desktop Chrome"], baseURL: process.env.PMT_BASE_URL ?? "http://localhost:3000" },
+    },
+
+    {
+      name: "pmt-setup",
+      testDir: "./tests/pmt",
+      testMatch: /auth\.setup\.ts/,
+      dependencies: ["pmt-login"],
+      timeout: 60000,
+      use: { ...devices["Desktop Chrome"], baseURL: process.env.PMT_BASE_URL ?? "http://localhost:3000" },
+    },
+
     {
       name: "pmt",
       testDir: "./tests/pmt",
+      testIgnore: [/login\.spec\.ts/, /auth\.setup\.ts/],
+      dependencies: ["pmt-setup"],
       timeout: 60000,
-      use: { ...devices["Desktop Chrome"], baseURL: process.env.PMT_BASE_URL ?? "http://localhost:3000" },
+      use: {
+        ...devices["Desktop Chrome"],
+        baseURL: process.env.PMT_BASE_URL ?? "http://localhost:3000",
+        storageState: PMT_AUTH_FILE,
+      },
     },
 
     // ── pmi backend (api tests against the real Swagger-documented API) ────

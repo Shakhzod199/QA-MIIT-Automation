@@ -1,5 +1,5 @@
 import { test, expect, type Page, type Locator } from "@playwright/test";
-import { login, BASE_URL } from "./helpers";
+import { BASE_URL } from "./helpers";
 
 // ---------------------------------------------------------------------------
 // PMT organizations filters (testpmt.miit.uz/dashboard?showType=0). Mirrors
@@ -68,7 +68,6 @@ async function applyFirstAntOption(
 
 test.describe("PMT — Korxonalar (organizations) filter", () => {
   test.beforeEach(async ({ page }) => {
-    await login(page);
     await gotoOrganizations(page);
   });
 

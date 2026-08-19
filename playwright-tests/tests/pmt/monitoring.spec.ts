@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { login, BASE_URL } from "./helpers";
+import { BASE_URL } from "./helpers";
 
 // ---------------------------------------------------------------------------
 // PMT monitoring page (testpmt.miit.uz/monitoring): user stats, the
@@ -10,7 +10,6 @@ import { login, BASE_URL } from "./helpers";
 
 test.describe("PMT — Monitoring", () => {
   test.beforeEach(async ({ page }) => {
-    await login(page);
     await page.goto(`${BASE_URL}/monitoring`);
     await expect(page.getByText("Foydalanuvchilar statistikasi")).toBeVisible({
       timeout: 20000,

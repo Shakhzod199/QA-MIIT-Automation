@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { login, BASE_URL } from "./helpers";
+import { BASE_URL } from "./helpers";
 
 // ---------------------------------------------------------------------------
 // PMT company-settings/enterprise-management: a list of metric rows (Foyda
@@ -10,7 +10,6 @@ import { login, BASE_URL } from "./helpers";
 
 test.describe("PMT — Korxona boshqaruvi (enterprise-management)", () => {
   test.beforeEach(async ({ page }) => {
-    await login(page);
     await page.goto(`${BASE_URL}/company-settings/enterprise-management`);
     await expect(page.getByText("Foyda solig'i")).toBeVisible({ timeout: 20000 });
   });

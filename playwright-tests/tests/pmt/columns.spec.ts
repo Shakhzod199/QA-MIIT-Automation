@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { login, BASE_URL } from "./helpers";
+import { BASE_URL } from "./helpers";
 
 // ---------------------------------------------------------------------------
 // PMT organizations "Ustunlar" (columns) panel (testpmt.miit.uz/dashboard,
@@ -11,7 +11,6 @@ import { login, BASE_URL } from "./helpers";
 
 test.describe("PMT — Korxonalar Ustunlar (columns)", () => {
   test.beforeEach(async ({ page }) => {
-    await login(page);
     // showType=0 is the organizations list; admins default to showType=3
     // (rating dashboard) otherwise, so this is forced explicitly.
     await page.goto(`${BASE_URL}/dashboard?type=1&showType=0`);

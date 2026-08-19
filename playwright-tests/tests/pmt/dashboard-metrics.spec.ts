@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { login, BASE_URL } from "./helpers";
+import { BASE_URL } from "./helpers";
 
 // ---------------------------------------------------------------------------
 // PMT "Korxonalar reytingi" dashboard (testpmt.miit.uz/dashboard?type=1).
@@ -56,10 +56,6 @@ async function readSettledKpiCards(
 }
 
 test.describe("PMT — Korxonalar reytingi dashboard KPI cards", () => {
-  test.beforeEach(async ({ page }) => {
-    await login(page);
-  });
-
   test("Top filters bar is present (Barcha tarmoqlar, Viloyat, Tuman, Dashboard, Hisobot davri)", async ({
     page,
   }) => {

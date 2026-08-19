@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { login, BASE_URL } from "./helpers";
+import { BASE_URL } from "./helpers";
 
 // ---------------------------------------------------------------------------
 // PMT settings/users page: the "Foydalanuvchi qo'shish" (add user) modal and
@@ -11,7 +11,6 @@ import { login, BASE_URL } from "./helpers";
 
 test.describe("PMT — Foydalanuvchilar (settings/users)", () => {
   test.beforeEach(async ({ page }) => {
-    await login(page);
     await page.goto(`${BASE_URL}/settings/users`);
     await expect(page.locator("table")).toBeVisible({ timeout: 20000 });
     // ant-table also renders a hidden "measure" row before the real ones

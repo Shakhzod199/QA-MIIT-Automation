@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { login, BASE_URL } from "./helpers";
+import { BASE_URL } from "./helpers";
 
 // ---------------------------------------------------------------------------
 // PMT company-settings/add-power ("Quvvat qo'shish"): pick a year, download
@@ -9,7 +9,6 @@ import { login, BASE_URL } from "./helpers";
 
 test.describe("PMT — Quvvat qo'shish (add-power)", () => {
   test.beforeEach(async ({ page }) => {
-    await login(page);
     await page.goto(`${BASE_URL}/company-settings/add-power`);
     await expect(page.getByRole("button", { name: "Shablonni yuklash" })).toBeVisible({
       timeout: 20000,

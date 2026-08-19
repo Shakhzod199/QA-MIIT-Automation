@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { login, BASE_URL } from "./helpers";
+import { BASE_URL } from "./helpers";
 
 // ---------------------------------------------------------------------------
 // PMT settings/application-stages: the "Yangi bosqich" (add stage) modal.
@@ -10,7 +10,6 @@ import { login, BASE_URL } from "./helpers";
 
 test.describe("PMT — Ariza bosqichlari (settings/application-stages)", () => {
   test.beforeEach(async ({ page }) => {
-    await login(page);
     await page.goto(`${BASE_URL}/settings/application-stages`);
     await expect(page.getByText("ID", { exact: true })).toBeVisible({ timeout: 20000 });
   });
