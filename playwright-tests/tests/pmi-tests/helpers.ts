@@ -20,6 +20,23 @@ function requireCredential(name: "PMI_USERNAME" | "PMI_PASSWORD"): string {
 export const USERNAME = requireCredential("PMI_USERNAME");
 export const PASSWORD = requireCredential("PMI_PASSWORD");
 
+// Where auth.setup.ts caches the authenticated session. Every spec except
+// login.spec.ts reuses it via the "pmi" project's storageState, so the suite
+// performs ONE UI login instead of one per test. That matters here beyond
+// speed: the OneID modal is opened by a 5s press-and-hold, so 25 per-test
+// logins spent ~150s holding a button and put 25 cold page loads and 25 auth
+// round-trips on a test server that is already slow under load — which is what
+// made the backend-driven dropdowns in the update specs time out.
+export const AUTH_FILE = "playwright/.auth/pmi-user.json";
+
+/**
+ * Entry point for an already-authenticated context: opens the app dashboard,
+ * where login() used to leave the page. Specs call this instead of login().
+ */
+export async function gotoDashboard(page: Page): Promise<void> {
+  await page.goto(`${BASE_URL}/app/dashboard`);
+}
+
 /** How long the OneID button must be held before it reveals the modal. */
 const HOLD_MS = 5000;
 

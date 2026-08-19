@@ -1,5 +1,5 @@
 import { expect, type Page, type Locator } from "@playwright/test";
-import { login } from "./helpers";
+import { gotoDashboard } from "./helpers";
 
 // ---------------------------------------------------------------------------
 // Shared Naive UI helpers for the PMI project forms (create + update). The
@@ -94,7 +94,7 @@ export type CreatedProject = { year: string; id: string };
  * that and return the parsed ids so callers (the update test) can continue.
  */
 export async function createProject1tip(page: Page): Promise<CreatedProject> {
-  await login(page);
+  await gotoDashboard(page);
 
   await page.getByText("Loyihalar", { exact: true }).first().click();
   await page.getByRole("link", { name: "Loyiha qo'shish" }).click();
@@ -157,7 +157,7 @@ export async function createProject1tip(page: Page): Promise<CreatedProject> {
  * it has no start/end date fields. Returns the new project's {year, id}.
  */
 export async function createProject2tip(page: Page): Promise<CreatedProject> {
-  await login(page);
+  await gotoDashboard(page);
 
   await page.getByText("Loyihalar", { exact: true }).first().click();
   await page.getByRole("link", { name: "Loyiha qo'shish" }).click();
@@ -218,7 +218,7 @@ export async function createProject2tip(page: Page): Promise<CreatedProject> {
  * mas'ul rahbarlar / o'rinbosari). Returns the new project's {year, id}.
  */
 export async function createProject3tip(page: Page): Promise<CreatedProject> {
-  await login(page);
+  await gotoDashboard(page);
 
   await page.getByText("Loyihalar", { exact: true }).first().click();
   await page.getByRole("link", { name: "Loyiha qo'shish" }).click();
@@ -272,7 +272,7 @@ export async function createProject3tip(page: Page): Promise<CreatedProject> {
  * the new project's {year, id}.
  */
 export async function createProject4tip(page: Page): Promise<CreatedProject> {
-  await login(page);
+  await gotoDashboard(page);
 
   await page.getByText("Loyihalar", { exact: true }).first().click();
   await page.getByRole("link", { name: "Loyiha qo'shish" }).click();

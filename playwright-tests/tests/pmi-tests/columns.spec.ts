@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { login, BASE_URL } from "./helpers";
+import { BASE_URL } from "./helpers";
 
 // ---------------------------------------------------------------------------
 // PMI projects-list "Ustunlar" (columns) panel (testpmi.miit.uz/app/projects).
@@ -10,7 +10,6 @@ import { login, BASE_URL } from "./helpers";
 
 test.describe("PMI — Loyihalar Ustunlar (columns)", () => {
   test.beforeEach(async ({ page }) => {
-    await login(page);
     await page.goto(`${BASE_URL}/app/projects`);
     const table = page.locator(".n-data-table").first();
     await expect(table).toBeVisible({ timeout: 20000 });

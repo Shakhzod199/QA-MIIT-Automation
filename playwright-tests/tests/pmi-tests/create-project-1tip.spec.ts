@@ -1,5 +1,5 @@
 import { test, expect, type Page, type Locator } from "@playwright/test";
-import { login } from "./helpers";
+import { gotoDashboard } from "./helpers";
 
 // ---------------------------------------------------------------------------
 // Naive UI helpers — the PMI create-project form is Naive UI (Vue). Controls
@@ -119,7 +119,7 @@ test.describe("PMI — Loyihalar CRUD", () => {
     // give the whole flow more room than the 30s default.
     test.setTimeout(60000);
 
-    await login(page);
+    await gotoDashboard(page);
 
     // ── Sidebar → Loyihalar (expands submenu) → Loyiha qo'shish (a link) ──
     await page.getByText("Loyihalar", { exact: true }).first().click();

@@ -1,4 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
+// Keep the cached-session path in one place; tests/pmi-tests/helpers.ts
+// exports the same constant for auth.setup.ts to write to.
+const PMI_AUTH_FILE = "playwright/.auth/pmi-user.json";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 
@@ -24,7 +27,10 @@ const BASE_URL = process.env.BASE_URL ?? "http://localhost:3001";
 // ---------------------------------------------------------------------------
 export default defineConfig({
   fullyParallel: true,
-  retries: process.env.CI ? 2 : 0,
+  // CI has always retried; locally a single slow response from the shared test
+  // servers used to fail the whole run. One local retry absorbs that — flaky
+  // tests are still reported as "flaky", so a genuine regression is not hidden.
+  retries: process.env.CI ? 2 : 1,
   reporter: [["html", { open: "never" }], ["json", { outputFile: "playwright-report/results.json" }], ["list"]],
   use: {
     trace: "on-first-retry",
@@ -142,11 +148,39 @@ export default defineConfig({
     // from a local machine (backend dropdown options / navigation can take
     // 15-25s instead of <5s) — give every pmi test that headroom by default
     // instead of relying on test.setTimeout in each file.
+    // pmi is split three ways so the suite logs in ONCE instead of once per
+    // test. login.spec.ts must keep doing real UI logins (that is its subject),
+    // so it runs first in its own project without a cached session; pmi-setup
+    // then caches one session and every other spec reuses it. Running
+    // --project=pmi pulls both dependencies in automatically.
+    {
+      name: "pmi-login",
+      testDir: "./tests/pmi-tests",
+      testMatch: /login\.spec\.ts/,
+      timeout: 60000,
+      use: { ...devices["Desktop Chrome"], baseURL: process.env.PMI_BASE_URL ?? "http://localhost:3000" },
+    },
+
+    {
+      name: "pmi-setup",
+      testDir: "./tests/pmi-tests",
+      testMatch: /auth\.setup\.ts/,
+      dependencies: ["pmi-login"],
+      timeout: 60000,
+      use: { ...devices["Desktop Chrome"], baseURL: process.env.PMI_BASE_URL ?? "http://localhost:3000" },
+    },
+
     {
       name: "pmi",
       testDir: "./tests/pmi-tests",
+      testIgnore: [/login\.spec\.ts/, /auth\.setup\.ts/],
+      dependencies: ["pmi-setup"],
       timeout: 60000,
-      use: { ...devices["Desktop Chrome"], baseURL: process.env.PMI_BASE_URL ?? "http://localhost:3000" },
+      use: {
+        ...devices["Desktop Chrome"],
+        baseURL: process.env.PMI_BASE_URL ?? "http://localhost:3000",
+        storageState: PMI_AUTH_FILE,
+      },
     },
 
     // ── pmt frontend ─────────────────────────────────────────────────────────

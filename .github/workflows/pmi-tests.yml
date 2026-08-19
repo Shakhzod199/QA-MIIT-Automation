@@ -58,7 +58,14 @@ jobs:
     # don't waste time installing Playwright/Chromium for a type=load dispatch.
     if: ${{ inputs.type != 'load' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # 15 minutes used to cover install + tests, and a slow browser download
+    # could consume the whole budget on its own — GitHub then reports the job
+    # as "Cancelled" with the tests never having run (see run #135, where
+    # `playwright install` took 15m05s of a 15m job). The browser download is
+    # cached below, and the install step has its own timeout, so a stall there
+    # now fails fast and is attributed to the right step instead of silently
+    # eating the run.
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: playwright-tests
@@ -68,10 +75,32 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
+          cache-dependency-path: playwright-tests/package-lock.json
 
       - run: npm ci
 
-      - run: npx playwright install --with-deps chromium
+      # Chromium is ~150 MB and does not change between runs — cache it on the
+      # lockfile so only a Playwright version bump pays the download again.
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('playwright-tests/package-lock.json') }}
+
+      # On a cache hit only the apt system libraries are still needed; the
+      # browser itself is already on disk. Both paths are bounded so a hung
+      # apt mirror surfaces as a failed step rather than a cancelled job.
+      - name: Install Playwright browser + system deps
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        timeout-minutes: 8
+        run: npx playwright install --with-deps chromium
+
+      - name: Install Playwright system deps (browser cached)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        timeout-minutes: 5
+        run: npx playwright install-deps chromium
 
       - name: Run PMI tests
         env:

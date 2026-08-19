@@ -1,5 +1,5 @@
 import { test, expect, type Page, type BrowserContext, type Request } from "@playwright/test";
-import { login } from "./helpers";
+import { AUTH_FILE, gotoDashboard } from "./helpers";
 
 // ---------------------------------------------------------------------------
 // PMI "Dashbord" -> Loyiha boshqaruvi -> "Yakunlangan loyihalar"
@@ -252,10 +252,13 @@ let tiles: { label: string; value: string; unit: string }[];
 test.beforeAll(async ({ browser }) => {
   test.setTimeout(300_000);
 
-  context = await browser.newContext();
+  // This spec drives its own context rather than the per-test `page` fixture,
+  // so the project-level storageState does not apply automatically — load the
+  // cached session explicitly.
+  context = await browser.newContext({ storageState: AUTH_FILE });
   page = await context.newPage();
 
-  await login(page);
+  await gotoDashboard(page);
   // Let the main page finish its own fetches (project list, the country map,
   // ...) before we start recording. Navigating to the dashboard is a
   // client-side route change, so those requests are not cancelled and would
@@ -317,6 +320,23 @@ test.beforeAll(async ({ browser }) => {
   byRegion = (await responses.byRegion.json()).data;
   byNetwork = (await responses.byNetwork.json()).data;
 
+  // Step 3: the "Yakunlangan loyihalar" tab opens on its "Korxonalar reytingi"
+  // sub-view (TOP-5 rating, active/inactive enterprise cards). The 12 metric
+  // blocks belong to the sibling "Loyihalar natijalari" sub-view: they mount
+  // into the DOM either way, but their container stays display:none until that
+  // sub-view is selected.
+  //
+  // This click is not optional. readDashboard() reads through page.evaluate,
+  // which returns text from hidden nodes just as happily as visible ones, so
+  // without it the spec captures — and asserts against — an invisible panel,
+  // and the Hudud tab switch below then hangs until the hook times out,
+  // because a display:none tab never becomes clickable.
+  await page.getByText("Loyihalar natijalari", { exact: true }).first().click();
+  const anyBlock = page.locator(".n-card").filter({ has: page.locator(".n-tabs") }).first();
+  await expect(anyBlock, "the Loyihalar natijalari sub-view never became visible").toBeVisible({
+    timeout: 30_000,
+  });
+
   // Blocks lazy-mount on scroll.
   for (let i = 0; i < 14; i++) {
     await page.mouse.wheel(0, 900);
@@ -341,7 +361,13 @@ test.beforeAll(async ({ browser }) => {
     page.locator(".n-card").filter({ has: page.locator(".n-tabs-tab--active", { hasText: /^Tarmoq$/ }) });
   for (let guard = 0; guard <= indicators.statistics.length; guard++) {
     if ((await stillOnNetwork().count()) === 0) break;
-    await stillOnNetwork().first().locator(".n-tabs-tab", { hasText: /^Hudud$/ }).click();
+    // data-name is the component's own tab id ("network"/"region") and is
+    // stabler than the label. Each click is bounded: an unclickable tab must
+    // fail here, naming the block, rather than silently consuming the whole
+    // beforeAll budget with retries.
+    const tab = stillOnNetwork().first().locator('[data-name="region"]');
+    await tab.scrollIntoViewIfNeeded();
+    await tab.click({ timeout: 15_000 });
   }
   await expect(stillOnNetwork()).toHaveCount(0, { timeout: 15_000 });
   hudud = (await readDashboard(page)).blocks;

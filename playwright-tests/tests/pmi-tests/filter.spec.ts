@@ -1,5 +1,5 @@
 import { test, expect, type Page, type Locator } from "@playwright/test";
-import { login, BASE_URL } from "./helpers";
+import { BASE_URL } from "./helpers";
 
 // ---------------------------------------------------------------------------
 // PMI projects-list filters (testpmi.miit.uz/app/projects). Mirrors the export
@@ -39,7 +39,6 @@ async function applyFirstOption(page: Page, selection: Locator): Promise<boolean
 
 test.describe("PMI — Loyihalar filter", () => {
   test.beforeEach(async ({ page }) => {
-    await login(page);
     await page.goto(`${BASE_URL}/app/projects`);
   });
 
