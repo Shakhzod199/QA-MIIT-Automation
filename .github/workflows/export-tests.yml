@@ -58,7 +58,7 @@ jobs:
     # don't waste time installing Playwright/Chromium for a type=load dispatch.
     if: ${{ inputs.type != 'load' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 45
     defaults:
       run:
         working-directory: playwright-tests
@@ -68,10 +68,36 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
+          cache-dependency-path: playwright-tests/package-lock.json
 
       - run: npm ci
 
-      - run: npx playwright install --with-deps chromium
+      # Chromium is ~150 MB and does not change between runs — cache it on the
+      # lockfile so only a Playwright version bump pays the download again.
+      # Without this every run re-downloaded it, and on a slow runner that
+      # consumed the entire job budget: GitHub then reports "Cancelled" with
+      # the tests never having run.
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('playwright-tests/package-lock.json') }}
+
+      # Generous on the cold path: a cache miss has been measured at over 8
+      # minutes on a slow runner. It is paid once per Playwright bump, and the
+      # step is still bounded so a genuinely hung download fails fast and is
+      # attributed to the right step instead of cancelling the whole job.
+      - name: Install Playwright browser + system deps
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        timeout-minutes: 20
+        run: npx playwright install --with-deps chromium
+
+      - name: Install Playwright system deps (browser cached)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        timeout-minutes: 10
+        run: npx playwright install-deps chromium
 
       - name: Run export tests
         env:

@@ -60,12 +60,12 @@ jobs:
     runs-on: ubuntu-latest
     # 15 minutes used to cover install + tests, and a slow browser download
     # could consume the whole budget on its own — GitHub then reports the job
-    # as "Cancelled" with the tests never having run (see run #135, where
-    # `playwright install` took 15m05s of a 15m job). The browser download is
-    # cached below, and the install step has its own timeout, so a stall there
-    # now fails fast and is attributed to the right step instead of silently
-    # eating the run.
-    timeout-minutes: 30
+    # as "Cancelled" with the tests never having run (run #135: `playwright
+    # install` took 15m05s of a 15m job). The download is cached below and the
+    # install step is bounded, so a stall now fails fast against the right
+    # step. The first bound was 8 minutes, which run #136 proved too tight on a
+    # cold cache — it is 20 now, paid once per Playwright bump.
+    timeout-minutes: 45
     defaults:
       run:
         working-directory: playwright-tests
@@ -94,12 +94,12 @@ jobs:
       # apt mirror surfaces as a failed step rather than a cancelled job.
       - name: Install Playwright browser + system deps
         if: steps.playwright-cache.outputs.cache-hit != 'true'
-        timeout-minutes: 8
+        timeout-minutes: 20
         run: npx playwright install --with-deps chromium
 
       - name: Install Playwright system deps (browser cached)
         if: steps.playwright-cache.outputs.cache-hit == 'true'
-        timeout-minutes: 5
+        timeout-minutes: 10
         run: npx playwright install-deps chromium
 
       - name: Run PMI tests
