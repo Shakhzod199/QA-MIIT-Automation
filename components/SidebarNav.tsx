@@ -58,11 +58,14 @@ export function SidebarNav() {
   const flakyCount = flakyData?.tests?.length ?? 0;
 
   const [testCasesOpen, setTestCasesOpen] = useState(
-    pathname === "/" || pathname.startsWith("/suites")
+    pathname === "/test-cases" || pathname.startsWith("/suites")
   );
 
-  const isDashboard = pathname === "/trends";
-  const isTestCases = pathname === "/" || pathname.startsWith("/suites");
+  // "/" redirects to /trends (see app/page.tsx), so the Dashboard is also the
+  // active item on a bare root URL — otherwise nothing looks selected for the
+  // moment before the redirect lands.
+  const isDashboard = pathname === "/trends" || pathname === "/";
+  const isTestCases = pathname === "/test-cases" || pathname.startsWith("/suites");
   const isReports = pathname.startsWith("/reports");
   const isFlaky = pathname === "/flaky";
   const isUsers = pathname.startsWith("/users");
@@ -100,9 +103,9 @@ export function SidebarNav() {
           style={{ borderColor: "rgba(255,255,255,0.06)" }}
         >
           <Link
-            href="/"
+            href="/test-cases"
             className="rounded-[6px] px-3 py-1.5 text-[12px] font-medium transition"
-            style={pathname === "/" ? { color: "#3ddc97" } : { color: "#5b636e" }}
+            style={pathname === "/test-cases" ? { color: "#3ddc97" } : { color: "#5b636e" }}
           >
             {t("nav.allTestcases")}
           </Link>

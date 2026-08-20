@@ -166,7 +166,7 @@ function SuiteTestsPageInner({ params }: { params: Promise<{ id: string }> }) {
       <div className="space-y-6">
         <div>
           <p className="font-mono text-[11px] text-q-dim">
-            <Link href="/" className="hover:text-q-sub transition">Test Cases</Link>
+            <Link href="/test-cases" className="hover:text-q-sub transition">Test Cases</Link>
             {" / "}{workflow?.name ?? `Suite #${workflowId}`}
           </p>
           <div className="mt-2 flex items-center justify-between gap-4">
@@ -269,7 +269,7 @@ function SuiteTestsPageInner({ params }: { params: Promise<{ id: string }> }) {
     <div className="space-y-6">
       <div>
         <p className="font-mono text-[11px] text-q-dim">
-          <Link href="/" className="hover:text-q-sub transition">Test Cases</Link>
+          <Link href="/test-cases" className="hover:text-q-sub transition">Test Cases</Link>
           {" / "}{workflow?.name ?? `Suite #${workflowId}`}
         </p>
         <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
