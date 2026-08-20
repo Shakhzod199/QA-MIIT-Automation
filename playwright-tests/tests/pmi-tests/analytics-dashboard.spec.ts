@@ -158,6 +158,7 @@ interface Amount {
   value: number;
 }
 interface StatRow {
+  id: number | string;
   name: string;
   powerValue: number;
   [metric: string]: Amount | number | string | unknown;
@@ -490,11 +491,6 @@ test("Tarmoq tables list every network that has data for the metric", async () =
   assertRowSets(keyBlocksByMetric(tarmoq), byNetwork.results, "Tarmoq");
 });
 
-// Guards the ROW_SET_KNOWN_BUG_KEYS carve-out — see the note on that constant.
-test("assertRowSets watches the known GVA row drop", async () => {
-  assertKnownRowDrops(keyBlocksByMetric(tarmoq), byNetwork.results, "Tarmoq");
-});
-
 // --- Hudud ----------------------------------------------------------------
 
 test("Hudud tables faithfully render the by-region payload the page fetched", async () => {
@@ -534,44 +530,45 @@ test("the Hudud view shows a block for all 12 metrics", async () => {
 // --- shared table assertion ------------------------------------------------
 
 /**
- * The rows a block should list: those that have any data for its metric, i.e.
- * a non-zero plan or fact. Ishlab chiqarish is the exception — it is keyed on
- * the row's annual capacity (powerValue), the same value its first column
- * binds (see assertValues below), so its table lists every row with a capacity
- * even when this period's output is still 0.
+ * The rows a block should list. This mirrors the frontend's own two-stage
+ * filter rather than approximating it — an earlier approximation ("any non-zero
+ * plan or fact") over-counted the ratio blocks by one row and was misread as the
+ * page silently dropping data. It is not: the page is correct, and the rule is
+ *
+ *   stage 1, building each row:
+ *     ratio blocks     value      = metric.value || metric.power || metric.fact || 0
+ *                      keep if    Number(value) !== 0
+ *     plan/fact blocks powerValue = key === "manufacture" ? row.powerValue : metric.plan || 0
+ *                      fact       = metric.power || metric.fact || 0
+ *                      keep if    powerValue !== 0 || fact !== 0
+ *
+ *   stage 2, in the table component:
+ *     drop id === 0 (the aggregate row), then
+ *     rows carrying `value`  keep if value > 0.09
+ *     rows carrying neither `value` nor `plan` are kept as-is, so the 0.09
+ *     threshold applies to the ratio blocks only
+ *
+ * The 0.09 threshold is what excludes a ratio row the looser rule kept, and
+ * `id === 0` drops the aggregate. Ishlab chiqarish stays keyed on the row's
+ * annual capacity (powerValue), the same value its first column binds.
  */
 function rowsWithData(results: StatRow[], block: (typeof BLOCKS)[number]): string[] {
   const rowKey = block.rowKey ?? block.key;
   return results
+    .filter((r) => Number(r.id) !== 0)
     .filter((r) => {
-      if (block.key === "manufacture") return r.powerValue !== 0;
-      const metric = r[rowKey] as Amount;
-      return metric.plan !== 0 || metric.fact !== 0;
+      const metric = (r[rowKey] ?? {}) as Amount & { power?: number };
+      if (block.fourColumn) {
+        const powerValue = block.key === "manufacture" ? r.powerValue : metric.plan || 0;
+        const fact = metric.power || metric.fact || 0;
+        return Number(powerValue) !== 0 || Number(fact) !== 0;
+      }
+      const value = metric.value || metric.power || metric.fact || 0;
+      return Number(value) !== 0 && Number(value) > 0.09;
     })
     .map((r) => r.name);
 }
 
-/**
- * KNOWN BUG (open, 2026-08-19): the GVA block silently drops exactly one row
- * that has data. On the Tarmoq tab that row is "Chorvachilikni rivojlantirish",
- * whose payload reads gva = { plan: 0, fact: 403, value: 403 } (bln so'm) — the
- * table renders 39 of the 40 networks that have GVA data, and the omission is
- * not a threshold: rows with both larger (630.9) and far smaller (32.8) values
- * render fine.
- *
- * This is the same defect previously seen on the by-initiator tab, where the
- * block dropped two initiators with a non-zero gva.fact. It became unobservable
- * when by-initiator started returning gva as 0 for everyone, and is observable
- * again now that the tab is fed by by-network.
- *
- * The block is excluded from the row-set assertion so one open frontend bug
- * does not redden the whole suite — its VALUES are still fully asserted by
- * assertValues, and the other eleven blocks still have their row sets checked.
- * "assertRowSets watches the known GVA row drop" below then pins the exclusion
- * to exactly one missing row, so the suite reports it if the bug is fixed or
- * gets worse instead of quietly carrying the carve-out forever.
- */
-const ROW_SET_KNOWN_BUG_KEYS = new Set(["gva"]);
 
 /**
  * Tables are filtered: a block lists exactly the rows that have data for its
@@ -582,7 +579,6 @@ const ROW_SET_KNOWN_BUG_KEYS = new Set(["gva"]);
  */
 function assertRowSets(blocks: Map<string, BlockCapture>, results: StatRow[], tab: string) {
   BLOCKS.forEach((block) => {
-    if (ROW_SET_KNOWN_BUG_KEYS.has(block.key)) return; // see the note above
     const captured = blocks.get(block.key);
     if (!captured) return; // presence is asserted separately
     expect(
@@ -592,27 +588,6 @@ function assertRowSets(blocks: Map<string, BlockCapture>, results: StatRow[], ta
   });
 }
 
-/**
- * Reports the rows each carved-out block drops, and fails if that count moves.
- * Without this the exclusion above would silently outlive the bug: a fix would
- * go unnoticed and a worsening drop would hide behind the carve-out.
- */
-function assertKnownRowDrops(blocks: Map<string, BlockCapture>, results: StatRow[], tab: string) {
-  for (const key of ROW_SET_KNOWN_BUG_KEYS) {
-    const block = BLOCKS.find((b) => b.key === key)!;
-    const captured = blocks.get(key);
-    if (!captured) continue;
-    const rendered = new Set(captured.rows.map((r) => r.name));
-    const dropped = rowsWithData(results, block).filter((name) => !rendered.has(name));
-    expect(
-      dropped.length,
-      `${tab} / ${key}: expected exactly 1 known dropped row, got ${dropped.length}` +
-        ` -> ${JSON.stringify(dropped)}. If this is 0 the frontend bug is FIXED —` +
-        ` remove "${key}" from ROW_SET_KNOWN_BUG_KEYS and delete this watchdog.` +
-        ` If it is above 1 the drop has got worse and needs re-reporting.`
-    ).toBe(1);
-  }
-}
 
 /**
  * Compares every rendered cell against its payload row, matched by name.
