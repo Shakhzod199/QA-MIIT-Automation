@@ -35,7 +35,13 @@ async function drawTriangle(
   await page.waitForTimeout(200);
   await page.mouse.click(p3.x, p3.y);
   await page.waitForTimeout(200);
-  await page.locator('a[title="Finish drawing"]').first().click();
+  // Matched by position, not title/text — the toolbar's title attribute is
+  // translated (was English "Finish drawing", now Uzbek "Chizishni
+  // yakunlash") and broke this locator once already, the same way the
+  // polygon button's did above. Leaflet.draw always renders its in-progress
+  // actions as Finish/Undo-last-point/Cancel in that fixed order regardless
+  // of locale, so the first link in `.leaflet-draw-actions` is Finish.
+  await page.locator(".leaflet-draw-actions a").first().click();
 }
 
 test.describe("SEZ — Iqtisodiy va sanoat zonalarini yaratish", () => {
