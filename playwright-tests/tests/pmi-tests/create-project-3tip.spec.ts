@@ -55,8 +55,35 @@ async function selectRandomDavlat(page: Page) {
  * instead of relying on the default 5s expect timeout.
  */
 async function selectMultiOption(page: Page, label: string, optionText: string) {
-  await formItem(page, label).locator(".n-base-selection").first().click();
-  const option = page.locator(".n-base-select-option", { hasText: optionText }).first();
+  const selection = formItem(page, label).locator(".n-base-selection").first();
+  await selection.click();
+
+  // Scope to the dropdown that just opened (the only *visible* select menu).
+  // A previous field's menu leaves its options in the DOM merely hidden, not
+  // removed, so an unscoped ".n-base-select-option" locator matches THAT
+  // stale menu instead and never sees this one.
+  const menuOptions = page.locator(".n-base-select-menu:visible .n-base-select-option");
+
+  // These lists are VIRTUALIZED — naive-ui renders only a screenful of
+  // options at a time, so a target further down an alphabetical list (e.g.
+  // "Andijon viloyati" among 14 regions) never enters the DOM on its own,
+  // and waiting for it times out even though the option genuinely exists.
+  // The field is filterable, so type the search text to narrow the dataset
+  // and pull the option into the rendered window. Guarded on the input being
+  // typable because not every n-select here is filterable — a
+  // readonly/disabled input falls back to the old match-what-is-rendered
+  // behaviour, which is fine for short lists.
+  await expect(menuOptions.first()).toBeVisible({ timeout: 25000 });
+  const input = selection.locator("input").first();
+  const typable = await input
+    .evaluate((el) => !(el as HTMLInputElement).readOnly && !(el as HTMLInputElement).disabled)
+    .catch(() => false);
+  if (typable) {
+    // pressSequentially, not fill — naive-ui filters off real key events.
+    await input.pressSequentially(optionText, { delay: 50 });
+  }
+
+  const option = menuOptions.filter({ hasText: optionText }).first();
   await expect(option).toBeVisible({ timeout: 25000 });
   await option.click();
   await page.keyboard.press("Escape");
