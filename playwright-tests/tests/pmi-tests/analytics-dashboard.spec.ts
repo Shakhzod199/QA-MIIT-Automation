@@ -1,31 +1,46 @@
-import { test, expect, type Page, type BrowserContext, type Request } from "@playwright/test";
+import {
+  test,
+  expect,
+  type Page,
+  type BrowserContext,
+  type Request,
+  type Response,
+} from "@playwright/test";
 import { AUTH_FILE, gotoDashboard } from "./helpers";
 
 // ---------------------------------------------------------------------------
-// PMI "Dashbord" -> Loyiha boshqaruvi -> "Yakunlangan loyihalar"
-// (/app/analytics?tab=completed_projects).
+// PMI "Dashbord" -> Loyiha boshqaruvi -> "Yakunlangan loyihalar" (a dropdown,
+// not a direct link) -> "Loyihalar natijalari"
+// (/app/analytics?tab=completed_projects&pmt_tab=pmi).
 //
-// This screen moved twice in one redesign, so the navigation is spelled out
-// here. "Dashbord" used to be a plain button that navigated straight to
-// /app/analytics; it is now a dropdown offering "Loyiha boshqaruvi"
-// (-> /app/analytics) and "Umumiy dashboard" (-> /app/pms, a different page
-// entirely). /app/analytics then defaults to a PMI-native portfolio view, and
-// the PMT-MIIT dashboard this spec covers is behind its "Yakunlangan
-// loyihalar" tab.
+// This screen has moved and reshaped repeatedly, so the navigation is spelled
+// out here rather than assumed. "Dashbord" is a dropdown offering "Loyiha
+// boshqaruvi" (-> /app/analytics) and "Umumiy dashboard" (-> /app/pms, a
+// different page). /app/analytics defaults to a PMI-native portfolio view;
+// the PMT-MIIT dashboard this spec covers is NOT that default view, and is
+// not a plain tab either — "Yakunlangan loyihalar" is itself a dropdown
+// (added after the tab existed as a flat click-through) offering "Korxonalar
+// reytingi", "Loyihalar natijalari" and "Yo'l xarita". Only "Loyihalar
+// natijalari" is this dashboard; clicking "Yakunlangan loyihalar" alone only
+// opens that menu; it fires none of the endpoints below on its own — an
+// earlier version of this spec stopped at that click and hung for the full
+// beforeAll budget waiting for by-content, which never came.
 //
 // Every number on that tab is sourced from the PMT-MIIT integration — PMI
 // itself contributes no data here. These endpoints feed the screen:
 //
 //   .../project/pmt-miit/statistics/by-content    -> the KPI tiles
 //   .../project/pmt-miit/statistics/indicators    -> the 12 block headlines
-//   .../project/pmt-miit/statistics/by-network    -> each block's "Tarmoq" table
-//   .../project/pmt-miit/statistics/by-region     -> each block's "Hudud" table
+//   .../project/pmt-miit/statistics/by-network    -> each block's "network"-tab table
+//   .../project/pmt-miit/statistics/by-region     -> each block's "region"-tab table
 //   .../project/pmt-miit/statistics/by-initiator  -> the TOP-5 rating card
 //
-// The per-block tabs used to be "Tashabbuskor"/"Hudud" fed by by-initiator and
-// by-region. They are now "Tarmoq"/"Hudud" fed by by-network and by-region;
-// by-initiator is still fetched, but only for a rating card this spec does not
-// assert over, so it is checked for provenance and payload only.
+// The per-block tab pair is captured and driven by each tab's `data-name`
+// attribute ("network" / "region"), not by its rendered label — that label
+// has been "Tashabbuskor", then "Tarmoq", then "Sanoat" across this one
+// screen's redesigns (region's label, "Hudud", has stayed put). by-initiator
+// is still fetched, but only for a rating card this spec does not assert
+// over, so it is checked for provenance and payload only.
 //
 // So this spec does two things: prove the data really does all come from that
 // integration (nothing is quietly served from PMI's own tables), and prove the
@@ -115,8 +130,16 @@ const TILE_LABELS: Record<string, string> = {
  * renders them in exactly that order). `title` guards against a silent
  * reorder; `rowKey` exists because the two endpoints disagree on one name —
  * `indicators` calls it "ipjc" while the table rows call it "ip".
+ *
+ * All 12 share one more filter on the network tab specifically — see
+ * NETWORK_TAB_GROUP_RESTRICTION below.
  */
-const BLOCKS: { key: string; rowKey?: string; title: string | RegExp; fourColumn?: true }[] = [
+const BLOCKS: {
+  key: string;
+  rowKey?: string;
+  title: string | RegExp;
+  fourColumn?: true;
+}[] = [
   { key: "manufacture", title: "Ishlab chiqarish", fourColumn: true },
   { key: "export", title: "Eksport", fourColumn: true },
   { key: "workspace", title: "Ish o'rni", fourColumn: true },
@@ -130,6 +153,28 @@ const BLOCKS: { key: string; rowKey?: string; title: string | RegExp; fourColumn
   { key: "ic", title: /\(IC\)/ },
   { key: "va", title: /VA Share/ },
 ];
+
+/**
+ * by-network's own sector grouping — 1 is "Sanoat" (industry); 2/3/4 are
+ * agriculture, services and infrastructure. by-region carries the same field
+ * but it is always 0 there (undifferentiated), so this only ever applies to
+ * the network tab.
+ *
+ * Every block's network-tab table settles to group 1 only — but not
+ * instantly. by-network is requested NINE times on this tab: once plain
+ * (all 4 groups, 41 rows) and once more with `direction=1` per block that
+ * needs its own per-block fetch (18 rows, group 1 only) — 8 requests, one
+ * per block below EXCEPT gva/ipjc/pp/va. Watching one block's row count
+ * over time after landing shows why that matters: gva rendered 39 rows
+ * (all 4 groups) at 3s and 6s, then 18 (group 1 only) at every check from
+ * 9s onward. Something shared across all 12 blocks' tables gets overwritten
+ * by whichever of those nine responses resolves last — evidently a bug, but
+ * one that is over by the time this spec's beforeAll (which scrolls and
+ * polls before capturing) gets to reading the DOM. So this models the
+ * settled reality every block actually shows, not the brief and arguably
+ * more "correct" wider window right after navigation.
+ */
+const NETWORK_TAB_GROUP_RESTRICTION = 1;
 
 const FOUR_COLUMN_KEYS = new Set(BLOCKS.filter((b) => b.fourColumn).map((b) => b.key));
 
@@ -161,6 +206,11 @@ interface StatRow {
   id: number | string;
   name: string;
   powerValue: number;
+  // by-network's own sector grouping — 1 is "Sanoat" (industry), the only
+  // group this screen's network tab renders; 2/3/4 are agriculture, services
+  // and infrastructure respectively, present in the payload but never shown
+  // here. by-region carries this field too, always 0 (undifferentiated).
+  group?: number;
   [metric: string]: Amount | number | string | unknown;
 }
 interface BlockCapture {
@@ -218,8 +268,15 @@ function readDashboard(page: Page): Promise<{ tiles: { label: string; value: str
     const blocks = Array.from(document.querySelectorAll(".n-card"))
       .filter((c) => c.querySelector(".n-tabs"))
       .map((b) => ({
-        title: txt(b.querySelector(".n-card-header__main")).replace(/Tarmoq\s*Hudud\s*$/, "").trim(),
-        activeTab: txt(b.querySelector(".n-tabs-tab--active")),
+        // The title lives in its own <h3>, a sibling of the tabs wrapper
+        // inside .n-card-header__main — read that directly instead of
+        // reading the whole header's text and stripping the tab labels back
+        // off. The old strip regex hardcoded those labels, and broke the
+        // moment they were re-translated (again).
+        title: txt(b.querySelector(".n-card-header__main h3")).trim(),
+        // data-name ("network" / "region") is the tab's own stable id; its
+        // rendered label is not — see the header comment.
+        activeTab: b.querySelector(".n-tabs-tab--active")?.getAttribute("data-name") ?? "",
         summary: txt(b.querySelector(".n-card-content")).split("T/r")[0],
         rows: Array.from(b.querySelectorAll("tbody tr"))
           .map((tr) => {
@@ -246,7 +303,7 @@ let indicators: { statistics: { key: string; measurement: string; plan: number; 
 let byInitiator: { results: StatRow[] };
 let byRegion: { results: StatRow[] };
 let byNetwork: { results: StatRow[] };
-let tarmoq: BlockCapture[];
+let networkTab: BlockCapture[];
 let hudud: BlockCapture[];
 let tiles: { label: string; value: string; unit: string }[];
 
@@ -300,8 +357,13 @@ test.beforeAll(async ({ browser }) => {
     }
   });
 
-  // Step 2: open the "Yakunlangan loyihalar" tab — the PMT-MIIT dashboard.
+  // Step 2: "Yakunlangan loyihalar" is a dropdown trigger, not a link — it
+  // only opens a menu (Korxonalar reytingi / Loyihalar natijalari / Yo'l
+  // xarita). None of the pmt-miit endpoints below fire until "Loyihalar
+  // natijalari" is picked from it; clicking the trigger alone left this spec
+  // waiting the full 90s per endpoint for calls that were never going to come.
   await page.getByRole("button", { name: "Yakunlangan loyihalar", exact: true }).click();
+  await page.getByText("Loyihalar natijalari", { exact: true }).click();
 
   const responses = {
     byContent: await pending.byContent,
@@ -321,37 +383,40 @@ test.beforeAll(async ({ browser }) => {
   byRegion = (await responses.byRegion.json()).data;
   byNetwork = (await responses.byNetwork.json()).data;
 
-  // Step 3: reveal the 12 metric blocks. This tab has shipped in two shapes,
-  // so the step is deliberately conditional rather than assuming either.
-  //
-  //   1. It used to open on a "Korxonalar reytingi" sub-view (TOP-5 rating,
-  //      active/inactive enterprise cards), with the metric blocks behind a
-  //      sibling "Loyihalar natijalari" toggle. The blocks mounted into the DOM
-  //      either way, but their container stayed display:none until selected.
-  //   2. As of 2026-08-19 that toggle is gone and the blocks render directly.
-  //
-  // When the toggle IS present the click is essential: readDashboard() reads
-  // through page.evaluate, which returns text from hidden nodes just as happily
-  // as visible ones, so skipping it would capture an invisible panel and the
-  // Hudud tab switch below would hang on a display:none tab until the hook
-  // timed out. But making it unconditional fails exactly the same way when the
-  // toggle is absent — that is CI run #139, where the click waited out the full
-  // 300s hook budget for an element that no longer exists.
-  //
-  // So: click it if it shows up, carry on if it does not, and let the block
-  // visibility assertion below be the thing that actually gates the capture.
-  const subView = page.getByText("Loyihalar natijalari", { exact: true }).first();
-  const hasSubView = await subView
-    .waitFor({ state: "visible", timeout: 10_000 })
-    .then(() => true)
-    .catch(() => false);
-  if (hasSubView) await subView.click();
-
+  // Step 3: the click in step 2 already landed on "Loyihalar natijalari" —
+  // wait for its 12 metric blocks to actually be visible before capturing.
   const anyBlock = page.locator(".n-card").filter({ has: page.locator(".n-tabs") }).first();
-  await expect(
-    anyBlock,
-    `the metric blocks never became visible (sub-view toggle ${hasSubView ? "was" : "was not"} present)`
-  ).toBeVisible({ timeout: 30_000 });
+  await expect(anyBlock, "the metric blocks never became visible").toBeVisible({ timeout: 30_000 });
+
+  // by-network is requested NINE times on this tab (once plain, plus once
+  // per block with `direction=1`), and something shared across all 12
+  // blocks' tables gets overwritten by whichever of those nine resolves
+  // last — see NETWORK_TAB_GROUP_RESTRICTION. `pending.byNetwork` above only
+  // resolved on the FIRST of the nine, so capturing right after it settles
+  // is a race: whichever blocks' direction=1 responses hadn't landed yet
+  // still show the wider, pre-overwrite row set at that instant. Confirmed
+  // empirically that which block(s) are still mid-transition varies between
+  // runs (gva one run, icor the next) — this is not one block's problem to
+  // special-case.
+  //
+  // Tracked by RESPONSE, not request: all nine are dispatched in one burst
+  // essentially immediately, so a request-based tracker goes quiet the
+  // instant they are all sent — before any of the nine have actually been
+  // processed and re-rendered the DOM, which is what the race is over. A
+  // first version of this wait did exactly that and was still flaky.
+  let lastByNetworkResponse = Date.now();
+  const trackByNetwork = (r: Response) => {
+    if (r.url().includes(ENDPOINTS.byNetwork)) lastByNetworkResponse = Date.now();
+  };
+  page.on("response", trackByNetwork);
+  try {
+    const deadline = Date.now() + 30_000;
+    while (Date.now() < deadline && Date.now() - lastByNetworkResponse < 4_000) {
+      await page.waitForTimeout(200);
+    }
+  } finally {
+    page.off("response", trackByNetwork);
+  }
 
   // Blocks lazy-mount on scroll.
   for (let i = 0; i < 14; i++) {
@@ -364,7 +429,7 @@ test.beforeAll(async ({ browser }) => {
   );
 
   const captured = await readDashboard(page);
-  tarmoq = captured.blocks;
+  networkTab = captured.blocks;
   tiles = captured.tiles;
   dataCallUrls = requestedUrls.filter(isDataCall);
 
@@ -374,7 +439,9 @@ test.beforeAll(async ({ browser }) => {
   // that any reordering or remounting on tab switch cannot shift cached indices.
   expect(await page.locator(".n-tabs-tab", { hasText: /^Hudud$/ }).count()).toBe(indicators.statistics.length);
   const stillOnNetwork = () =>
-    page.locator(".n-card").filter({ has: page.locator(".n-tabs-tab--active", { hasText: /^Tarmoq$/ }) });
+    page.locator(".n-card").filter({
+      has: page.locator('.n-tabs-tab--active[data-name="network"]'),
+    });
   for (let guard = 0; guard <= indicators.statistics.length; guard++) {
     if ((await stillOnNetwork().count()) === 0) break;
     // data-name is the component's own tab id ("network"/"region") and is
@@ -446,13 +513,13 @@ test("KPI tiles render the values by-content returned", async () => {
 // --- metric blocks ---------------------------------------------------------
 
 test("the 12 metric blocks render in the order indicators returns them", async () => {
-  expect(tarmoq.length).toBe(BLOCKS.length);
+  expect(networkTab.length).toBe(BLOCKS.length);
   BLOCKS.forEach((block, i) => {
     expect(indicators.statistics[i].key, `indicators[${i}] should be "${block.key}"`).toBe(block.key);
     if (typeof block.title === "string") {
-      expect(tarmoq[i].title).toBe(block.title);
+      expect(networkTab[i].title).toBe(block.title);
     } else {
-      expect(tarmoq[i].title).toMatch(block.title);
+      expect(networkTab[i].title).toMatch(block.title);
     }
   });
 });
@@ -460,9 +527,9 @@ test("the 12 metric blocks render in the order indicators returns them", async (
 test("block headlines render the values indicators returned", async () => {
   BLOCKS.forEach((block, i) => {
     const stat = indicators.statistics[i];
-    const numbers = parseSummary(tarmoq[i].summary);
+    const numbers = parseSummary(networkTab[i].summary);
     const expected = block.fourColumn ? [stat.plan, stat.fact] : [stat.fact];
-    expect(numbers.length, `block "${block.key}" headline: ${tarmoq[i].summary}`).toBe(expected.length);
+    expect(numbers.length, `block "${block.key}" headline: ${networkTab[i].summary}`).toBe(expected.length);
     numbers.forEach((actual, j) => {
       // Headlines round like the tiles do (icor keeps a decimal, pp does not).
       expect(
@@ -473,12 +540,12 @@ test("block headlines render the values indicators returned", async () => {
   });
 });
 
-test("the Tarmoq view shows a block for all 12 metrics", async () => {
-  expect([...keyBlocksByMetric(tarmoq).keys()].sort()).toEqual([...ALL_KEYS].sort());
+test("the network-tab view shows a block for all 12 metrics", async () => {
+  expect([...keyBlocksByMetric(networkTab).keys()].sort()).toEqual([...ALL_KEYS].sort());
 });
 
-test("Tarmoq tables match by-network row for row", async () => {
-  assertValues(keyBlocksByMetric(tarmoq), byNetwork.results, "Tarmoq");
+test("network-tab tables match by-network row for row", async () => {
+  assertValues(keyBlocksByMetric(networkTab), byNetwork.results, "network-tab");
 });
 
 // GVA used to be carved out here as a known bug, back when this tab was fed by
@@ -487,14 +554,14 @@ test("Tarmoq tables match by-network row for row", async () => {
 // be reconciled against its rows. The tab is fed by by-network now, so that
 // exact carve-out no longer applies; the assertion below is left general so a
 // dropped row reports itself directly on whichever payload feeds the tab.
-test("Tarmoq tables list every network that has data for the metric", async () => {
-  assertRowSets(keyBlocksByMetric(tarmoq), byNetwork.results, "Tarmoq");
+test("network-tab tables list every network that has data for the metric", async () => {
+  assertRowSets(keyBlocksByMetric(networkTab), byNetwork.results, "network-tab");
 });
 
 // --- Hudud ----------------------------------------------------------------
 
 test("Hudud tables faithfully render the by-region payload the page fetched", async () => {
-  hudud.forEach((block) => expect(block.activeTab, `block "${block.title}"`).toBe("Hudud"));
+  hudud.forEach((block) => expect(block.activeTab, `block "${block.title}"`).toBe("region"));
   const keyed = keyBlocksByMetric(hudud);
   assertValues(keyed, byRegion.results, "Hudud");
   assertRowSets(keyed, byRegion.results, "Hudud");
@@ -536,8 +603,15 @@ test("the Hudud view shows a block for all 12 metrics", async () => {
  * page silently dropping data. It is not: the page is correct, and the rule is
  *
  *   stage 1, building each row:
- *     ratio blocks     value      = metric.value || metric.power || metric.fact || 0
- *                      keep if    Number(value) !== 0
+ *     ratio blocks     keep if    Number(metric.value) > 0.09 — `value` ONLY,
+ *                                 no fallback to power/fact. A ratio row can
+ *                                 have value === 0 with a large non-zero fact
+ *                                 (e.g. ep / Energetika sanoati: value 0,
+ *                                 fact 4400) and the page excludes it. The
+ *                                 fallback chain belongs to assertValues'
+ *                                 DISPLAY of an already-included row, not to
+ *                                 the inclusion decision — conflating the two
+ *                                 wrongly kept that row as "expected".
  *     plan/fact blocks powerValue = key === "manufacture" ? row.powerValue : metric.plan || 0
  *                      fact       = metric.power || metric.fact || 0
  *                      keep if    powerValue !== 0 || fact !== 0
@@ -548,14 +622,22 @@ test("the Hudud view shows a block for all 12 metrics", async () => {
  *     rows carrying neither `value` nor `plan` are kept as-is, so the 0.09
  *     threshold applies to the ratio blocks only
  *
- * The 0.09 threshold is what excludes a ratio row the looser rule kept, and
  * `id === 0` drops the aggregate. Ishlab chiqarish stays keyed on the row's
  * annual capacity (powerValue), the same value its first column binds.
+ *
+ * `restrictToGroup`, when given, additionally drops every row whose `group`
+ * does not match — see NETWORK_TAB_GROUP_RESTRICTION above for the network
+ * tab, which is the only caller that passes this.
  */
-function rowsWithData(results: StatRow[], block: (typeof BLOCKS)[number]): string[] {
+function rowsWithData(
+  results: StatRow[],
+  block: (typeof BLOCKS)[number],
+  restrictToGroup?: number
+): string[] {
   const rowKey = block.rowKey ?? block.key;
   return results
     .filter((r) => Number(r.id) !== 0)
+    .filter((r) => restrictToGroup === undefined || r.group === restrictToGroup)
     .filter((r) => {
       const metric = (r[rowKey] ?? {}) as Amount & { power?: number };
       if (block.fourColumn) {
@@ -563,8 +645,7 @@ function rowsWithData(results: StatRow[], block: (typeof BLOCKS)[number]): strin
         const fact = metric.power || metric.fact || 0;
         return Number(powerValue) !== 0 || Number(fact) !== 0;
       }
-      const value = metric.value || metric.power || metric.fact || 0;
-      return Number(value) !== 0 && Number(value) > 0.09;
+      return Number(metric.value) > 0.09;
     })
     .map((r) => r.name);
 }
@@ -578,13 +659,14 @@ function rowsWithData(results: StatRow[], block: (typeof BLOCKS)[number]): strin
  * regressions in the other eleven.
  */
 function assertRowSets(blocks: Map<string, BlockCapture>, results: StatRow[], tab: string) {
+  const restrictToGroup = tab === "network-tab" ? NETWORK_TAB_GROUP_RESTRICTION : undefined;
   BLOCKS.forEach((block) => {
     const captured = blocks.get(block.key);
     if (!captured) return; // presence is asserted separately
     expect(
       new Set(captured.rows.map((r) => r.name)),
       `${tab} / ${block.key}: rendered rows differ from the rows that have data`
-    ).toEqual(new Set(rowsWithData(results, block)));
+    ).toEqual(new Set(rowsWithData(results, block, restrictToGroup)));
   });
 }
 
@@ -597,6 +679,7 @@ function assertRowSets(blocks: Map<string, BlockCapture>, results: StatRow[], ta
  */
 function assertValues(blocks: Map<string, BlockCapture>, results: StatRow[], tab: string) {
   const byName = new Map(results.map((r) => [r.name, r]));
+  const restrictToGroup = tab === "network-tab" ? NETWORK_TAB_GROUP_RESTRICTION : undefined;
 
   BLOCKS.forEach((block) => {
     const captured = blocks.get(block.key);
@@ -609,7 +692,7 @@ function assertValues(blocks: Map<string, BlockCapture>, results: StatRow[], tab
       // The block rendered its empty state. That is only correct if the
       // payload really has nothing for this metric this period.
       expect(
-        rowsWithData(results, block),
+        rowsWithData(results, block, restrictToGroup),
         `${label}: table is empty but the payload has rows for this metric`
       ).toEqual([]);
       return;
