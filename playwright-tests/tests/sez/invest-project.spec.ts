@@ -6,7 +6,7 @@ import { AUTH_FILE, BASE_URL, formItem, selectOption } from "./helpers";
 // Opens the side-menu "Investitsiya loyihalari" list, clicks "Yaratish", and
 // fills the Pasport tab fields step by step: Investor, Loyiha nomi, Soha,
 // Viloyat, Tuman, Sanoat zonasi nomi, Mas'ul direksiya, Direksiyadan mas'ul
-// shaxs (+ kontakti), Yuridik shaxs - INN. Fields that auto-populate from
+// xodim (+ kontakti), Yuridik shaxs - INN. Fields that auto-populate from
 // these (Davlat, ixtisoslashuvi, Mahalliy hamkor, Ro'yxatdan o'tgan sana,
 // Rahbar F.I.Sh., JSHSHIR, Telefon raqami, Manzil, Bank) are left untouched.
 // Then switches to "Loyiha obyekti joylashuvi va fotosi" and, if the chosen
@@ -99,8 +99,10 @@ test.describe("SEZ — Investitsiya loyihalari", () => {
     // zone's passport — left untouched.
 
     await selectOption(page, "Mas'ul direksiya");
-    await formItem(page, "Direksiyadan mas'ul shaxs").locator("input").first().fill("Avtotest mas'ul shaxs");
-    await formItem(page, "Direksiyadan mas'ul shaxs kontakti")
+    // Label was "Direksiyadan mas'ul shaxs" ("person"); the app renamed it to
+    // "xodim" ("employee") without changing the field's meaning or position.
+    await formItem(page, "Direksiyadan mas'ul xodim").locator("input").first().fill("Avtotest mas'ul xodim");
+    await formItem(page, "Direksiyadan mas'ul xodim kontakti")
       .locator("input")
       .first()
       .fill("+998901234567");
