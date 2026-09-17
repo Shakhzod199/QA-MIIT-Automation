@@ -18,6 +18,20 @@ function requireCredential(name: "SEZ_USERNAME" | "SEZ_PASSWORD"): string {
 export const USERNAME = requireCredential("SEZ_USERNAME");
 export const PASSWORD = requireCredential("SEZ_PASSWORD");
 
+// Escaped once so BASE_URL's own dots don't act as regex wildcards.
+const ESCAPED_BASE_URL = BASE_URL.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/**
+ * The dashboard lands here after login, but not at a bare "/dashboard/" —
+ * it now carries default filter query params (observed:
+ * "?zone_category_ids=1,5,6,4&page=1&per_page=20"). An exact-string
+ * toHaveURL(`${BASE_URL}/dashboard/`) never matches that and made a
+ * genuinely successful login look like a rejected one — the login API call
+ * itself returned 200 with a valid token every time this was chased down.
+ * Match the path and allow any (or no) query string instead.
+ */
+export const DASHBOARD_URL_RE = new RegExp(`^${ESCAPED_BASE_URL}/dashboard/(\\?.*)?$`);
+
 // Where auth.setup.ts caches the authenticated session. The data-driven specs
 // (columns/filter) reuse it via test.use({ storageState: AUTH_FILE }) instead
 // of logging in again — the SEZ backend appears to invalidate a session when
@@ -56,7 +70,7 @@ export async function login(page: Page): Promise<void> {
   await loginModal.getByPlaceholder("Parol").fill(PASSWORD);
   await loginModal.getByRole("button", { name: "Kirish", exact: true }).click();
 
-  await expect(page).toHaveURL(`${BASE_URL}/dashboard/`, { timeout: 15000 });
+  await expect(page).toHaveURL(DASHBOARD_URL_RE, { timeout: 15000 });
 }
 
 /** The `.n-form-item` matched by its LABEL text. */

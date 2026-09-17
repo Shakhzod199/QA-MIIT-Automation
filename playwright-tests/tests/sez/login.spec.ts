@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { BASE_URL, USERNAME, PASSWORD, login } from "./helpers";
+import { BASE_URL, USERNAME, PASSWORD, login, DASHBOARD_URL_RE } from "./helpers";
 
 // Serial: both tests perform a fresh UI login with the same account, and the
 // SEZ backend appears to invalidate a session when it logs in concurrently
@@ -31,11 +31,11 @@ test.describe("SEZ login flow", () => {
     await loginModal.getByPlaceholder("Parol").fill(PASSWORD);
     await loginModal.getByRole("button", { name: "Kirish", exact: true }).click();
 
-    await expect(page).toHaveURL(`${BASE_URL}/dashboard/`, { timeout: 15000 });
+    await expect(page).toHaveURL(DASHBOARD_URL_RE, { timeout: 15000 });
   });
 
   test("login() helper lands on the dashboard", async ({ page }) => {
     await login(page);
-    await expect(page).toHaveURL(`${BASE_URL}/dashboard/`);
+    await expect(page).toHaveURL(DASHBOARD_URL_RE);
   });
 });
