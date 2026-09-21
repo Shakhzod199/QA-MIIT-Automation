@@ -89,7 +89,7 @@ export default defineConfig({
       name: "sez-login",
       testDir: "./tests/sez",
       testMatch: /login\.spec\.ts/,
-      use: { ...devices["Desktop Chrome"], baseURL: process.env.SEZ_BASE_URL ?? "https://testsez2.miit.uz" },
+      use: { ...devices["Desktop Chrome"], baseURL: process.env.SEZ_BASE_URL ?? "https://testsez.miit.uz" },
     },
 
     {
@@ -97,7 +97,7 @@ export default defineConfig({
       testDir: "./tests/sez",
       testMatch: /auth\.setup\.ts/,
       dependencies: ["sez-login"],
-      use: { ...devices["Desktop Chrome"], baseURL: process.env.SEZ_BASE_URL ?? "https://testsez2.miit.uz" },
+      use: { ...devices["Desktop Chrome"], baseURL: process.env.SEZ_BASE_URL ?? "https://testsez.miit.uz" },
     },
 
     {
@@ -105,7 +105,7 @@ export default defineConfig({
       testDir: "./tests/sez",
       testMatch: /columns\.spec\.ts/,
       dependencies: ["sez-setup"],
-      use: { ...devices["Desktop Chrome"], baseURL: process.env.SEZ_BASE_URL ?? "https://testsez2.miit.uz" },
+      use: { ...devices["Desktop Chrome"], baseURL: process.env.SEZ_BASE_URL ?? "https://testsez.miit.uz" },
     },
 
     {
@@ -113,7 +113,7 @@ export default defineConfig({
       testDir: "./tests/sez",
       testMatch: /filter\.spec\.ts/,
       dependencies: ["sez-columns"],
-      use: { ...devices["Desktop Chrome"], baseURL: process.env.SEZ_BASE_URL ?? "https://testsez2.miit.uz" },
+      use: { ...devices["Desktop Chrome"], baseURL: process.env.SEZ_BASE_URL ?? "https://testsez.miit.uz" },
     },
 
     {
@@ -121,28 +121,28 @@ export default defineConfig({
       testDir: "./tests/sez",
       testMatch: /create-zone\.spec\.ts/,
       dependencies: ["sez-filter"],
-      use: { ...devices["Desktop Chrome"], baseURL: process.env.SEZ_BASE_URL ?? "https://testsez2.miit.uz" },
+      use: { ...devices["Desktop Chrome"], baseURL: process.env.SEZ_BASE_URL ?? "https://testsez.miit.uz" },
     },
     {
       name: "sez-create-zone-required-fields",
       testDir: "./tests/sez",
       testMatch: /create-zone-required-fields\.spec\.ts/,
       dependencies: ["sez-create-zone"],
-      use: { ...devices["Desktop Chrome"], baseURL: process.env.SEZ_BASE_URL ?? "https://testsez2.miit.uz" },
+      use: { ...devices["Desktop Chrome"], baseURL: process.env.SEZ_BASE_URL ?? "https://testsez.miit.uz" },
     },
     {
       name: "sez-invest-project",
       testDir: "./tests/sez",
       testMatch: /invest-project\.spec\.ts/,
       dependencies: ["sez-create-zone-required-fields"],
-      use: { ...devices["Desktop Chrome"], baseURL: process.env.SEZ_BASE_URL ?? "https://testsez2.miit.uz" },
+      use: { ...devices["Desktop Chrome"], baseURL: process.env.SEZ_BASE_URL ?? "https://testsez.miit.uz" },
     },
     {
       name: "sez-direksiya-create",
       testDir: "./tests/sez",
       testMatch: /direksiya-create\.spec\.ts/,
       dependencies: ["sez-invest-project"],
-      use: { ...devices["Desktop Chrome"], baseURL: process.env.SEZ_BASE_URL ?? "https://testsez2.miit.uz" },
+      use: { ...devices["Desktop Chrome"], baseURL: process.env.SEZ_BASE_URL ?? "https://testsez.miit.uz" },
     },
 
     // testpmi.miit.uz responds noticeably slower from CI's network path than

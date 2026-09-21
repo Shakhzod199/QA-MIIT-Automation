@@ -92,7 +92,7 @@ The suites under test:
 - export  — the new-export trade dashboard (frontend export.miit.uz, API export.miit.uz)
 - pmi     — the investment-projects app (frontend testpmi.miit.uz, API apiproject.miit.uz)
 - pmt     — the enterprise-monitoring app (frontend testpmt.miit.uz)
-- sez     — the special-economic-zones app (frontend testsez2.miit.uz)
+- sez     — the special-economic-zones app (frontend testsez.miit.uz)
 
 Assign exactly one owner. The tags are not interchangeable, and misrouting costs the QA team credibility with the dev teams:
 

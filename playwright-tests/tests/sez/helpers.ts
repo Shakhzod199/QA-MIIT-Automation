@@ -2,7 +2,7 @@ import { expect, type Locator, type Page } from "@playwright/test";
 
 // Normalize SEZ_BASE_URL to a bare origin: strip a trailing slash and an
 // optional trailing "/login" so callers can append "/login" exactly once.
-const RAW_BASE_URL = process.env.SEZ_BASE_URL ?? "https://testsez2.miit.uz";
+const RAW_BASE_URL = process.env.SEZ_BASE_URL ?? "https://testsez.miit.uz";
 export const BASE_URL = RAW_BASE_URL.replace(/\/+$/, "").replace(/\/login$/, "");
 
 function requireCredential(name: "SEZ_USERNAME" | "SEZ_PASSWORD"): string {
@@ -46,7 +46,7 @@ export const AUTH_FILE = "playwright/.auth/sez-user.json";
  */
 async function openLoginModalViaSecretHatch(page: Page): Promise<void> {
   const hatch = page.locator('button[aria-hidden="true"]');
-  // testsez2.miit.uz can render slowly under load — the default 5s wait is
+  // testsez.miit.uz can render slowly under load — the default 5s wait is
   // too tight (mirrors the same fix in tests/pmi-tests/helpers.ts).
   await expect(hatch).toBeAttached({ timeout: 20000 });
   for (let i = 0; i < 5; i++) {

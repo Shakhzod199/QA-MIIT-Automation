@@ -48,7 +48,7 @@ on:
         type: string
 
 env:
-  SEZ_BASE_URL: https://testsez2.miit.uz
+  SEZ_BASE_URL: https://testsez.miit.uz
 
 jobs:
   test:

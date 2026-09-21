@@ -3,7 +3,7 @@ import { AUTH_FILE, BASE_URL } from "./helpers";
 
 // ---------------------------------------------------------------------------
 // SEZ industrial-zones list filters
-// (testsez2.miit.uz/dashboard/admin/projects/industrial-zones). One test for
+// (testsez.miit.uz/dashboard/admin/projects/industrial-zones). One test for
 // the toolbar search, one that exercises every filter in the right-hand
 // "Filtr" drawer (region, district, directorate, territory boundary, zone
 // category) and verifies clearing.

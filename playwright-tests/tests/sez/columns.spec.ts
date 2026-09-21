@@ -3,7 +3,7 @@ import { AUTH_FILE, BASE_URL } from "./helpers";
 
 // ---------------------------------------------------------------------------
 // SEZ industrial-zones list "Ustunlar" (columns) panel
-// (testsez2.miit.uz/dashboard/admin/projects/industrial-zones). Toggling
+// (testsez.miit.uz/dashboard/admin/projects/industrial-zones). Toggling
 // "Barcha" should check every hideable column, add them all as table
 // headers, and each applied column should actually carry data across the
 // visible rows — not just render as an empty header.
