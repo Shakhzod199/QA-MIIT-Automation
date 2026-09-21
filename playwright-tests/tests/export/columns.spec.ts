@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { AUTH_FILE, BASE_URL } from "./helpers";
+import { AUTH_FILE, BASE_URL, openDashboardTableView } from "./helpers";
 
 test.use({
   // Reuse the session captured once by auth.setup.ts instead of logging in per test.
@@ -34,6 +34,7 @@ const ICON_FLAG_COLUMNS: { label: string; filterOptionText: string }[] = [
 test.describe("Export — dashboard Ustunlar (columns)", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(`${BASE_URL}/dashboard`);
+    await openDashboardTableView(page);
     const table = page.locator(".n-data-table").first();
     await expect(table).toBeVisible({ timeout: 20000 });
     await expect(

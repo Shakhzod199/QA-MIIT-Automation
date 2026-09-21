@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { AUTH_FILE, BASE_URL } from "./helpers";
+import { AUTH_FILE, BASE_URL, openDashboardTableView } from "./helpers";
 
 test.use({
   // Reuse the session captured once by auth.setup.ts instead of logging in per test.
@@ -12,6 +12,7 @@ test.use({
 // The dashboard's stat cards/map widgets fetch and animate in, so the companies
 // table isn't interactive immediately. Wait for its first real row first.
 async function waitForTableReady(page: Page) {
+  await openDashboardTableView(page);
   const table = page.locator(".n-data-table");
   await expect(table).toBeVisible();
   await expect(table.locator(".n-data-table-tbody .n-data-table-tr").first()).toBeVisible({ timeout: 15000 });

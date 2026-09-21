@@ -21,6 +21,30 @@ export const PASSWORD = requireCredential("EXPORT_PASSWORD");
 // reuse it via test.use({ storageState: AUTH_FILE }) instead of logging in again.
 export const AUTH_FILE = "playwright/.auth/user.json";
 
+/**
+ * The dashboard can persist its map/list preference in the authenticated
+ * session. Table-focused tests must explicitly select the list view because
+ * the map view does not mount the companies table at all.
+ */
+export async function openDashboardTableView(page: Page): Promise<void> {
+  const mapSwitch = page.getByRole("switch", {
+    name: "Kartani ko'rsatish/yashirish",
+  });
+  const listView = page.getByRole("button", {
+    name: /Ro['’‘ʻʼ]?yxatda ko['’‘ʻʼ]?rish/i,
+  });
+
+  // The table can briefly expose a loading/empty row while the map is still
+  // active, so a row is not a reliable signal that list mode is ready. Use
+  // the dashboard's explicit map switch to decide whether the list control
+  // must be clicked.
+  await mapSwitch.waitFor({ state: "visible", timeout: 15000 });
+  if (await mapSwitch.isChecked()) {
+    await listView.waitFor({ state: "visible", timeout: 15000 });
+    await listView.click();
+  }
+}
+
 /** How long the OneID button must be held before it reveals the modal. */
 const HOLD_MS = 5000;
 
