@@ -22,15 +22,15 @@ export const PASSWORD = requireCredential("SEZ_PASSWORD");
 const ESCAPED_BASE_URL = BASE_URL.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /**
- * The dashboard lands here after login, but not at a bare "/dashboard/" —
+ * The dashboard lands here after login, with or without a trailing slash —
  * it now carries default filter query params (observed:
  * "?zone_category_ids=1,5,6,4&page=1&per_page=20"). An exact-string
- * toHaveURL(`${BASE_URL}/dashboard/`) never matches that and made a
+ * toHaveURL(`${BASE_URL}/dashboard/`) too strict and made a
  * genuinely successful login look like a rejected one — the login API call
  * itself returned 200 with a valid token every time this was chased down.
  * Match the path and allow any (or no) query string instead.
  */
-export const DASHBOARD_URL_RE = new RegExp(`^${ESCAPED_BASE_URL}/dashboard/(\\?.*)?$`);
+export const DASHBOARD_URL_RE = new RegExp(`^${ESCAPED_BASE_URL}/dashboard/?(\\?.*)?$`);
 
 // Where auth.setup.ts caches the authenticated session. The data-driven specs
 // (columns/filter) reuse it via test.use({ storageState: AUTH_FILE }) instead

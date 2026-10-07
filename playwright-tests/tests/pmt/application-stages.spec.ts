@@ -11,7 +11,8 @@ import { BASE_URL } from "./helpers";
 test.describe("PMT — Ariza bosqichlari (settings/application-stages)", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(`${BASE_URL}/settings/application-stages`);
-    await expect(page.getByText("ID", { exact: true })).toBeVisible({ timeout: 20000 });
+    await expect(page.getByRole("heading", { name: "Ariza bosqichlari" })).toBeVisible({ timeout: 20000 });
+    await expect(page.getByRole("button", { name: "Yangi bosqich" })).toBeVisible({ timeout: 20000 });
   });
 
   test("Add-stage modal exposes Nomi, Tartib raqami, Asosiy bosqich and Rad etilganda qaytish bosqichi", async ({

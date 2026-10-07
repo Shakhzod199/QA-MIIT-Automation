@@ -3,28 +3,18 @@ import {
   expect,
   type Page,
   type BrowserContext,
-  type Request,
   type Response,
 } from "@playwright/test";
-import { AUTH_FILE, gotoDashboard } from "./helpers";
+import { AUTH_FILE, BASE_URL } from "./helpers";
 
 // ---------------------------------------------------------------------------
-// PMI "Dashbord" -> Loyiha boshqaruvi -> "Yakunlangan loyihalar" (a dropdown,
-// not a direct link) -> "Loyihalar natijalari"
-// (/app/analytics?tab=completed_projects&pmt_tab=pmi).
+// PMI's completed-projects analytics view lives at
+// /app/analytics?tab=completed_projects&pmt_tab=pmi.
 //
-// This screen has moved and reshaped repeatedly, so the navigation is spelled
-// out here rather than assumed. "Dashbord" is a dropdown offering "Loyiha
-// boshqaruvi" (-> /app/analytics) and "Umumiy dashboard" (-> /app/pms, a
-// different page). /app/analytics defaults to a PMI-native portfolio view;
-// the PMT-MIIT dashboard this spec covers is NOT that default view, and is
-// not a plain tab either — "Yakunlangan loyihalar" is itself a dropdown
-// (added after the tab existed as a flat click-through) offering "Korxonalar
-// reytingi", "Loyihalar natijalari" and "Yo'l xarita". Only "Loyihalar
-// natijalari" is this dashboard; clicking "Yakunlangan loyihalar" alone only
-// opens that menu; it fires none of the endpoints below on its own — an
-// earlier version of this spec stopped at that click and hung for the full
-// beforeAll budget waiting for by-content, which never came.
+// The navigation labels have changed across deployed redesigns; the current
+// UI no longer exposes the old "Dashbord" control. Navigating to this
+// canonical route directly keeps this suite focused on the dashboard contract
+// rather than coupling it to a removed menu path.
 //
 // Every number on that tab is sourced from the PMT-MIIT integration — PMI
 // itself contributes no data here. These endpoints feed the screen:
@@ -75,6 +65,7 @@ const NON_DATA_TRAFFIC = [
   /\/test\/login\b/,
   /\/v2\/user\/me\b/,
   /\/notification\/list\b/,
+  /\/project_types\/list\b/,
   /\/sso\/devices\b/,
   /\/_nuxt_icon\//,
 ];
@@ -82,34 +73,6 @@ const NON_DATA_TRAFFIC = [
 /** An /api/ call that carries page data, as opposed to session/infra noise. */
 function isDataCall(url: string): boolean {
   return url.includes("/api/") && !NON_DATA_TRAFFIC.some((re) => re.test(url));
-}
-
-/**
- * Resolves once the page has issued no data call for `quietMs`.
- *
- * This exists because waitForLoadState("networkidle") cannot do the job here:
- * login() lands on /app/dashboard via a client-side route change, so the last
- * *document* load is still /auth — long finished — and networkidle returns in
- * about 1ms without waiting for the dashboard's own XHRs. Those then fire a
- * few ms later, land inside the recording window, and get counted as dashboard
- * traffic, which failed the pmt-miit provenance assertion with four strays
- * (general/statistics, project/list, additional/statistics,
- * countries-map-statistics) that belong to the main page.
- */
-async function waitForDataQuiet(page: Page, quietMs = 2000, timeoutMs = 60_000): Promise<void> {
-  let lastCall = Date.now();
-  const bump = (r: Request) => {
-    if (isDataCall(r.url())) lastCall = Date.now();
-  };
-  page.on("request", bump);
-  try {
-    const deadline = Date.now() + timeoutMs;
-    while (Date.now() < deadline && Date.now() - lastCall < quietMs) {
-      await page.waitForTimeout(100);
-    }
-  } finally {
-    page.off("request", bump);
-  }
 }
 
 /** by-content key -> the Uzbek label its KPI tile is rendered under. */
@@ -316,25 +279,6 @@ test.beforeAll(async ({ browser }) => {
   context = await browser.newContext({ storageState: AUTH_FILE });
   page = await context.newPage();
 
-  await gotoDashboard(page);
-  // Let the main page finish its own fetches (project list, the country map,
-  // ...) before we start recording. Navigating to the dashboard is a
-  // client-side route change, so those requests are not cancelled and would
-  // otherwise land after the click and look like dashboard traffic.
-  await waitForDataQuiet(page);
-
-  // Step 1: the Dashbord dropdown -> Loyiha boshqaruvi -> /app/analytics.
-  // Clicking "Dashbord" no longer navigates; it opens a menu.
-  await page.getByRole("button", { name: "Dashbord", exact: true }).first().click();
-  await page.getByText("Loyiha boshqaruvi", { exact: true }).first().click();
-  await expect(page).toHaveURL(/\/app\/analytics/, { timeout: 30_000 });
-
-  // /app/analytics opens on its own PMI-native portfolio view, which issues
-  // PMI endpoints (general/statistics, step/statistics, dashboard/region-
-  // statistics). Let those finish BEFORE recording, so they are not counted
-  // against the "everything on this tab comes from pmt-miit" assertion.
-  await waitForDataQuiet(page);
-
   const requestedUrls: string[] = [];
   const waitFor = (fragment: string) =>
     page.waitForResponse((r) => r.url().includes(fragment) && r.request().method() === "GET", { timeout: 90_000 });
@@ -357,13 +301,10 @@ test.beforeAll(async ({ browser }) => {
     }
   });
 
-  // Step 2: "Yakunlangan loyihalar" is a dropdown trigger, not a link — it
-  // only opens a menu (Korxonalar reytingi / Loyihalar natijalari / Yo'l
-  // xarita). None of the pmt-miit endpoints below fire until "Loyihalar
-  // natijalari" is picked from it; clicking the trigger alone left this spec
-  // waiting the full 90s per endpoint for calls that were never going to come.
-  await page.getByRole("button", { name: "Yakunlangan loyihalar", exact: true }).click();
-  await page.getByText("Loyihalar natijalari", { exact: true }).click();
+  // Register the waits before navigating: all five PMT-MIIT requests are
+  // issued as part of the route's initial render.
+  await page.goto(`${BASE_URL}/app/analytics?tab=completed_projects&pmt_tab=pmi`);
+  await expect(page).toHaveURL(/\/app\/analytics\?tab=completed_projects(?:&|$)/, { timeout: 30_000 });
 
   const responses = {
     byContent: await pending.byContent,

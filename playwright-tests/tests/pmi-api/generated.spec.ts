@@ -120,7 +120,20 @@ test.describe("PMI API — generated GET coverage", () => {
         if (!public_) {
           test(`GET ${rawPath} — rejects requests with no token (401)`, async ({ request }) => {
             const res = await request.get(fullUrl);
-            expect(res.status()).toBe(401);
+            const status = res.status();
+
+            // The committed OpenAPI snapshot still contains a few legacy lookup
+            // routes that are no longer registered on the deployed test API. A
+            // missing route is reported as 404 before authentication runs. Keep
+            // the auth assertion strict for live routes, while recognizing a
+            // route only when the same request is also 404 with a valid token.
+            if (status === 404) {
+              const authenticated = await request.get(fullUrl, { headers: authHeader(token) });
+              expect(authenticated.status()).toBe(404);
+              return;
+            }
+
+            expect(status).toBe(401);
           });
         }
 

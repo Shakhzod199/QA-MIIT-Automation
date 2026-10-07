@@ -35,6 +35,7 @@ export const AUTH_FILE = "playwright/.auth/pmi-user.json";
  */
 export async function gotoDashboard(page: Page): Promise<void> {
   await page.goto(`${BASE_URL}/app/dashboard`);
+  await expect(page.getByText("Loyihalar", { exact: true }).first()).toBeVisible({ timeout: 30000 });
 }
 
 /** How long the OneID button must be held before it reveals the modal. */

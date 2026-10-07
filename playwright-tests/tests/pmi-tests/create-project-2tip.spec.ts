@@ -21,29 +21,49 @@ import { gotoDashboard } from "./helpers";
  * could otherwise collide — e.g. the "Loyiha turi" value contains "Davlat").
  */
 function formItem(page: Page, label: string): Locator {
+  const escapedLabel = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const labelPattern = escapedLabel.replace(/'/g, "['’]");
   return page
+    .locator("section")
+    .filter({ has: page.getByText("Loyiha pasporti", { exact: true }) })
+    .first()
     .locator(".n-form-item")
-    .filter({ has: page.locator(".n-form-item-label", { hasText: label }) })
-    .first();
+    .filter({ has: page.locator(".n-form-item-label__text").filter({ hasText: new RegExp(`^\\s*${labelPattern}(?:\\s*\\*|\\s*(?:Hammasini tanlash|Aniqlanmoqda))?\\s*$`) }) })
+    .last();
 }
 
-/** Pick a random country in the first *enabled* "Davlat" select. */
+/** Pick a stable country whose dependent Investor list is populated. */
 async function selectRandomDavlat(page: Page) {
   // Two "Davlat" fields exist; the top one is auto-derived/disabled, so target
   // the enabled selection.
   await page
+    .locator("section")
+    .filter({ has: page.getByText("Loyiha pasporti", { exact: true }) })
+    .first()
     .locator(".n-form-item")
     .filter({ has: page.locator(".n-form-item-label", { hasText: "Davlat" }) })
     .locator(".n-base-selection:not(.n-base-selection--disabled)")
-    .first()
+    .last()
     .click();
-  // Exclude the non-country "Aniqlanmoqda" placeholder option.
-  const options = page
-    .locator(".n-base-select-option")
-    .filter({ hasNotText: "Aniqlanmoqda" });
-  await expect(options.first()).toBeVisible();
-  const count = await options.count();
-  await options.nth(Math.floor(Math.random() * count)).click();
+  const options = page.locator(".n-base-select-menu:visible .n-base-select-option").filter({
+    hasNotText: "Aniqlanmoqda",
+  });
+  await expect(options.first()).toBeVisible({ timeout: 25000 });
+  const target = "Turkiya Respublikasi";
+  const input = page
+    .locator("section")
+    .filter({ has: page.getByText("Loyiha pasporti", { exact: true }) })
+    .first()
+    .locator(".n-form-item")
+    .filter({ has: page.locator(".n-form-item-label", { hasText: "Davlat" }) })
+    .locator(".n-base-selection:not(.n-base-selection--disabled)")
+    .last()
+    .locator("input")
+    .first();
+  const typable = await input.evaluate((el) => !(el as HTMLInputElement).readOnly && !(el as HTMLInputElement).disabled).catch(() => false);
+  if (typable) await input.pressSequentially(target, { delay: 50 });
+  await expect(options.filter({ hasText: target }).first()).toBeVisible({ timeout: 25000 });
+  await options.filter({ hasText: target }).first().click();
   // Davlat is a *multiple* select: its menu stays open after a pick. Close it
   // so the lingering menu's options don't shadow the next field's dropdown.
   await page.keyboard.press("Escape");
@@ -139,6 +159,7 @@ test.describe("PMI — Loyihalar CRUD", () => {
     await page.getByText("Loyihalar", { exact: true }).first().click();
     await page.getByRole("link", { name: "Loyiha qo'shish" }).click();
     await expect(page).toHaveURL(/\/app\/projects\/create/, { timeout: 15000 });
+    await expect(page.getByText("Loyiha pasporti", { exact: true })).toBeVisible({ timeout: 30000 });
     await expect(formItem(page, "Loyiha turi")).toBeVisible();
 
     // ── Loyiha turi (tree-select) → reveals the conditional fields ───────
@@ -159,7 +180,7 @@ test.describe("PMI — Loyihalar CRUD", () => {
 
     // ── 1. Loyiha nomi (unique so reruns don't collide) ──────────────────
     await formItem(page, "Loyiha nomi")
-      .locator("input")
+      .locator("input:visible")
       .first()
       .fill(`Avtotest loyiha ${Date.now()}`);
 
@@ -170,7 +191,7 @@ test.describe("PMI — Loyihalar CRUD", () => {
     await selectFirstOption(page, "Investor");
 
     // ── 4. Loyiha qiymati ────────────────────────────────────────────────
-    await formItem(page, "Loyiha qiymati").locator("input").first().fill("1.2");
+    await formItem(page, "Loyiha qiymati").locator("input:visible").first().fill("1.2");
 
     // ── 5. Soha guruhi: first option (drives the Soha list) ──────────────
     // Removed from the PMI form at the client's request (2026-07-23). Kept
@@ -189,11 +210,8 @@ test.describe("PMI — Loyihalar CRUD", () => {
     // ── 8. Tuman/Shahar ──────────────────────────────────────────────────
     await selectMultiOption(page, "Tuman/Shahar", "Asaka");
 
-    // ── 9. INN ───────────────────────────────────────────────────────────
-    await formItem(page, "INN").locator("input").first().fill("310161998");
-
     // ── Toggle the "Aniqlanmoqda" switch next to "Mahalliy hamkor" ───────
-    await formItem(page, "Mahalliy hamkor").locator(".n-switch").first().click();
+    await formItem(page, "Mahalliy hamkor").getByRole("switch").click();
 
     // ── 10. Biriktirilgan mas'ul rahbarlar: first option ─────────────────
     await selectFirstOption(page, "Biriktirilgan mas'ul rahbarlar");
@@ -210,13 +228,15 @@ test.describe("PMI — Loyihalar CRUD", () => {
     // ── 14. ISSV mas'ul xodim: first option ──────────────────────────────
     await selectFirstOption(page, "ISSV mas'ul xodim");
 
+    // 2-tip requires the roadmap's source-document metadata before Save.
+    await selectFirstOption(page, "Asosiy hujjat raqami");
+
     // ── 15. Saqlash → expect a 200 from the create POST ──────────────────
     const createResponse = page.waitForResponse(
       (resp) =>
         resp.request().method() === "POST" && /(project|loyiha)/i.test(resp.url())
     );
     await page.getByRole("button", { name: "Saqlash", exact: true }).click();
-
     const response = await createResponse;
     expect(response.status()).toBe(200);
   });

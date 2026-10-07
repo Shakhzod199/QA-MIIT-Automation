@@ -10,26 +10,47 @@ import { gotoDashboard } from "./helpers";
 
 /** The `.n-form-item` matched by its LABEL text. */
 export function formItem(page: Page, label: string): Locator {
+  const escapedLabel = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const labelPattern = escapedLabel.replace(/'/g, "['’]");
   return page
+    .locator("section")
+    .filter({ has: page.getByText("Loyiha pasporti", { exact: true }) })
+    .first()
     .locator(".n-form-item")
-    .filter({ has: page.locator(".n-form-item-label", { hasText: label }) })
-    .first();
+    .filter({ has: page.locator(".n-form-item-label__text").filter({ hasText: new RegExp(`^\\s*${labelPattern}(?:\\s*\\*|\\s*(?:Hammasini tanlash|Aniqlanmoqda))?\\s*$`) }) })
+    .last();
 }
 
-/** Pick a random country in the first *enabled* "Davlat" select. */
+/** Pick a stable country whose dependent Investor list is populated. */
 export async function selectRandomDavlat(page: Page) {
   await page
+    .locator("section")
+    .filter({ has: page.getByText("Loyiha pasporti", { exact: true }) })
+    .first()
     .locator(".n-form-item")
     .filter({ has: page.locator(".n-form-item-label", { hasText: "Davlat" }) })
     .locator(".n-base-selection:not(.n-base-selection--disabled)")
-    .first()
+    .last()
     .click();
-  const options = page
-    .locator(".n-base-select-option")
-    .filter({ hasNotText: "Aniqlanmoqda" });
-  await expect(options.first()).toBeVisible();
-  const count = await options.count();
-  await options.nth(Math.floor(Math.random() * count)).click();
+  const options = page.locator(".n-base-select-menu:visible .n-base-select-option").filter({
+    hasNotText: "Aniqlanmoqda",
+  });
+  await expect(options.first()).toBeVisible({ timeout: 25000 });
+  const target = "Turkiya Respublikasi";
+  const input = page
+    .locator("section")
+    .filter({ has: page.getByText("Loyiha pasporti", { exact: true }) })
+    .first()
+    .locator(".n-form-item")
+    .filter({ has: page.locator(".n-form-item-label", { hasText: "Davlat" }) })
+    .locator(".n-base-selection:not(.n-base-selection--disabled)")
+    .last()
+    .locator("input")
+    .first();
+  const typable = await input.evaluate((el) => !(el as HTMLInputElement).readOnly && !(el as HTMLInputElement).disabled).catch(() => false);
+  if (typable) await input.pressSequentially(target, { delay: 50 });
+  await expect(options.filter({ hasText: target }).first()).toBeVisible({ timeout: 25000 });
+  await options.filter({ hasText: target }).first().click();
   await page.keyboard.press("Escape");
 }
 
@@ -75,24 +96,38 @@ export async function selectMultiOption(page: Page, label: string, optionText: s
 }
 
 /** Single n-select: open and pick the first real option. Skips disabled fields. */
-export async function selectFirstOption(page: Page, label: string): Promise<boolean> {
-  const selection = formItem(page, label)
-    .locator(".n-base-selection:not(.n-base-selection--disabled)")
-    .first();
+export async function selectFirstOption(page: Page, label: string, required = false): Promise<boolean> {
+  const selection = formItem(page, label).locator(".n-base-selection").first();
   if ((await selection.count()) === 0) return false;
+  if (required) {
+    await expect(selection, `"${label}" should become enabled`).not.toHaveClass(/n-base-selection--disabled/, {
+      timeout: 25000,
+    });
+  } else if (await selection.evaluate((el) => el.classList.contains("n-base-selection--disabled"))) {
+    return false;
+  }
 
   await expect(page.locator(".n-base-select-menu:visible")).toHaveCount(0);
   await selection.scrollIntoViewIfNeeded();
-  await selection.click();
-  const options = page
-    .locator(".n-base-select-menu:visible .n-base-select-option")
-    .filter({ hasNotText: "Aniqlanmoqda" });
-  // Options load from the backend and can be slow — wait longer than the
-  // default 5s before giving up.
-  await expect(options.first()).toBeVisible({ timeout: 25000 });
-  await options.first().click();
-  await page.keyboard.press("Escape");
-  return true;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    await expect(page.locator(".n-base-select-menu:visible")).toHaveCount(0);
+    await selection.click();
+    const options = page
+      .locator(".n-base-select-menu:visible .n-base-select-option")
+      .filter({ hasNotText: "Aniqlanmoqda" });
+    const ready = await options.first().waitFor({ state: "visible", timeout: 8000 }).then(() => true).catch(() => false);
+    if (!ready) {
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(500);
+      continue;
+    }
+    const firstOption = options.first();
+    const alreadySelected = await firstOption.evaluate((el) => el.classList.contains("n-base-select-option--selected"));
+    if (!alreadySelected) await firstOption.click();
+    await page.keyboard.press("Escape");
+    return true;
+  }
+  throw new Error(`No selectable options loaded for "${label}"`);
 }
 
 /**
@@ -103,7 +138,7 @@ export async function selectFirstOption(page: Page, label: string): Promise<bool
 export async function fillDate(page: Page, label: string, dateStr: string) {
   const m = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   const value = m ? `${m[3]}.${m[2]}.${m[1]}` : dateStr;
-  const input = formItem(page, label).locator("input").first();
+  const input = formItem(page, label).locator("input:visible").first();
   await input.click();
   await input.fill(value);
   await page.keyboard.press("Enter");
@@ -126,6 +161,7 @@ export async function createProject1tip(page: Page): Promise<CreatedProject> {
   await page.getByText("Loyihalar", { exact: true }).first().click();
   await page.getByRole("link", { name: "Loyiha qo'shish" }).click();
   await expect(page).toHaveURL(/\/app\/projects\/create/, { timeout: 15000 });
+  await expect(page.getByText("Loyiha pasporti", { exact: true })).toBeVisible({ timeout: 30000 });
   await expect(formItem(page, "Loyiha turi")).toBeVisible();
 
   const fieldsBefore = await page.locator(".n-form-item").count();
@@ -141,13 +177,13 @@ export async function createProject1tip(page: Page): Promise<CreatedProject> {
     .toBeGreaterThan(fieldsBefore);
 
   await formItem(page, "Loyiha nomi")
-    .locator("input")
+    .locator("input:visible")
     .first()
     .fill(`Avtotest loyiha ${Date.now()}`);
 
   await selectRandomDavlat(page);
   await selectFirstOption(page, "Investor");
-  await formItem(page, "Loyiha qiymati").locator("input").first().fill("1.2");
+  await formItem(page, "Loyiha qiymati").locator("input:visible").first().fill("1.2");
   await selectFirstOption(page, "Soha");
 
   const tuman = formItem(page, "Tuman/Shahar").locator(".n-base-selection").first();
@@ -156,8 +192,12 @@ export async function createProject1tip(page: Page): Promise<CreatedProject> {
   await expect(tuman).not.toHaveClass(/n-base-selection--disabled/);
   await selectMultiOption(page, "Tuman/Shahar", "Asaka");
 
-  await formItem(page, "INN").locator("input").first().fill("310161998");
-  await formItem(page, "Mahalliy hamkor").locator(".n-switch").first().click();
+  const innSelection1 = formItem(page, "INN").locator(".n-base-selection").first();
+  await innSelection1.click();
+  await page.keyboard.type("310161998");
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("Escape");
+  await formItem(page, "Mahalliy hamkor").getByRole("switch").click();
 
   await selectFirstOption(page, "Biriktirilgan mas'ul rahbarlar");
   await selectFirstOption(page, "Tashabbuskor");
@@ -189,6 +229,7 @@ export async function createProject2tip(page: Page): Promise<CreatedProject> {
   await page.getByText("Loyihalar", { exact: true }).first().click();
   await page.getByRole("link", { name: "Loyiha qo'shish" }).click();
   await expect(page).toHaveURL(/\/app\/projects\/create/, { timeout: 15000 });
+  await expect(page.getByText("Loyiha pasporti", { exact: true })).toBeVisible({ timeout: 30000 });
   await expect(formItem(page, "Loyiha turi")).toBeVisible();
 
   const fieldsBefore = await page.locator(".n-form-item").count();
@@ -208,7 +249,7 @@ export async function createProject2tip(page: Page): Promise<CreatedProject> {
 
   await selectRandomDavlat(page);
   await selectFirstOption(page, "Investor");
-  await formItem(page, "Loyiha qiymati").locator("input").first().fill("1.2");
+  await formItem(page, "Loyiha qiymati").locator("input:visible").first().fill("1.2");
   // "Soha guruhi" removed from the PMI form at the client's request
   // (2026-07-23). Kept commented — restore if the field is brought back.
   // expect(await selectFirstOption(page, "Soha guruhi")).toBe(true);
@@ -220,14 +261,15 @@ export async function createProject2tip(page: Page): Promise<CreatedProject> {
   await expect(tuman).not.toHaveClass(/n-base-selection--disabled/);
   await selectMultiOption(page, "Tuman/Shahar", "Asaka");
 
-  await formItem(page, "INN").locator("input").first().fill("310161998");
-  await formItem(page, "Mahalliy hamkor").locator(".n-switch").first().click();
+  await formItem(page, "Mahalliy hamkor").getByRole("switch").click();
 
   await selectFirstOption(page, "Biriktirilgan mas'ul rahbarlar");
   await selectFirstOption(page, "Tashabbuskor");
   await selectFirstOption(page, "ISSV mas'ul departament");
   await selectFirstOption(page, "ISSV mas'ul o'rinbosari");
   await selectFirstOption(page, "ISSV mas'ul xodim");
+
+  await selectFirstOption(page, "Asosiy hujjat raqami");
 
   const createResponse = page.waitForResponse(
     (resp) =>
@@ -250,6 +292,7 @@ export async function createProject3tip(page: Page): Promise<CreatedProject> {
   await page.getByText("Loyihalar", { exact: true }).first().click();
   await page.getByRole("link", { name: "Loyiha qo'shish" }).click();
   await expect(page).toHaveURL(/\/app\/projects\/create/, { timeout: 15000 });
+  await expect(page.getByText("Loyiha pasporti", { exact: true })).toBeVisible({ timeout: 30000 });
   await expect(formItem(page, "Loyiha turi")).toBeVisible();
 
   const fieldsBefore = await page.locator(".n-form-item").count();
@@ -269,7 +312,7 @@ export async function createProject3tip(page: Page): Promise<CreatedProject> {
 
   await selectRandomDavlat(page);
   await selectFirstOption(page, "Investor");
-  await formItem(page, "Loyiha qiymati").locator("input").first().fill("1.2");
+  await formItem(page, "Loyiha qiymati").locator("input:visible").first().fill("1.2");
   await selectFirstOption(page, "Soha guruhi");
   await selectFirstOption(page, "Soha");
 
@@ -304,6 +347,7 @@ export async function createProject4tip(page: Page): Promise<CreatedProject> {
   await page.getByText("Loyihalar", { exact: true }).first().click();
   await page.getByRole("link", { name: "Loyiha qo'shish" }).click();
   await expect(page).toHaveURL(/\/app\/projects\/create/, { timeout: 15000 });
+  await expect(page.getByText("Loyiha pasporti", { exact: true })).toBeVisible({ timeout: 30000 });
   await expect(formItem(page, "Loyiha turi")).toBeVisible();
 
   const fieldsBefore = await page.locator(".n-form-item").count();
@@ -332,7 +376,7 @@ export async function createProject4tip(page: Page): Promise<CreatedProject> {
     .fill(`Avtotest loyiha ${Date.now()}`);
 
   await selectRandomDavlat(page);
-  await formItem(page, "Loyiha qiymati").locator("input").first().fill("1.2");
+  await formItem(page, "Loyiha qiymati").locator("input:visible").first().fill("1.2");
   await selectFirstOption(page, "Soha");
 
   const tuman = formItem(page, "Tuman/Shahar").locator(".n-base-selection").first();
@@ -341,13 +385,17 @@ export async function createProject4tip(page: Page): Promise<CreatedProject> {
   await expect(tuman).not.toHaveClass(/n-base-selection--disabled/);
   await selectMultiOption(page, "Tuman/Shahar", "Asaka");
 
-  await formItem(page, "INN").locator("input").first().fill("310161998");
+  const innSelection3 = formItem(page, "INN").locator(".n-base-selection").first();
+  await innSelection3.click();
+  await page.keyboard.type("310161998");
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("Escape");
 
   await selectFirstOption(page, "Biriktirilgan mas'ul rahbarlar");
   await selectFirstOption(page, "Tashabbuskor");
-  await selectFirstOption(page, "ISSV mas'ul departament");
+  await selectFirstOption(page, "ISSV mas'ul departament", true);
   await selectFirstOption(page, "ISSV mas'ul o'rinbosari");
-  await selectFirstOption(page, "ISSV mas'ul xodim");
+  await selectFirstOption(page, "ISSV mas'ul xodim", true);
 
   const createResponse = page.waitForResponse(
     (resp) =>

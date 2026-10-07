@@ -95,11 +95,12 @@ function openMenuOptions(page: Page): Locator {
   return page.locator(".n-base-select-menu:visible").locator(".n-base-select-option");
 }
 
-// KPI header cards. Money values ("$ 7 944.0 mln", "$-15 859.0 mln") are the
-// ones that react to filters; the two country-count badges next to them do not
-// — see the documented backend bug at the bottom of this file.
+// KPI header cards. The live page renders their values as tabular-nums spans.
+// Money values ("$ 7 944.0 mln", "$-15 859.0 mln") are the ones that react
+// to filters; the two country-count badges next to them do not — see the
+// documented backend bug at the bottom of this file.
 function kpiValues(page: Page): Locator {
-  return page.locator(".text-base.font-bold.leading-tight");
+  return page.locator("header span.text-xl.font-semibold.tabular-nums");
 }
 
 async function moneyStats(page: Page): Promise<string[]> {
@@ -488,7 +489,11 @@ test.describe("Analitika — Filtrlar panel", () => {
     await gotoAnalytics(page);
 
     const countBadges = async () =>
-      (await kpiValues(page).allTextContents()).map((t) => t.trim()).filter((t) => /^\d+$/.test(t));
+      (
+        await page.locator("header span.flex.items-center.gap-1.text-sm.font-semibold").allTextContents()
+      )
+        .map((t) => t.trim())
+        .filter((t) => /^\d+$/.test(t));
 
     const before = await countBadges();
     expect(before.length, "expected the two country-count badges").toBeGreaterThan(0);
