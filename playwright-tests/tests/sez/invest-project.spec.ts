@@ -1,5 +1,11 @@
 import { test, expect, type Page, type Locator } from "@playwright/test";
-import { AUTH_FILE, BASE_URL, formItem, selectOption } from "./helpers";
+import {
+  AUTH_FILE,
+  BASE_URL,
+  deleteNamedItem,
+  formItem,
+  selectOption,
+} from "./helpers";
 
 // ---------------------------------------------------------------------------
 // SEZ — Investitsiya loyihalari (create an investment project).
@@ -15,6 +21,8 @@ import { AUTH_FILE, BASE_URL, formItem, selectOption } from "./helpers";
 // ---------------------------------------------------------------------------
 
 test.use({ storageState: AUTH_FILE });
+
+let createdProjectName: string | undefined;
 
 /**
  * Opens a tree-select field and picks the first selectable (non-disabled)
@@ -67,10 +75,24 @@ async function attachAvailableLotIfAny(page: Page): Promise<boolean> {
 }
 
 test.describe("SEZ — Investitsiya loyihalari", () => {
+  test.afterEach(async ({ page }) => {
+    if (!createdProjectName) return;
+
+    const name = createdProjectName;
+    createdProjectName = undefined;
+    await deleteNamedItem(
+      page,
+      "/dashboard/admin/projects/investment-applications",
+      name
+    );
+  });
+
   test("creates a new investment project filling the Pasport tab step by step", async ({
     page,
   }) => {
     test.setTimeout(120000);
+
+    createdProjectName = `Avtotest loyiha ${Date.now()}`;
 
     await page.goto(`${BASE_URL}/dashboard/admin/projects/investment-applications`);
     await page.getByRole("button", { name: "Yaratish", exact: true }).click();
@@ -80,10 +102,7 @@ test.describe("SEZ — Investitsiya loyihalari", () => {
     await selectOption(page, "Investor");
     // "Davlat" auto-fills from the chosen Investor — left untouched.
 
-    await formItem(page, "Loyiha nomi")
-      .locator("input")
-      .first()
-      .fill(`Avtotest loyiha ${Date.now()}`);
+    await formItem(page, "Loyiha nomi").locator("input").first().fill(createdProjectName);
 
     await selectOption(page, "Soha");
 

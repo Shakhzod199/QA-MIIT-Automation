@@ -1,5 +1,11 @@
 import { test, expect, type Page } from "@playwright/test";
-import { AUTH_FILE, BASE_URL, formItem, selectOption } from "./helpers";
+import {
+  AUTH_FILE,
+  BASE_URL,
+  deleteNamedItem,
+  formItem,
+  selectOption,
+} from "./helpers";
 
 // ---------------------------------------------------------------------------
 // SEZ — Iqtisodiy va sanoat zonalarini yaratish (create an industrial zone).
@@ -9,6 +15,8 @@ import { AUTH_FILE, BASE_URL, formItem, selectOption } from "./helpers";
 // ---------------------------------------------------------------------------
 
 test.use({ storageState: AUTH_FILE });
+
+let createdZoneName: string | undefined;
 
 /**
  * Draws a triangle on the Leaflet map and finishes it. Clicking back on the
@@ -45,17 +53,27 @@ async function drawTriangle(
 }
 
 test.describe("SEZ — Iqtisodiy va sanoat zonalarini yaratish", () => {
+  test.afterEach(async ({ page }) => {
+    if (!createdZoneName) return;
+
+    const name = createdZoneName;
+    createdZoneName = undefined;
+    await deleteNamedItem(page, "/dashboard/admin/projects/industrial-zones", name);
+  });
+
   test("creates a new industrial zone with a zone and a lot drawn on the map", async ({
     page,
   }) => {
     test.setTimeout(120000);
+
+    createdZoneName = `Avtotest zona ${Date.now()}`;
 
     await page.goto(`${BASE_URL}/dashboard/admin/projects/industrial-zones`);
     await page.getByRole("button", { name: "Yaratish", exact: true }).click();
     await expect(page).toHaveURL(/\/industrial-zones\/create/, { timeout: 15000 });
 
     // ── Passport tab: 7 required fields ──────────────────────────────────
-    await formItem(page, "Nomi").locator("input").first().fill(`Avtotest zona ${Date.now()}`);
+    await formItem(page, "Nomi").locator("input").first().fill(createdZoneName);
 
     // "Zonani tanlang" only offers options that already have a top-level zone
     // under the chosen region+directorate — most random combos show "No
